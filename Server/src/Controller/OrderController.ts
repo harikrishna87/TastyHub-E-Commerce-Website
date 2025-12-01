@@ -210,7 +210,7 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
 
       if (user.fcmToken) {
         const title = 'Order Status Updated';
-        const body = `Your order ${order._id} \n Status has been updated to "${status}". \n Thank you for shopping with us!`;
+        const body = `Your order ${order._id} \nStatus has been updated to "${status}". \nThank you for shopping with us!`;
         
         const message = {
           notification: { title, body },
