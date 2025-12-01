@@ -10,12 +10,12 @@ router.patch('/:id/read', protect as express.RequestHandler, markNotificationRea
 router.delete("/delete/:id", protect as express.RequestHandler, deleteNotification as express.RequestHandler);
 
 router.post('/deals/schedule', protect as express.RequestHandler, async (req, res) => {
-  try {
-    await sendScheduledDealsNotifications();
-    res.status(200).json({ success: true, message: 'Scheduled deals notifications sent' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
+    try {
+        await sendScheduledDealsNotifications();
+        res.status(200).json({ success: true, message: 'Scheduled deals notifications sent' });
+    } catch {
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
 });
 
 export default router;

@@ -7,6 +7,8 @@ import payment_router from "./Routes/Razorpay_payment"
 import product_router from "./Routes/ProductRoutes"
 import favorite_router from "./Routes/FavoritesRoutes"
 import notify_router from "./Routes/NotificationRoutes"
+import {sendScheduledDealsNotifications} from "./Controller/NotificationController"
+import cron from "node-cron"
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -50,6 +52,10 @@ app.get("/", (req: Request, res: Response) => {
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", message: "API is healthy" });
+});
+
+cron.schedule("0 */4 * * *", async () => {
+    await sendScheduledDealsNotifications();
 });
 
 app.use("/api/auth", authRoutes);
