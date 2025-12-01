@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true}));
 app.use(cookieParser());
 
 const allowedOrigins = [
-  'https://food-delight-ecommerce-application-chi.vercel.app',
+  'https://tasty-hub-e-commerce-website.vercel.app/',
   'http://localhost:5173',
 ];
 
