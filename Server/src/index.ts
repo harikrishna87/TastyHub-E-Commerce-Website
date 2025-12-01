@@ -21,12 +21,12 @@ connectDB();
 app.use(passport.initialize());
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true}));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 const allowedOrigins = [
-  'https://tasty-hub-e-commerce-website.vercel.app/',
-  'http://localhost:5173',
+  "https://tasty-hub-e-commerce-website.vercel.app",
+  "http://localhost:5173",
 ];
 
 app.use(cors({
@@ -34,21 +34,22 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log("❌ Blocked Origin:", origin);
+      callback(null, false);
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 
 app.get("/", (req: Request, res: Response) => {
-    res.send("Hello, Welcome to the Backend API");
+  res.send("Hello, Welcome to the Backend API");
 });
 
 app.get("/api/health", (req: Request, res: Response) => {
-    res.status(200).json({ status: "OK", message: "API is healthy" });
+  res.status(200).json({ status: "OK", message: "API is healthy" });
 });
 
 app.use("/api/auth", authRoutes);
@@ -62,5 +63,5 @@ app.use("/api/notifications", notify_router)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`Server is Listening on Port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  console.log(`Server is Listening on Port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });
