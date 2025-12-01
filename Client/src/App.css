@@ -1,0 +1,305 @@
+ body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5;
+}
+
+#root, .ant-layout {
+  min-height: 100vh;
+}
+
+.ant-page-header {
+  background-color: #fff;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  padding: 16px 24px;
+}
+
+* {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+*::before,
+*::after {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+html, body, #root {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+h1, h2, h3, h4, h5, h6, p, span, div, a, label, strong, em, i, b, u, small, mark, del, s, ins {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+input, textarea, select, option, button {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-layout,
+.ant-layout-header,
+.ant-layout-content,
+.ant-layout-footer,
+.ant-layout-sider {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-menu,
+.ant-menu *,
+.ant-menu-item,
+.ant-menu-submenu,
+.ant-menu-submenu-title,
+.ant-menu-item-selected,
+.ant-menu-horizontal,
+.ant-menu-vertical,
+.ant-menu-inline,
+.ant-breadcrumb,
+.ant-breadcrumb *,
+.ant-steps,
+.ant-steps *,
+.ant-tabs,
+.ant-tabs * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-typography,
+.ant-typography *,
+.ant-title,
+.ant-text {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-table,
+.ant-table *,
+.ant-table-thead,
+.ant-table-thead *,
+.ant-table-tbody,
+.ant-table-tbody *,
+.ant-table-tfoot,
+.ant-table-tfoot *,
+.ant-table th,
+.ant-table td,
+.ant-table-cell,
+.ant-table-filter-dropdown,
+.ant-table-filter-dropdown *,
+.ant-table-column-sorter,
+.ant-table-column-title,
+.ant-table-selection-column,
+.ant-table-expand-icon,
+.ant-table-row-expand-icon,
+.ant-table-summary,
+.ant-table-summary *,
+.ant-pagination,
+.ant-pagination *,
+.ant-pagination-item,
+.ant-pagination-prev,
+.ant-pagination-next,
+.ant-pagination-options,
+.ant-pagination-total-text {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-form,
+.ant-form *,
+.ant-form-item,
+.ant-form-item *,
+.ant-form-item-label,
+.ant-form-item-control,
+.ant-form-item-explain,
+.ant-form-item-extra,
+.ant-input,
+.ant-input *,
+.ant-input-group,
+.ant-input-group *,
+.ant-input-affix-wrapper,
+.ant-input-affix-wrapper *,
+.ant-input-password,
+.ant-input-search,
+.ant-input-number,
+.ant-input-number *,
+.ant-textarea,
+.ant-select,
+.ant-select *,
+.ant-select-selector,
+.ant-select-selection-item,
+.ant-select-selection-placeholder,
+.ant-select-dropdown,
+.ant-select-dropdown *,
+.ant-select-item,
+.ant-select-item-option-content,
+.ant-cascader,
+.ant-cascader *,
+.ant-date-picker,
+.ant-date-picker *,
+.ant-time-picker,
+.ant-time-picker *,
+.ant-picker,
+.ant-picker *,
+.ant-picker-input,
+.ant-picker-suffix,
+.ant-picker-clear,
+.ant-picker-dropdown,
+.ant-picker-dropdown *,
+.ant-checkbox,
+.ant-checkbox *,
+.ant-checkbox-wrapper,
+.ant-radio,
+.ant-radio *,
+.ant-radio-wrapper,
+.ant-radio-group,
+.ant-switch,
+.ant-switch *,
+.ant-slider,
+.ant-slider *,
+.ant-rate,
+.ant-rate *,
+.ant-upload,
+.ant-upload *,
+.ant-upload-list,
+.ant-upload-list * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-btn,
+.ant-btn *,
+.ant-btn-primary,
+.ant-btn-secondary,
+.ant-btn-dashed,
+.ant-btn-link,
+.ant-btn-text,
+.ant-btn-ghost,
+.ant-btn-default,
+.ant-btn-danger,
+.ant-btn-icon,
+.ant-btn-group,
+.ant-btn-group *,
+.ant-dropdown,
+.ant-dropdown *,
+.ant-dropdown-trigger,
+.ant-dropdown-menu,
+.ant-dropdown-menu * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-card,
+.ant-card *,
+.ant-card-head,
+.ant-card-head-title,
+.ant-card-body,
+.ant-card-meta,
+.ant-card-meta-title,
+.ant-card-meta-description,
+.ant-list,
+.ant-list *,
+.ant-descriptions,
+.ant-descriptions *,
+.ant-collapse,
+.ant-collapse *,
+.ant-divider,
+.ant-divider * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-modal,
+.ant-modal *,
+.ant-modal-header,
+.ant-modal-title,
+.ant-modal-body,
+.ant-modal-footer,
+.ant-modal-confirm,
+.ant-modal-confirm *,
+.ant-drawer,
+.ant-drawer *,
+.ant-popover,
+.ant-popover *,
+.ant-tooltip,
+.ant-tooltip *,
+.ant-popconfirm,
+.ant-popconfirm * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-alert,
+.ant-alert *,
+.ant-message,
+.ant-message *,
+.ant-notification,
+.ant-notification *,
+.ant-progress,
+.ant-progress *,
+.ant-spin,
+.ant-spin *,
+.ant-result,
+.ant-result *,
+.ant-empty,
+.ant-empty *,
+.ant-skeleton,
+.ant-skeleton * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-tag,
+.ant-tag *,
+.ant-badge,
+.ant-badge *,
+.ant-avatar,
+.ant-avatar *,
+.ant-statistic,
+.ant-statistic *,
+.ant-timeline,
+.ant-timeline *,
+.ant-tree,
+.ant-tree *,
+.ant-calendar,
+.ant-calendar *,
+.ant-transfer,
+.ant-transfer *,
+.ant-image,
+.ant-image *,
+.ant-carousel,
+.ant-carousel * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-anchor,
+.ant-anchor *,
+.ant-affix,
+.ant-affix *,
+.ant-auto-complete,
+.ant-auto-complete *,
+.ant-back-top,
+.ant-back-top *,
+.ant-comment,
+.ant-comment *,
+.ant-mentions,
+.ant-mentions *,
+.ant-page-header,
+.ant-page-header * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ant-table::before,
+.ant-table::after,
+.ant-form::before,
+.ant-form::after,
+.ant-btn::before,
+.ant-btn::after,
+.ant-input::before,
+.ant-input::after {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+[class*="ant-"],
+[class*="ant-"] * {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+body, body * {
+  font-family: "Times New Roman", Times, serif !important;
+}
