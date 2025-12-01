@@ -123,9 +123,22 @@ const sendScheduledDealsNotifications = async () => {
     }
 };
 
+const deleteNotification = async (req: Request, res: Response) => {
+    try {
+        const notificationId = req.params.id;
+        const deletedNotification = await Notification.findByIdAndDelete(notificationId);
+        if (!deletedNotification) return res.status(404).json({ success: false, message: 'Notification not found' });
+        res.status(200).json({ success: true, message: 'Notification deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Unable to delete the Notification' });
+    }
+};
+
+
 export {
     sendScheduledDealsNotifications,
     createNotification,
     getUserNotifications,
-    markNotificationRead
+    markNotificationRead,
+    deleteNotification
 }

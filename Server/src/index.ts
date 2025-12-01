@@ -58,7 +58,7 @@ app.use("/api/cart", router_cart_item);
 app.use("/api/products", product_router);
 app.use("/razorpay", payment_router);
 app.use("/api/favorites", favorite_router);
-app.use("/api/notifications", notify_router)
+app.use("/api/notifications", notify_router);
 
 const PORT = process.env.PORT || 3000;
 
