@@ -53,17 +53,48 @@ const deleteNotification = async (req: Request, res: Response) => {
 };
 
 const deals = [
-    { title: "Hot Biryani Deal!", description: "Aromatic biryani with rich spices. Order now!" },
-    { title: "Grilled Chicken Special!", description: "Smoky tandoori chicken, fresh off the grill." },
-    { title: "Fresh Seafood Deal!", description: "Prawns & fish in coastal spices. Dive in!" },
-    { title: "Paneer Lovers Alert!", description: "Creamy paneer tikkas & curries waiting for you." },
-    { title: "Pizza Time!", description: "Crispy crust, melted cheese. Your slice awaits!" },
-    { title: "Sweet Treats!", description: "Cakes to laddus - satisfy your sweet tooth." },
-    { title: "Homestyle Comfort!", description: "Warm curries & dal that feel like home." },
-    { title: "Ice Cream Delight!", description: "Creamy scoops in your favorite flavors." },
-    { title: "Fresh Juice Bar!", description: "Chilled mango, watermelon & pomegranate juices." },
-    { title: "Trending Dishes!", description: "Today's most-loved meals are ready to order." }
+  { 
+    title: "🔥 Hot Biryani Deal!", 
+    description: "🍛 Aromatic biryani with rich spices. Order now!" 
+  },
+  { 
+    title: "🍗 Grilled Chicken Special!", 
+    description: "🔥 Smoky tandoori chicken, fresh off the grill." 
+  },
+  { 
+    title: "🦐 Fresh Seafood Deal!", 
+    description: "🐟 Prawns & fish in coastal spices. Dive in!" 
+  },
+  { 
+    title: "🧀 Paneer Lovers Alert!", 
+    description: "😋 Creamy paneer tikkas & curries waiting for you." 
+  },
+  { 
+    title: "🍕 Pizza Time!", 
+    description: "🧀 Crispy crust, melted cheese. Your slice awaits!" 
+  },
+  { 
+    title: "🍰 Sweet Treats!", 
+    description: "🎂 Cakes to laddus – satisfy your sweet tooth." 
+  },
+  { 
+    title: "🏠 Homestyle Comfort!", 
+    description: "🍛 Warm curries & dal that feel like home." 
+  },
+  { 
+    title: "🍨 Ice Cream Delight!", 
+    description: "🍦 Creamy scoops in your favorite flavors." 
+  },
+  { 
+    title: "🥤 Fresh Juice Bar!", 
+    description: "🍉 Chilled mango, watermelon & pomegranate juices." 
+  },
+  { 
+    title: "⭐ Trending Dishes!", 
+    description: "🔥 Today’s most-loved meals are ready to order." 
+  }
 ];
+
 
 const greetBySlot = (hour: number): string => {
     if (hour >= 5 && hour < 12) return 'Good Morning';

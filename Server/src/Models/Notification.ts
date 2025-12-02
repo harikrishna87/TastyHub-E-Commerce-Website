@@ -6,7 +6,7 @@ const NotificationSchema = new Schema({
   body: { type: String, required: true },
   type: { type: String, required: true },
   read: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now, expires: 259200 }
+  createdAt: { type: Date, default: Date.now, expires: 172800 }
 }, { timestamps: true });
 
 const Notification = mongoose.model('Notification', NotificationSchema);
