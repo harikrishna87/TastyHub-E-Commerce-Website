@@ -74,27 +74,16 @@ const greetBySlot = (hour: number): string => {
 
 const sendScheduledDealsNotifications = async () => {
     try {
-        console.log(`[${new Date().toISOString()}] Starting scheduled deals notifications...`);
-        
         const users = await User.find({ fcmToken: { $exists: true, $ne: null } });
-        
-        if (!users.length) {
-            console.log('No users with FCM tokens found');
-            return;
-        }
+        if (!users.length) return;
 
         const now = new Date();
         const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
         const hour = istTime.getHours();
-        
-        console.log(`IST Hour: ${hour}, Sending to ${users.length} users`);
-        
+
         const greeting = greetBySlot(hour);
         const dealIndex = hour % deals.length;
         const deal = deals[dealIndex];
-
-        let successCount = 0;
-        let failCount = 0;
 
         for (const user of users) {
             if (!user.fcmToken) continue;
@@ -103,36 +92,48 @@ const sendScheduledDealsNotifications = async () => {
             const body = `${deal.title}\n${deal.description}`;
 
             const message = {
-                notification: { title: personalizedTitle, body },
-                data: { type: 'deals', dealTitle: deal.title },
                 token: user.fcmToken,
-                android: { priority: 'high' as const },
-                apns: { headers: { 'apns-priority': '10' } },
-                webpush: { headers: { Urgency: 'high' } }
+                notification: {
+                    title: personalizedTitle,
+                    body: body,
+                    sound: "default"
+                },
+                android: {
+                    priority: "high" as const,
+                    notification: {
+                        sound: "default",
+                        channelId: "tastyhub_channel"
+                    }
+                },
+                apns: {
+                    headers: { "apns-priority": "10" },
+                    payload: {
+                        aps: { sound: "default" }
+                    }
+                },
+                webpush: {
+                    headers: { Urgency: "high" }
+                },
+                data: {
+                    type: "deals",
+                    dealTitle: deal.title
+                }
             };
 
-            try {
-                await admin.messaging().send(message);
-                
-                await Notification.create({
-                    user: user._id,
-                    title: personalizedTitle,
-                    body,
-                    type: 'deals'
-                });
-                
-                successCount++;
-            } catch (error) {
-                console.error(`Failed to send notification to user ${user._id}:`, error);
-                failCount++;
-            }
-        }
+            await admin.messaging().send(message);
 
-        console.log(`Notifications sent: ${successCount} success, ${failCount} failed`);
+            await Notification.create({
+                user: user._id,
+                title: personalizedTitle,
+                body,
+                type: 'deals'
+            });
+        }
     } catch (error) {
-        console.error('Error in sendScheduledDealsNotifications:', error);
+        console.error(error);
     }
 };
+
 
 export {
     sendScheduledDealsNotifications,

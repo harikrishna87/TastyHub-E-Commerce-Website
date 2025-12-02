@@ -29,9 +29,9 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     const shippingAddress = req.body.shippingAddress || user.shippingAddress;
 
     if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.phone || !shippingAddress.addressLine1) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Shipping address is required to create an order' 
+      return res.status(400).json({
+        success: false,
+        message: 'Shipping address is required to create an order'
       });
     }
 
@@ -74,7 +74,7 @@ const getAllOrders = async (req: Request, res: Response, next: NextFunction) => 
     const orders = await Order.find()
       .populate('user', 'name email')
       .sort({ createdAt: -1 });
-    
+
     res.status(200).json({
       success: true,
       orders,
@@ -96,7 +96,7 @@ const getUserOrders = async (req: Request, res: Response, next: NextFunction) =>
     const orders = await Order.find({ user: userId })
       .populate('user', 'name email')
       .sort({ createdAt: -1 });
-    
+
     res.status(200).json({
       success: true,
       orders,
@@ -117,9 +117,9 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
     }
 
     if (!Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid order ID format' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order ID format'
       });
     }
 
@@ -129,15 +129,15 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
-    
-    const orderUserId = typeof order.user === 'object' && order.user._id 
-      ? order.user._id.toString() 
+
+    const orderUserId = typeof order.user === 'object' && order.user._id
+      ? order.user._id.toString()
       : order.user.toString();
 
     if (orderUserId !== userId.toString() && req.user?.role !== 'admin') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'You are not authorized to view this order' 
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to view this order'
       });
     }
 
@@ -148,12 +148,12 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
   } catch (error: any) {
     console.error('Error fetching order by ID:', error);
     if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid order ID format' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order ID format'
       });
     }
-    
+
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -162,11 +162,11 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
   try {
     const { id } = req.params;
     const { status } = req.body;
-    
+
     if (!Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid order ID format' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order ID format'
       });
     }
 
@@ -175,7 +175,6 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     }
 
     const order = await Order.findById(id);
-    
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
@@ -184,7 +183,7 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     await order.save();
 
     const user = await User.findById(order.user);
-    
+
     if (user) {
       const orderForEmail = {
         _id: order._id,
@@ -211,24 +210,50 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
       if (user.fcmToken) {
         const title = 'Order Status Updated';
         const body = `Your order ${order._id} \nStatus has been updated to "${status}". \nThank you for shopping with us!`;
-        
+
         const message = {
-          notification: { title, body },
           token: user.fcmToken,
-          android: { priority: 'high' as const },
-          apns: { headers: { 'apns-priority': '10' } },
-          webpush: { headers: { Urgency: 'high' } }
+
+          notification: {
+            title,
+            body
+          },
+
+          android: {
+            priority: "high" as const,
+            notification: {
+              sound: "default",
+              channelId: "tastyhub_channel"
+            }
+          },
+
+          apns: {
+            headers: { "apns-priority": "10" },
+            payload: {
+              aps: {
+                sound: "default"
+              }
+            }
+          },
+
+          webpush: {
+            headers: { Urgency: "high" }
+          },
+
+          data: {
+            type: "order_status",
+            orderId: String(order._id),
+            status
+          }
         };
 
-        admin.messaging().send(message).catch((error: any) => {
-          console.error('Failed to send push notification:', error);
-        });
+        await admin.messaging().send(message);
 
         await Notification.create({
           user: user._id,
           title,
           body,
-          type: 'order_status'
+          type: "order_status"
         });
       }
     }
@@ -240,10 +265,12 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
       message: 'Order status updated successfully',
       order,
     });
+
   } catch (error: any) {
     console.error('Error updating order status:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById };
