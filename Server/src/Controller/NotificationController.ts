@@ -35,61 +35,6 @@ const markNotificationRead = async (req: Request, res: Response) => {
     }
 };
 
-const deals = [
-    { title: "Your Biryani Craving Just Went Active!", description: "Aromatic, steaming biryani packed with rich spices and flavors that hit differently every single time." },
-    { title: "Smoky Chicken Fresh Off the Grill!", description: "Juicy, tender chicken loaded with tandoori smokiness — the kind that makes you hungry instantly." },
-    { title: "Seafood Magic Is Cooking Right Now!", description: "Fresh prawns and fish simmered in coastal spices — fragrant, rich, and impossible to resist." },
-    { title: "Paneer Lovers, Your Favorite Is Ready!", description: "Soft, creamy paneer in lush gravies and tikkas that melt right in your mouth." },
-    { title: "Pizza Straight Out of the Oven!", description: "Golden crusts, bubbling cheese, and bold toppings — your perfect pizza moment is right here." },
-    { title: "Dessert That Makes Your Day Better!", description: "From cakes to laddus, sweet treats crafted to lift your mood with the very first bite." },
-    { title: "Hot & Fresh Homestyle Meals!", description: "Warm curries, rasam, pappu, and comforting dishes that feel like home in every spoon." },
-    { title: "Ice Cream Time? Always Yes!", description: "Creamy scoops in chocolate, mango, berry, and nutty flavors — your chill moment is waiting." },
-    { title: "Refreshing Juices for a Fresh Start!", description: "Mango, watermelon, pomegranate and more — chilled, natural, and instantly refreshing." },
-    { title: "Cravings Alert: Trending Dishes Are Live!", description: "Today's most-loved dishes are sizzling hot and ready — tap to explore the favorites everyone is ordering." }
-];
-
-const greetBySlot = (hour: number): string => {
-    if (hour >= 5 && hour < 12) return 'Good Morning';
-    if (hour >= 12 && hour < 17) return 'Good Afternoon';
-    if (hour >= 17 && hour < 21) return 'Good Evening';
-    return 'Good Night';
-};
-
-const sendScheduledDealsNotifications = async () => {
-    const users = await User.find({ fcmToken: { $exists: true, $ne: null } });
-    if (!users.length) return;
-
-    const now = new Date();
-    const hour = now.getHours();
-    const greeting = greetBySlot(hour);
-    const dealIndex = hour % deals.length;
-    const deal = deals[dealIndex];
-
-    for (const user of users) {
-        if (!user.fcmToken) continue;
-
-        const personalizedTitle = `${greeting} ${user.name ?? ''}`;
-        const body = `${deal.title}\n${deal.description}`;
-
-        const message = {
-            notification: { title: personalizedTitle, body },
-            token: user.fcmToken,
-            android: { priority: 'high' as const },
-            apns: { headers: { 'apns-priority': '10' } },
-            webpush: { headers: { Urgency: 'high' } }
-        };
-
-        await admin.messaging().send(message);
-
-        await Notification.create({
-            user: user._id,
-            title: personalizedTitle,
-            body,
-            type: 'deals'
-        });
-    }
-};
-
 const deleteNotification = async (req: Request, res: Response) => {
     try {
         const notificationId = req.params.id;
@@ -104,6 +49,88 @@ const deleteNotification = async (req: Request, res: Response) => {
         res.status(200).json({ success: true, message: 'Notification deleted successfully' });
     } catch {
         res.status(500).json({ success: false, message: 'Unable to delete the Notification' });
+    }
+};
+
+const deals = [
+    { title: "Hot Biryani Deal!", description: "Aromatic biryani with rich spices. Order now!" },
+    { title: "Grilled Chicken Special!", description: "Smoky tandoori chicken, fresh off the grill." },
+    { title: "Fresh Seafood Deal!", description: "Prawns & fish in coastal spices. Dive in!" },
+    { title: "Paneer Lovers Alert!", description: "Creamy paneer tikkas & curries waiting for you." },
+    { title: "Pizza Time!", description: "Crispy crust, melted cheese. Your slice awaits!" },
+    { title: "Sweet Treats!", description: "Cakes to laddus - satisfy your sweet tooth." },
+    { title: "Homestyle Comfort!", description: "Warm curries & dal that feel like home." },
+    { title: "Ice Cream Delight!", description: "Creamy scoops in your favorite flavors." },
+    { title: "Fresh Juice Bar!", description: "Chilled mango, watermelon & pomegranate juices." },
+    { title: "Trending Dishes!", description: "Today's most-loved meals are ready to order." }
+];
+
+const greetBySlot = (hour: number): string => {
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 21) return 'Good Evening';
+    return 'Good Night';
+};
+
+const sendScheduledDealsNotifications = async () => {
+    try {
+        console.log(`[${new Date().toISOString()}] Starting scheduled deals notifications...`);
+        
+        const users = await User.find({ fcmToken: { $exists: true, $ne: null } });
+        
+        if (!users.length) {
+            console.log('No users with FCM tokens found');
+            return;
+        }
+
+        const now = new Date();
+        const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+        const hour = istTime.getHours();
+        
+        console.log(`IST Hour: ${hour}, Sending to ${users.length} users`);
+        
+        const greeting = greetBySlot(hour);
+        const dealIndex = hour % deals.length;
+        const deal = deals[dealIndex];
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const user of users) {
+            if (!user.fcmToken) continue;
+
+            const personalizedTitle = `${greeting} ${user.name ?? 'Friend'}!`;
+            const body = `${deal.title}\n${deal.description}`;
+
+            const message = {
+                notification: { title: personalizedTitle, body },
+                data: { type: 'deals', dealTitle: deal.title },
+                token: user.fcmToken,
+                android: { priority: 'high' as const },
+                apns: { headers: { 'apns-priority': '10' } },
+                webpush: { headers: { Urgency: 'high' } }
+            };
+
+            try {
+                await admin.messaging().send(message);
+                
+                await Notification.create({
+                    user: user._id,
+                    title: personalizedTitle,
+                    body,
+                    type: 'deals'
+                });
+                
+                successCount++;
+            } catch (error) {
+                console.error(`Failed to send notification to user ${user._id}:`, error);
+                failCount++;
+            }
+        }
+
+        console.log(`Notifications sent: ${successCount} success, ${failCount} failed`);
+    } catch (error) {
+        console.error('Error in sendScheduledDealsNotifications:', error);
     }
 };
 

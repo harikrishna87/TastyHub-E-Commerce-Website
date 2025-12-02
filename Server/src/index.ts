@@ -55,8 +55,12 @@ app.get("/api/health", (req: Request, res: Response) => {
 });
 
 cron.schedule("0 */4 * * *", async () => {
+    console.log('Cron job triggered: Sending scheduled deals notifications');
     await sendScheduledDealsNotifications();
+}, {
+    timezone: "Asia/Kolkata"
 });
+console.log('Deals notification cron job initialized - runs every 4 hours');
 
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
