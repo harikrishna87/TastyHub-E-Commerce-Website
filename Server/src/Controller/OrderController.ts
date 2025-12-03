@@ -207,55 +207,32 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
         console.error('Failed to send order status update email:', error);
       });
 
-      if (user.fcmToken) {
-        const title = 'Order Status Updated 🎉';
-        const body = `📦 Order: ${order._id}\n📝 Status: "${status}"\n💛 Thank you for shopping with us!`;
+      if (user && user.fcmTokens?.length) {
+        for (const token of user.fcmTokens) {
+          const title = 'Order Status Updated 🎉'
+          const body = `📦 Order: ${order._id}\n📝 Status: "${status}"\n💛 Thank you for shopping with us!`
 
-        const message = {
-          token: user.fcmToken,
-
-          notification: {
-            title,
-            body
-          },
-
-          android: {
-            priority: "high" as const,
-            notification: {
-              sound: "default",
-              channelId: "tastyhub_channel"
-            }
-          },
-
-          apns: {
-            headers: { "apns-priority": "10" },
-            payload: {
-              aps: {
-                sound: "default"
-              }
-            }
-          },
-
-          webpush: {
-            headers: { Urgency: "high" }
-          },
-
-          data: {
-            type: "order_status",
-            orderId: String(order._id),
-            status
+          const message = {
+            token,
+            notification: { title, body },
+            android: { priority: "high"  as const, notification: { sound: "default", channelId: "tastyhub_channel" } },
+            apns: { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } },
+            webpush: { headers: { Urgency: "high" } },
+            data: { type: "order_status", orderId: String(order._id), status }
           }
-        };
 
-        await admin.messaging().send(message);
-
-        await Notification.create({
-          user: user._id,
-          title,
-          body,
-          type: "order_status"
-        });
+          try {
+            await admin.messaging().send(message)
+            await Notification.create({ user: user._id, title, body, type: "order_status" })
+          } catch (e) {
+            const err = e as any
+            if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
+              await User.updateOne({ _id: user._id }, { $pull: { fcmTokens: token } })
+            }
+          }
+        }
       }
+
     }
 
     await order.populate('user', 'name email');

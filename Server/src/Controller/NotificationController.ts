@@ -104,66 +104,47 @@ const greetBySlot = (hour: number): string => {
 };
 
 const sendScheduledDealsNotifications = async () => {
-    try {
-        const users = await User.find({ fcmToken: { $exists: true, $ne: null } });
-        if (!users.length) return;
+  try {
+    const users = await User.find({ fcmTokens: { $exists: true, $ne: [] } })
+    if (!users.length) return
 
-        const now = new Date();
-        const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-        const hour = istTime.getHours();
+    const now = new Date()
+    const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }))
+    const hour = istTime.getHours()
+    const greeting = greetBySlot(hour)
+    const dealIndex = hour % deals.length
+    const deal = deals[dealIndex]
 
-        const greeting = greetBySlot(hour);
-        const dealIndex = hour % deals.length;
-        const deal = deals[dealIndex];
+    for (const user of users) {
+      for (const token of user.fcmTokens || []) {
+        const title = `${greeting} ${user.name || 'Friend'}!`
+        const body = `${deal.title}\n${deal.description}`
 
-        for (const user of users) {
-            if (!user.fcmToken) continue;
-
-            const personalizedTitle = `${greeting} ${user.name ?? 'Friend'}!`;
-            const body = `${deal.title}\n${deal.description}`;
-
-            const message = {
-                token: user.fcmToken,
-                notification: {
-                    title: personalizedTitle,
-                    body: body,
-                },
-                android: {
-                    priority: "high" as const,
-                    notification: {
-                        sound: "default",
-                        channelId: "tastyhub_channel"
-                    }
-                },
-                apns: {
-                    headers: { "apns-priority": "10" },
-                    payload: {
-                        aps: { sound: "default" }
-                    }
-                },
-                webpush: {
-                    headers: { Urgency: "high" }
-                },
-                data: {
-                    type: "deals",
-                    dealTitle: deal.title
-                }
-            };
-
-            await admin.messaging().send(message);
-
-            await Notification.create({
-                user: user._id,
-                title: personalizedTitle,
-                body,
-                type: 'deals'
-            });
+        const message = {
+          token,
+          notification: { title, body },
+          android: { priority: "high" as const, notification: { sound: "default", channelId: "tastyhub_channel" } },
+          apns: { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } },
+          webpush: { headers: { Urgency: "high" } },
+          data: { type: "deals", dealTitle: deal.title }
         }
-    } catch (error) {
-        console.error(error);
-    }
-};
 
+        try {
+          await admin.messaging().send(message)
+          await Notification.create({ user: user._id, title, body, type: 'deals' })
+        } catch (e) {
+          const err = e as any
+          if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
+            await User.updateOne(
+              { _id: user._id },
+              { $pull: { fcmTokens: token } }
+            )
+          }
+        }
+      }
+    }
+  } catch {}
+}
 
 export {
     sendScheduledDealsNotifications,

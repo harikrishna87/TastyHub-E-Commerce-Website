@@ -51,7 +51,10 @@ const UserSchema: Schema = new Schema<IUser>({
     postalCode: { type: String, default: '' },
     country: { type: String, default: '' },
   },
-  fcmToken: { type: String },
+  fcmTokens: {
+    type: [String],
+    default: []
+  },
 },
   { timestamps: true });
 

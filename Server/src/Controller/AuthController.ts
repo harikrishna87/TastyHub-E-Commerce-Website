@@ -612,16 +612,20 @@ const resetPassword = async (req: Request, res: Response, next: NextFunction): P
 
 const FcmToken = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
-    const { fcmToken } = req.body;
-    if (!userId) return res.status(401).json({ success: false, message: 'User not authenticated' });
-    if (!fcmToken) return res.status(400).json({ success: false, message: 'FCM token is required' });
+    const userId = req.user?.id
+    const { fcmToken } = req.body
+    if (!userId || !fcmToken) return res.status(400).json({ success: false })
 
-    await User.findByIdAndUpdate(userId, { fcmToken }, { new: true });
-    res.status(200).json({ success: true, message: 'FCM token updated' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "FCM Token Failed" });
+    await User.updateOne(
+      { _id: userId },
+      { $addToSet: { fcmTokens: fcmToken } }
+    )
+
+    res.status(200).json({ success: true })
+  } catch {
+    res.status(500).json({ success: false })
   }
-};
+}
+
 
 export { register, login, logout, getMe, updateProfile, uploadImage, getUploadedImage, updatePassword, DeleteAccount, verifyEmail, resetPassword, verifyOTP, resendOTP, FcmToken };

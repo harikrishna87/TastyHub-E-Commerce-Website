@@ -19,7 +19,7 @@ export interface IUser extends Document {
   image?: string;
   googleId?: string;
   shippingAddress?: IShippingAddress;
-  fcmToken?:string; 
+  fcmTokens?:string[]; 
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (password: string) => Promise<boolean>;
