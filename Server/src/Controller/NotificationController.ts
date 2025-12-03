@@ -127,7 +127,6 @@ const sendScheduledDealsNotifications = async () => {
                 notification: {
                     title: personalizedTitle,
                     body: body,
-                    sound: "default"
                 },
                 android: {
                     priority: "high" as const,
