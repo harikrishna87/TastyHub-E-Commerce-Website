@@ -54,19 +54,48 @@ app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", message: "API is healthy" });
 });
 
-cron.schedule(
-  "0 9 * * *, 30 11 * * *, 30 14 * * *, 30 17 * * *, 15 20 * * *, 30 22 * * *",
-  async () => {
-    console.log("Sending scheduled deals notifications...");
-    await sendScheduledDealsNotifications();
-  },
-  {
-    timezone: "Asia/Kolkata",
-  }
-);
+cron.schedule('0 9 * * *', async () => {
+  console.log('Sending notification at 9:00 AM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
 
-console.log("Cron job set for 6 combined times (9 AM, 11:30 AM, 2:30 PM, 5 PM, 7:30 PM, 9:45 PM)");
+cron.schedule('30 11 * * *', async () => {
+  console.log('Sending notification at 11:30 AM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
 
+cron.schedule('30 14 * * *', async () => {
+  console.log('Sending notification at 2:30 PM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
+cron.schedule('30 17 * * *', async () => {
+  console.log('Sending notification at 5:30 PM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
+
+cron.schedule('15 20 * * *', async () => {
+  console.log('Sending notification at 8:15 PM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
+cron.schedule('30 22 * * *', async () => {
+  console.log('Sending notification at 10:30 PM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
