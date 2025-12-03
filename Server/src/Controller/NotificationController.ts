@@ -54,44 +54,28 @@ const deleteNotification = async (req: Request, res: Response) => {
 
 const deals = [
   {
-    title: "🔥 Hot Biryani Deal!",
-    description: "🍛 Aromatic biryani with rich spices. Order now!"
+    title: "🍗 Hot Biryani Deal! & 🦐 Fresh Seafood Deal!",
+    description: "🔥 Aromatic biryani with smoky chicken + 🐟 Prawns & fish in coastal spices."
   },
   {
-    title: "🍗 Grilled Chicken Special!",
-    description: "🔥 Smoky tandoori chicken, fresh off the grill."
+    title: "🧀 Paneer Lovers Alert! & 🍕 Pizza Time!",
+    description: "😋 Creamy paneer tikkas + 🧀 Crispy cheesy pizza goodness."
   },
   {
-    title: "🦐 Fresh Seafood Deal!",
-    description: "🐟 Prawns & fish in coastal spices. Dive in!"
+    title: "🍰 Sweet Treats! & 🥩 BBQ Grill Feast!",
+    description: "🎂 Cakes & laddus + 🔥 Smoky BBQ wings and juicy kebabs."
   },
   {
-    title: "🧀 Paneer Lovers Alert!",
-    description: "😋 Creamy paneer tikkas & curries waiting for you."
+    title: "🍨 Ice Cream Delight! & 🥤 Fresh Juice Bar!",
+    description: "🍦 Creamy scoops + 🍉 Chilled fresh fruit juices."
   },
   {
-    title: "🍕 Pizza Time!",
-    description: "🧀 Crispy crust, melted cheese. Your slice awaits!"
+    title: "🌯 Wrap & Roll Fiesta! & 🍜 Noodle Nation!",
+    description: "🌮 Spicy stuffed wraps + 🍲 Flavor-packed stir-fried noodles."
   },
   {
-    title: "🍰 Sweet Treats!",
-    description: "🎂 Cakes to laddus – satisfy your sweet tooth."
-  },
-  {
-    title: "🏠 Homestyle Comfort!",
-    description: "🍛 Warm curries & dal that feel like home."
-  },
-  {
-    title: "🍨 Ice Cream Delight!",
-    description: "🍦 Creamy scoops in your favorite flavors."
-  },
-  {
-    title: "🥤 Fresh Juice Bar!",
-    description: "🍉 Chilled mango, watermelon & pomegranate juices."
-  },
-  {
-    title: "⭐ Trending Dishes!",
-    description: "🔥 Today’s most-loved meals are ready to order."
+    title: "🍗 Hot Biryani Deal! & 🧀 Paneer Lovers Alert!",
+    description: "🔥 Spicy biryani flavors + 😋 Rich and creamy paneer dishes."
   }
 ];
 

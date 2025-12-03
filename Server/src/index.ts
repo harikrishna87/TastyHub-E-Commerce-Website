@@ -54,13 +54,19 @@ app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", message: "API is healthy" });
 });
 
-cron.schedule("0 */4 * * *", async () => {
-    console.log('Cron job triggered: Sending scheduled deals notifications');
+cron.schedule(
+  "0 9 * * *, 30 11 * * *, 30 14 * * *, 30 17 * * *, 15 20 * * *, 30 22 * * *",
+  async () => {
+    console.log("Sending scheduled deals notifications...");
     await sendScheduledDealsNotifications();
-}, {
-    timezone: "Asia/Kolkata"
-});
-console.log('Deals notification cron job initialized - runs every 4 hours');
+  },
+  {
+    timezone: "Asia/Kolkata",
+  }
+);
+
+console.log("Cron job set for 6 combined times (9 AM, 11:30 AM, 2:30 PM, 5 PM, 7:30 PM, 9:45 PM)");
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
