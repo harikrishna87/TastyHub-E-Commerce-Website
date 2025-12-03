@@ -54,30 +54,47 @@ const deleteNotification = async (req: Request, res: Response) => {
 
 const deals = [
   {
-    title: "🍗 Hot Biryani Deal! & 🦐 Fresh Seafood Deal!",
-    description: "🔥 Aromatic biryani with smoky chicken + 🐟 Prawns & fish in coastal spices."
+    title: "🍗 Aromatic Biryani Fresh from the Kitchen",
+    description: "Fragrant basmati rice layered with tender chicken and signature spices. A flavor explosion in every bite! 🔥"
   },
   {
-    title: "🧀 Paneer Lovers Alert! & 🍕 Pizza Time!",
-    description: "😋 Creamy paneer tikkas + 🧀 Crispy cheesy pizza goodness."
+    title: "☕ Craving Comfort Food?",
+    description: "Fluffy pancakes, perfectly cooked eggs, and freshly brewed coffee. Pure breakfast bliss awaits you ☀️"
   },
   {
-    title: "🍰 Sweet Treats! & 🥩 BBQ Grill Feast!",
-    description: "🎂 Cakes & laddus + 🔥 Smoky BBQ wings and juicy kebabs."
+    title: "🍕 Hand-Tossed Pizza Perfection",
+    description: "Crispy crust, bubbling cheese, and premium toppings baked fresh just for you. Order your slice of heaven! 🧀"
   },
   {
-    title: "🍨 Ice Cream Delight! & 🥤 Fresh Juice Bar!",
-    description: "🍦 Creamy scoops + 🍉 Chilled fresh fruit juices."
+    title: "🥤 Refreshment Calling Your Name",
+    description: "Freshly squeezed juices, creamy smoothies, and iced beverages made to order. Beat the heat deliciously! 🌡️"
   },
   {
-    title: "🌯 Wrap & Roll Fiesta! & 🍜 Noodle Nation!",
-    description: "🌮 Spicy stuffed wraps + 🍲 Flavor-packed stir-fried noodles."
+    title: "🌮 Let's Taco 'Bout Deliciousness",
+    description: "Crispy shells packed with seasoned meat, fresh veggies, and zesty sauces. Your taste buds will thank you! 🔥"
   },
   {
-    title: "🍗 Hot Biryani Deal! & 🧀 Paneer Lovers Alert!",
-    description: "🔥 Spicy biryani flavors + 😋 Rich and creamy paneer dishes."
+    title: "🍰 Sweet Indulgence Awaits",
+    description: "Decadent cakes, flaky pastries, and traditional desserts made fresh daily. Treat yourself to something special 🎂"
+  },
+  {
+    title: "🥗 Fresh & Flavorful Bowls",
+    description: "Crisp salads and grilled chicken loaded with nutrients and flavor. Healthy never tasted this good! 💪"
+  },
+  {
+    title: "🍔 Flame-Grilled Burger Heaven",
+    description: "Juicy patties topped with crispy lettuce, ripe tomatoes, and our secret sauce. One bite says it all! 🔥"
+  },
+  {
+    title: "🍜 Wok-Fired Noodle Perfection",
+    description: "Stir-fried noodles tossed with fresh vegetables and your choice of protein. Authentic flavors in every forkful 🥢"
+  },
+  {
+    title: "🦐 Dive Into Coastal Flavors",
+    description: "Fresh prawns and fish cooked in aromatic coastal spices. A seafood lover's dream come true 🌊"
   }
 ];
+
 
 
 const greetBySlot = (hour: number): string => {

@@ -218,13 +218,34 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
       if (user && user.fcmTokens?.length) {
         console.log(`📱 Sending notification to ${user.fcmTokens.length} device(s)`);
 
-        for (const token of user.fcmTokens) {
-          const title = 'Order Status Updated 🎉';
-          const body = `📦 Order: ${order._id}\n📝 Status: "${status}"\n💛 Thank you for shopping with us!`;
+        const getOrderNotification = (status: string) => {
+          const notifications: Record<string, { title: string; body: string }> = {
+            'Pending': {
+              title: '✅ Order Confirmed!',
+              body: `We've received your order and our kitchen is getting started. Your delicious meal is on its way! 🍴`
+            },
+            'Shipped': {
+              title: '🚗 On the Way to You!',
+              body: `Your order is out for delivery. Get ready to enjoy your delicious meal! 🛵`
+            },
+            'Delivered': {
+              title: '✨ Delivered Successfully!',
+              body: `Enjoy your meal! Thank you for ordering with us. We hope it's delicious! 💛`
+            }
+          };
 
+          return notifications[status] || {
+            title: '📦 Order Update',
+            body: `Your order status has been updated. Check the app for details!`
+          };
+        };
+
+        const notification = getOrderNotification(status);
+
+        for (const token of user.fcmTokens) {
           const message = {
             token,
-            notification: { title, body },
+            notification: { title: notification.title, body: notification.body },
             android: { priority: "high" as const, notification: { sound: "default", channelId: "tastyhub_channel" } },
             apns: { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } },
             webpush: { headers: { Urgency: "high" } },
@@ -234,7 +255,7 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
           try {
             const response = await admin.messaging().send(message);
             console.log(`✅ Notification sent successfully - Response: ${response}`);
-            await Notification.create({ user: user._id, title, body, type: "order_status" });
+            await Notification.create({ user: user._id, title: notification.title, body: notification.body, type: "order_status" });
           } catch (e) {
             const err = e as any;
             console.error(`❌ Failed to send notification - Error: ${err.message}`);
@@ -264,7 +285,5 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
-
 
 export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById };
