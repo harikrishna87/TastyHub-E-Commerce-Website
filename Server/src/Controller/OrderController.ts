@@ -163,7 +163,10 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     const { id } = req.params;
     const { status } = req.body;
 
+    console.log(`📦 Order status update request - OrderID: ${id}, New Status: ${status}`);
+
     if (!Types.ObjectId.isValid(id)) {
+      console.log('❌ Invalid order ID format');
       return res.status(400).json({
         success: false,
         message: 'Invalid order ID format'
@@ -171,20 +174,25 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     }
 
     if (!['Pending', 'Shipped', 'Delivered'].includes(status)) {
+      console.log('❌ Invalid delivery status');
       return res.status(400).json({ success: false, message: 'Invalid delivery status' });
     }
 
     const order = await Order.findById(id);
     if (!order) {
+      console.log('❌ Order not found');
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
     order.deliveryStatus = status as OrderDeliveryStatus;
     await order.save();
+    console.log(`✅ Order ${id} status updated to: ${status}`);
 
     const user = await User.findById(order.user);
 
     if (user) {
+      console.log(`👤 User found: ${user.email}`);
+
       const orderForEmail = {
         _id: order._id,
         user: order.user,
@@ -204,35 +212,43 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
         orderForEmail,
         status
       ).catch((error: any) => {
-        console.error('Failed to send order status update email:', error);
+        console.error('❌ Failed to send order status update email:', error);
       });
 
       if (user && user.fcmTokens?.length) {
+        console.log(`📱 Sending notification to ${user.fcmTokens.length} device(s)`);
+
         for (const token of user.fcmTokens) {
-          const title = 'Order Status Updated 🎉'
-          const body = `📦 Order: ${order._id}\n📝 Status: "${status}"\n💛 Thank you for shopping with us!`
+          const title = 'Order Status Updated 🎉';
+          const body = `📦 Order: ${order._id}\n📝 Status: "${status}"\n💛 Thank you for shopping with us!`;
 
           const message = {
             token,
             notification: { title, body },
-            android: { priority: "high"  as const, notification: { sound: "default", channelId: "tastyhub_channel" } },
+            android: { priority: "high" as const, notification: { sound: "default", channelId: "tastyhub_channel" } },
             apns: { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } },
             webpush: { headers: { Urgency: "high" } },
             data: { type: "order_status", orderId: String(order._id), status }
-          }
+          };
 
           try {
-            await admin.messaging().send(message)
-            await Notification.create({ user: user._id, title, body, type: "order_status" })
+            const response = await admin.messaging().send(message);
+            console.log(`✅ Notification sent successfully - Response: ${response}`);
+            await Notification.create({ user: user._id, title, body, type: "order_status" });
           } catch (e) {
-            const err = e as any
+            const err = e as any;
+            console.error(`❌ Failed to send notification - Error: ${err.message}`);
             if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
-              await User.updateOne({ _id: user._id }, { $pull: { fcmTokens: token } })
+              console.log(`🗑️ Removing invalid token: ${token.substring(0, 20)}...`);
+              await User.updateOne({ _id: user._id }, { $pull: { fcmTokens: token } });
             }
           }
         }
+      } else {
+        console.log('⚠️ No FCM tokens found for user');
       }
-
+    } else {
+      console.log('⚠️ User not found for order');
     }
 
     await order.populate('user', 'name email');
@@ -244,10 +260,11 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     });
 
   } catch (error: any) {
-    console.error('Error updating order status:', error);
+    console.error('❌ Error updating order status:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById };

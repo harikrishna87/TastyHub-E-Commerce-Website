@@ -30,16 +30,16 @@ const generateOTP = (): string => {
 
 const sendOTPEmail = async (email: string, otp: string): Promise<void> => {
   console.log(`📧 Attempting to send OTP to: ${email}`);
-  
-const msg = {
-  to: email,
-  from: {
-    email: process.env.SENDGRID_FROM_EMAIL || '',
-    name: process.env.SENDGRID_FROM_NAME || 'TastyHub'
-  },
-  subject: 'Email Verification OTP - TastyHub',
-  text: `Your TastyHub verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.`,
-  html: `
+
+  const msg = {
+    to: email,
+    from: {
+      email: process.env.SENDGRID_FROM_EMAIL || '',
+      name: process.env.SENDGRID_FROM_NAME || 'TastyHub'
+    },
+    subject: 'Email Verification OTP - TastyHub',
+    text: `Your TastyHub verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.`,
+    html: `
     <!DOCTYPE html>
     <html>
       <head>
@@ -111,7 +111,7 @@ const msg = {
       </body>
     </html>
   `,
-};
+  };
 
   try {
     await sgMail.send(msg);
@@ -129,12 +129,12 @@ const msg = {
 const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, email, password } = req.body;
-    
+
     if (!name || !email || !password) {
       res.status(400).json({ success: false, message: 'Please enter all fields' });
       return;
     }
-    
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       res.status(400).json({ success: false, message: 'User with this email already exists' });
@@ -153,7 +153,7 @@ const register = async (req: Request, res: Response, next: NextFunction): Promis
     try {
       await sendOTPEmail(email, otp);
       console.log(`✅ OTP sent successfully to ${email}: ${otp}`);
-      
+
       res.status(200).json({
         success: true,
         message: 'OTP sent to your email. Please check your inbox.',
@@ -162,7 +162,7 @@ const register = async (req: Request, res: Response, next: NextFunction): Promis
     } catch (emailError: any) {
       otpStore.delete(email);
       console.error('Email sending failed:', emailError);
-      
+
       res.status(500).json({
         success: false,
         message: 'Failed to send verification email. Please check your email address and try again.',
@@ -248,14 +248,14 @@ const resendOTP = async (req: Request, res: Response, next: NextFunction): Promi
     try {
       await sendOTPEmail(email, otp);
       console.log(`✅ OTP resent successfully to ${email}: ${otp}`);
-      
+
       res.status(200).json({
         success: true,
         message: 'OTP resent successfully. Please check your email.',
       });
     } catch (emailError: any) {
       console.error('Email resending failed:', emailError);
-      
+
       res.status(500).json({
         success: false,
         message: 'Failed to resend verification email. Please try again.',
@@ -523,10 +523,10 @@ const DeleteAccount = async (req: Request, res: Response, next: NextFunction): P
 
     const cartDeletion = await Cart.deleteMany({ user: user._id });
     console.log(`Deleted ${cartDeletion.deletedCount} cart(s) for user ${user._id}`);
-    
+
     const orderDeletion = await Order.deleteMany({ user: user._id });
     console.log(`Deleted ${orderDeletion.deletedCount} order(s) for user ${user._id}`);
-    
+
     const userDeletion = await User.findByIdAndDelete(user._id);
     if (!userDeletion) {
       res.status(500).json({ success: false, message: 'Failed to delete user account' });
@@ -612,20 +612,44 @@ const resetPassword = async (req: Request, res: Response, next: NextFunction): P
 
 const FcmToken = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id
-    const { fcmToken } = req.body
-    if (!userId || !fcmToken) return res.status(400).json({ success: false })
+    const userId = req.user?.id;
+    const { fcmToken } = req.body;
 
-    await User.updateOne(
+    console.log('📱 FCM Token registration request received');
+    console.log(`👤 User ID: ${userId}`);
+    console.log(`🔑 Token: ${fcmToken ? fcmToken.substring(0, 30) + '...' : 'null'}`);
+
+    if (!userId || !fcmToken) {
+      console.log('❌ Missing userId or fcmToken');
+      return res.status(400).json({
+        success: false,
+        message: 'Missing userId or fcmToken'
+      });
+    }
+
+    const result = await User.updateOne(
       { _id: userId },
       { $addToSet: { fcmTokens: fcmToken } }
-    )
+    );
 
-    res.status(200).json({ success: true })
-  } catch {
-    res.status(500).json({ success: false })
+    console.log(`✅ FCM token saved - Modified: ${result.modifiedCount}, Matched: ${result.matchedCount}`);
+
+    const user = await User.findById(userId);
+    console.log(`📊 User now has ${user?.fcmTokens?.length || 0} FCM token(s)`);
+
+    res.status(200).json({
+      success: true,
+      message: 'FCM token registered successfully',
+      tokenCount: user?.fcmTokens?.length || 0
+    });
+  } catch (error: any) {
+    console.error('❌ Error registering FCM token:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
   }
-}
+};
 
 
 export { register, login, logout, getMe, updateProfile, uploadImage, getUploadedImage, updatePassword, DeleteAccount, verifyEmail, resetPassword, verifyOTP, resendOTP, FcmToken };
