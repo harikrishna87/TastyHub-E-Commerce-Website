@@ -579,7 +579,22 @@ const ProductsPage: React.FC = () => {
     const averagePrice = totalProducts > 0 ? totalValue / totalProducts : 0;
     const averageRating = totalProducts > 0 ? products.reduce((sum, product) => sum + (product.rating?.rate || 0), 0) / totalProducts : 0;
 
-    const categoryColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+    const categoryColors = [
+        '#FF6384',
+        '#36A2EB',
+        '#FFCE56',
+        '#4BC0C0',
+        '#9966FF',
+        '#FF9F40',
+        '#8BC34A',
+        '#E91E63',
+        '#00BCD4',
+        '#CDDC39',
+        '#9C27B0',
+        '#FF5722',
+        '#03A9F4',
+        '#795548'
+    ];
 
     const createResponsivePieChart = () => {
         if (categories.length === 0) return null;
