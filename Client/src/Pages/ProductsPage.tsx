@@ -1310,6 +1310,7 @@ const ProductsPage: React.FC = () => {
                                     <Option value="NonVeg">NonVeg</Option>
                                     <Option value="Veg">Veg</Option>
                                     <Option value="Desserts">Desserts</Option>
+                                    <Option value="Tiffins">Cakes</Option>
                                     <Option value="IceCream">IceCream</Option>
                                     <Option value="Fruit Juice">Fruit Juice</Option>
                                     <Option value="Pizzas">Pizzas</Option>
@@ -1317,7 +1318,6 @@ const ProductsPage: React.FC = () => {
                                     <Option value="MilkShakes">MilkShakes</Option>
                                     <Option value="Burgers">Burgers</Option>
                                     <Option value="Snacks">Snacks</Option>
-                                    <Option value="Tiffins">Tiffins</Option>
                                     <Option value="Soups">Soups</Option>
                                     <Option value="Cold Drinks">Cold Drinks</Option>
                                     <Option value="Hot Drinks">Hot Drinks</Option>
