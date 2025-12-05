@@ -234,7 +234,7 @@ const ProductsPage: React.FC = () => {
             messageApi.loading({ content: 'Loading products...', key: 'loading' });
 
             const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             const [response] = await Promise.all([
                 axios.get<ApiResponse | Product[]>(`${backendUrl}/api/products/getallproducts`),
                 minLoadingTime
@@ -580,61 +580,61 @@ const ProductsPage: React.FC = () => {
     const averageRating = totalProducts > 0 ? products.reduce((sum, product) => sum + (product.rating?.rate || 0), 0) / totalProducts : 0;
 
     const categoryColors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
-    
+
     const createResponsivePieChart = () => {
         if (categories.length === 0) return null;
-        
+
         const total = categories.reduce((sum, cat) => sum + cat.count, 0);
         let currentAngle = 0;
-        
+
         const radius = 100;
         const centerX = 100;
         const centerY = 100;
         const svgSize = 200;
-        
+
         return (
-            <svg 
-                width="100%" 
-                height="100%" 
+            <svg
+                width="100%"
+                height="100%"
                 viewBox={`0 0 ${svgSize} ${svgSize}`}
                 style={{ maxWidth: '200px', maxHeight: '200px' }}
                 preserveAspectRatio="xMidYMid meet"
             >
-                <circle 
-                    cx={centerX} 
-                    cy={centerY} 
-                    r="40" 
-                    fill="white" 
-                    stroke="#f0f0f0" 
-                    strokeWidth="2" 
+                <circle
+                    cx={centerX}
+                    cy={centerY}
+                    r="40"
+                    fill="white"
+                    stroke="#f0f0f0"
+                    strokeWidth="2"
                 />
                 {categories.map((category, index) => {
                     const percentage = (category.count / total) * 100;
                     const angle = (category.count / total) * 360;
                     const startAngle = currentAngle;
                     const endAngle = currentAngle + angle;
-                    
+
                     const x1 = centerX + radius * Math.cos((startAngle * Math.PI) / 180);
                     const y1 = centerY + radius * Math.sin((startAngle * Math.PI) / 180);
                     const x2 = centerX + radius * Math.cos((endAngle * Math.PI) / 180);
                     const y2 = centerY + radius * Math.sin((endAngle * Math.PI) / 180);
-                    
+
                     const largeArcFlag = angle > 180 ? 1 : 0;
-                    
+
                     const pathData = [
                         `M ${centerX} ${centerY}`,
                         `L ${x1} ${y1}`,
                         `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
                         'Z'
                     ].join(' ');
-                    
+
                     const labelAngle = (startAngle + endAngle) / 2;
                     const labelRadius = radius * 0.65;
                     const labelX = centerX + labelRadius * Math.cos((labelAngle * Math.PI) / 180);
                     const labelY = centerY + labelRadius * Math.sin((labelAngle * Math.PI) / 180);
-                    
+
                     currentAngle += angle;
-                    
+
                     return (
                         <g key={category.name}>
                             <path
@@ -707,7 +707,7 @@ const ProductsPage: React.FC = () => {
             dataIndex: 'category',
             key: 'category',
             render: (category: string) => (
-                <Tag color="cyan" style={{ border:'1px dashed' }}>{category}</Tag>
+                <Tag color="cyan" style={{ border: '1px dashed' }}>{category}</Tag>
             ),
         },
         {
@@ -781,7 +781,7 @@ const ProductsPage: React.FC = () => {
     return (
         <div style={{ padding: '40px 24px', maxWidth: 1250, margin: '0 auto' }}>
             {contextHolder}
-            
+
             <Title level={2} style={{ textAlign: 'center', marginBottom: 40, color: "#52c41a" }}>
                 Product Management Dashboard
             </Title>
@@ -790,8 +790,8 @@ const ProductsPage: React.FC = () => {
                 <Col xs={24} xl={12}>
                     <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
                         <Col xs={24} sm={12}>
-                            <Card 
-                                style={{ 
+                            <Card
+                                style={{
                                     borderRadius: '12px',
                                     border: '2px dashed #b7eb8f',
                                     boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
@@ -806,10 +806,10 @@ const ProductsPage: React.FC = () => {
                                 <Statistic
                                     title={<span style={{ color: '#8c8c8c', fontSize: '14px' }}>Total Products</span>}
                                     value={totalProducts}
-                                    valueStyle={{ 
-                                        color: '#52c41a', 
-                                        fontSize: '25px', 
-                                        fontWeight: 700 
+                                    valueStyle={{
+                                        color: '#52c41a',
+                                        fontSize: '25px',
+                                        fontWeight: 700
                                     }}
                                 />
                                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
@@ -820,10 +820,10 @@ const ProductsPage: React.FC = () => {
                                 </div>
                             </Card>
                         </Col>
-                        
+
                         <Col xs={24} sm={12}>
-                            <Card 
-                                style={{ 
+                            <Card
+                                style={{
                                     borderRadius: '12px',
                                     border: '2px dashed #b7eb8f',
                                     boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
@@ -840,25 +840,25 @@ const ProductsPage: React.FC = () => {
                                     value={totalValue}
                                     precision={2}
                                     prefix="₹"
-                                    valueStyle={{ 
-                                        color: '#52c41a', 
-                                        fontSize: '25px', 
-                                        fontWeight: 700 
+                                    valueStyle={{
+                                        color: '#52c41a',
+                                        fontSize: '25px',
+                                        fontWeight: 700
                                     }}
                                 />
                                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
                                     <Text style={{ color: '#8c8c8c', fontSize: '12px' }}>
-                                        <span style={{color:'#52c41a', fontSize: '16px'}}>₹ </span>Inventory value
+                                        <span style={{ color: '#52c41a', fontSize: '16px' }}>₹ </span>Inventory value
                                     </Text>
                                 </div>
                             </Card>
                         </Col>
                     </Row>
-                    
+
                     <Row gutter={[16, 16]}>
                         <Col xs={24} sm={12}>
-                            <Card 
-                                style={{ 
+                            <Card
+                                style={{
                                     borderRadius: '12px',
                                     border: '2px dashed #b7eb8f',
                                     boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
@@ -875,10 +875,10 @@ const ProductsPage: React.FC = () => {
                                     value={averagePrice}
                                     precision={2}
                                     prefix="₹"
-                                    valueStyle={{ 
-                                        color: '#52c41a', 
-                                        fontSize: '25px', 
-                                        fontWeight: 700 
+                                    valueStyle={{
+                                        color: '#52c41a',
+                                        fontSize: '25px',
+                                        fontWeight: 700
                                     }}
                                 />
                                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
@@ -889,10 +889,10 @@ const ProductsPage: React.FC = () => {
                                 </div>
                             </Card>
                         </Col>
-                        
+
                         <Col xs={24} sm={12}>
-                            <Card 
-                                style={{ 
+                            <Card
+                                style={{
                                     borderRadius: '12px',
                                     border: '2px dashed #b7eb8f',
                                     boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
@@ -908,10 +908,10 @@ const ProductsPage: React.FC = () => {
                                     title={<span style={{ color: '#8c8c8c', fontSize: '14px' }}>Average Rating</span>}
                                     value={averageRating}
                                     precision={1}
-                                    valueStyle={{ 
-                                        color: '#52c41a', 
-                                        fontSize: '25px', 
-                                        fontWeight: 700 
+                                    valueStyle={{
+                                        color: '#52c41a',
+                                        fontSize: '25px',
+                                        fontWeight: 700
                                     }}
                                 />
                                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
@@ -924,32 +924,36 @@ const ProductsPage: React.FC = () => {
                         </Col>
                     </Row>
                 </Col>
-                
+
                 <Col xs={24} xl={12}>
                     <Card
-                        style={{ 
+                        style={{
                             borderRadius: '12px',
                             border: '2px dashed #b7eb8f',
                             boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
                             background: 'white',
-                            minHeight: '296px'
+                            minHeight: '296px',
+                            maxHeight: '400px',
+                            display: 'flex',
+                            flexDirection: 'column'
                         }}
                     >
-                        <Title level={4} style={{ marginBottom: '20px', color: '#52c41a'}}>
+                        <Title level={4} style={{ marginBottom: '20px', color: '#52c41a', flexShrink: 0 }}>
                             <AppstoreOutlined /> Category Types
                         </Title>
-                        
+
                         {categories.length > 0 ? (
                             <>
-                                <div className="mobile-categories" style={{ display: 'block' }}>
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'center', 
+                                <div className="mobile-categories" style={{ display: 'block', flex: 1, overflow: 'hidden' }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
                                         alignItems: 'center',
-                                        marginBottom: '20px'
+                                        marginBottom: '20px',
+                                        flexShrink: 0
                                     }}>
-                                        <div style={{ 
-                                            width: '100%', 
+                                        <div style={{
+                                            width: '100%',
                                             maxWidth: '280px',
                                             aspectRatio: '1',
                                             display: 'flex',
@@ -959,16 +963,21 @@ const ProductsPage: React.FC = () => {
                                             {createResponsivePieChart()}
                                         </div>
                                     </div>
-                                    
-                                    <div style={{ 
-                                        display: 'flex', 
-                                        flexDirection: 'column', 
-                                        gap: '8px'
+
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '8px',
+                                        maxHeight: '200px',
+                                        overflowY: 'auto',
+                                        paddingRight: '8px',
+                                        scrollbarWidth: 'thin',
+                                        scrollbarColor: '#52c41a #f0f0f0'
                                     }}>
                                         {categories.map((category, index) => (
-                                            <div 
+                                            <div
                                                 key={`category-${category.name}`}
-                                                style={{ 
+                                                style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     padding: '8px 12px',
@@ -977,7 +986,8 @@ const ProductsPage: React.FC = () => {
                                                     cursor: 'pointer',
                                                     transition: 'all 0.2s ease',
                                                     border: '1px solid #e6f7ff',
-                                                    minHeight: '40px'
+                                                    minHeight: '40px',
+                                                    flexShrink: 0
                                                 }}
                                                 onClick={() => handleCategoryClick(category.name)}
                                                 onMouseEnter={(e) => {
@@ -989,17 +999,17 @@ const ProductsPage: React.FC = () => {
                                                     e.currentTarget.style.transform = 'translateX(0px)';
                                                 }}
                                             >
-                                                <div 
-                                                    style={{ 
-                                                        width: '12px', 
-                                                        height: '12px', 
+                                                <div
+                                                    style={{
+                                                        width: '12px',
+                                                        height: '12px',
                                                         backgroundColor: categoryColors[index % categoryColors.length],
                                                         borderRadius: '50%',
                                                         marginRight: '12px',
                                                         border: '2px solid white',
                                                         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                                                         flexShrink: 0
-                                                    }} 
+                                                    }}
                                                 />
                                                 <Text strong style={{ color: '#262626', fontSize: '14px', flex: 1 }}>
                                                     {category.name}
@@ -1012,30 +1022,34 @@ const ProductsPage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="desktop-categories" style={{ display: 'none' }}>
+                                <div className="desktop-categories" style={{ display: 'none', flex: 1, overflow: 'hidden' }}>
                                     <Row gutter={[24, 24]}>
                                         <Col span={10}>
-                                            <div style={{ 
-                                                height: '200px', 
-                                                display: 'flex', 
-                                                justifyContent: 'center', 
-                                                alignItems: 'center' 
+                                            <div style={{
+                                                height: '200px',
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center'
                                             }}>
                                                 {createResponsivePieChart()}
                                             </div>
                                         </Col>
                                         <Col span={14}>
-                                            <div style={{ 
-                                                padding: '10px 0', 
-                                                height: '200px', 
-                                                display: 'flex', 
-                                                flexDirection: 'column', 
-                                                justifyContent: 'center'
+                                            <div style={{
+                                                padding: '10px 0',
+                                                height: '200px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                justifyContent: 'flex-start',
+                                                overflowY: 'auto',
+                                                paddingRight: '8px',
+                                                scrollbarWidth: 'thin',
+                                                scrollbarColor: '#52c41a #f0f0f0'
                                             }}>
                                                 {categories.map((category, index) => (
-                                                    <div 
+                                                    <div
                                                         key={`category-${category.name}`}
-                                                        style={{ 
+                                                        style={{
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             padding: '6px 12px',
@@ -1044,7 +1058,8 @@ const ProductsPage: React.FC = () => {
                                                             background: '#f9f9f9',
                                                             cursor: 'pointer',
                                                             transition: 'all 0.2s ease',
-                                                            border: '1px solid #e6f7ff'
+                                                            border: '1px solid #e6f7ff',
+                                                            flexShrink: 0
                                                         }}
                                                         onClick={() => handleCategoryClick(category.name)}
                                                         onMouseEnter={(e) => {
@@ -1056,17 +1071,17 @@ const ProductsPage: React.FC = () => {
                                                             e.currentTarget.style.transform = 'translateX(0px)';
                                                         }}
                                                     >
-                                                        <div 
-                                                            style={{ 
-                                                                width: '12px', 
-                                                                height: '12px', 
+                                                        <div
+                                                            style={{
+                                                                width: '12px',
+                                                                height: '12px',
                                                                 backgroundColor: categoryColors[index % categoryColors.length],
                                                                 borderRadius: '50%',
                                                                 marginRight: '12px',
                                                                 border: '2px solid white',
                                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                                                                 flexShrink: 0
-                                                            }} 
+                                                            }}
                                                         />
                                                         <Text strong style={{ color: '#262626', fontSize: '14px', flex: 1 }}>
                                                             {category.name}
@@ -1082,8 +1097,8 @@ const ProductsPage: React.FC = () => {
                                 </div>
                             </>
                         ) : (
-                            <div style={{ 
-                                textAlign: 'center', 
+                            <div style={{
+                                textAlign: 'center',
                                 color: '#8c8c8c',
                                 padding: '40px 20px',
                                 minHeight: '200px',
@@ -1109,7 +1124,7 @@ const ProductsPage: React.FC = () => {
                         </Space>
                     </Flex>
                 }
-                style={{ 
+                style={{
                     borderRadius: '12px',
                     border: '2px dashed #b7eb8f',
                     boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
@@ -1148,8 +1163,8 @@ const ProductsPage: React.FC = () => {
                     </Space>
                 </div>
                 {filteredProducts.length === 0 ? (
-                    <div style={{ 
-                        textAlign: 'center', 
+                    <div style={{
+                        textAlign: 'center',
                         padding: '60px 20px',
                         background: '#f6ffed',
                         borderRadius: '12px',
@@ -1174,7 +1189,7 @@ const ProductsPage: React.FC = () => {
                                 showSizeChanger: false,
                                 showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} products`,
                             }}
-                            rowClassName={(_, index) => 
+                            rowClassName={(_, index) =>
                                 index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
                             }
                         />
@@ -1283,6 +1298,14 @@ const ProductsPage: React.FC = () => {
                                     <Option value="IceCream">IceCream</Option>
                                     <Option value="Fruit Juice">Fruit Juice</Option>
                                     <Option value="Pizzas">Pizzas</Option>
+                                    <Option value="BreakFast">BreakFast</Option>
+                                    <Option value="MilkShakes">MilkShakes</Option>
+                                    <Option value="Burgers">Burgers</Option>
+                                    <Option value="Snacks">Snacks</Option>
+                                    <Option value="Tiffins">Tiffins</Option>
+                                    <Option value="Soups">Soups</Option>
+                                    <Option value="Cold Drinks">Cold Drinks</Option>
+                                    <Option value="Hot Drinks">Hot Drinks</Option>
                                 </Select>
                                 {formErrors.category && (
                                     <Text type="danger" style={{ fontSize: '12px', display: 'block', marginTop: '4px' }}>
@@ -1386,21 +1409,21 @@ const ProductsPage: React.FC = () => {
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
                             Ingredients *
                         </label>
-                        <div style={{ 
-                            border: '1px solid #d9d9d9', 
-                            borderRadius: '6px', 
+                        <div style={{
+                            border: '1px solid #d9d9d9',
+                            borderRadius: '6px',
                             padding: '12px',
                             background: '#fafafa'
                         }}>
-                            <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                                 gap: '8px',
                                 marginBottom: '12px'
                             }}>
                                 {formData.ingredients.map((ingredient, index) => (
-                                    <div key={index} style={{ 
-                                        display: 'flex', 
+                                    <div key={index} style={{
+                                        display: 'flex',
                                         alignItems: 'center',
                                         gap: '4px'
                                     }}>
@@ -1428,8 +1451,8 @@ const ProductsPage: React.FC = () => {
                                 type="dashed"
                                 icon={<PlusOutlined />}
                                 size="small"
-                                style={{ 
-                                    borderColor: '#52c41a', 
+                                style={{
+                                    borderColor: '#52c41a',
                                     color: '#52c41a',
                                     display: 'inline-flex',
                                     alignItems: 'center'
@@ -1447,7 +1470,7 @@ const ProductsPage: React.FC = () => {
                     </div>
                 </div>
             </Modal>
-            
+
             <style>{`
                 .table-row-light {
                     background-color: #fafafa;
