@@ -1309,7 +1309,7 @@ const ProductsPage: React.FC = () => {
                                 >
                                     <Option value="NonVeg">NonVeg</Option>
                                     <Option value="Veg">Veg</Option>
-                                    <Option value="Cakes">Cakes</Option>
+                                    <Option value="Desserts">Desserts</Option>
                                     <Option value="Sweets">Sweets</Option>
                                     <Option value="IceCream">IceCream</Option>
                                     <Option value="Fruit Juice">Fruit Juice</Option>
