@@ -52,56 +52,124 @@ const deleteNotification = async (req: Request, res: Response) => {
   }
 };
 
-const deals = [
-  {
-    title: "🍗 Aromatic Biryani Fresh from the Kitchen",
-    description: "Fragrant basmati rice layered with tender chicken and signature spices. A flavor explosion in every bite! 🔥"
-  },
-  {
-    title: "☕ Craving Comfort Food?",
-    description: "Fluffy pancakes, perfectly cooked eggs, and freshly brewed coffee. Pure breakfast bliss awaits you ☀️"
-  },
-  {
-    title: "🍕 Hand-Tossed Pizza Perfection",
-    description: "Crispy crust, bubbling cheese, and premium toppings baked fresh just for you. Order your slice of heaven! 🧀"
-  },
-  {
-    title: "🥤 Refreshment Calling Your Name",
-    description: "Freshly squeezed juices, creamy smoothies, and iced beverages made to order. Beat the heat deliciously! 🌡️"
-  },
-  {
-    title: "🌮 Let's Taco 'Bout Deliciousness",
-    description: "Crispy shells packed with seasoned meat, fresh veggies, and zesty sauces. Your taste buds will thank you! 🔥"
-  },
-  {
-    title: "🍰 Sweet Indulgence Awaits",
-    description: "Decadent cakes, flaky pastries, and traditional desserts made fresh daily. Treat yourself to something special 🎂"
-  },
-  {
-    title: "🥗 Fresh & Flavorful Bowls",
-    description: "Crisp salads and grilled chicken loaded with nutrients and flavor. Healthy never tasted this good! 💪"
-  },
-  {
-    title: "🍔 Flame-Grilled Burger Heaven",
-    description: "Juicy patties topped with crispy lettuce, ripe tomatoes, and our secret sauce. One bite says it all! 🔥"
-  },
-  {
-    title: "🍜 Wok-Fired Noodle Perfection",
-    description: "Stir-fried noodles tossed with fresh vegetables and your choice of protein. Authentic flavors in every forkful 🥢"
-  },
-  {
-    title: "🦐 Dive Into Coastal Flavors",
-    description: "Fresh prawns and fish cooked in aromatic coastal spices. A seafood lover's dream come true 🌊"
-  }
-];
-
-
+const dealsByTimeSlot = {
+  breakfast: [
+    {
+      title: "☕ Craving Comfort Food?",
+      description: "Fluffy pancakes, perfectly cooked eggs, and freshly brewed coffee. Pure breakfast bliss awaits you ☀️"
+    },
+    {
+      title: "🥞 Start Your Day Right!",
+      description: "Freshly made tiffins, crispy dosas, and hot idlis with chutneys. The perfect breakfast combo! 🌅"
+    },
+    {
+      title: "🥤 Morning Refreshment Special",
+      description: "Freshly squeezed juices, creamy smoothies, and power-packed breakfast bowls. Energize your morning! ⚡"
+    }
+  ],
+  lunch: [
+    {
+      title: "🍗 Aromatic Biryani Fresh from the Kitchen",
+      description: "Fragrant basmati rice layered with tender chicken and signature spices. A flavor explosion in every bite! 🔥"
+    },
+    {
+      title: "🥗 Fresh & Flavorful Bowls",
+      description: "Crisp salads and grilled chicken loaded with nutrients and flavor. Healthy never tasted this good! 💪"
+    },
+    {
+      title: "🍜 Wok-Fired Noodle Perfection",
+      description: "Stir-fried noodles tossed with fresh vegetables and your choice of protein. Authentic flavors in every forkful 🥢"
+    }
+  ],
+  snacks: [
+    {
+      title: "🍕 Hand-Tossed Pizza Perfection",
+      description: "Crispy crust, bubbling cheese, and premium toppings baked fresh just for you. Order your slice of heaven! 🧀"
+    },
+    {
+      title: "🌮 Let's Taco 'Bout Deliciousness",
+      description: "Crispy shells packed with seasoned meat, fresh veggies, and zesty sauces. Your taste buds will thank you! 🔥"
+    },
+    {
+      title: "🍰 Sweet Indulgence Awaits",
+      description: "Decadent cakes, flaky pastries, and traditional desserts made fresh daily. Treat yourself to something special 🎂"
+    },
+    {
+      title: "🥤 Refreshment Calling Your Name",
+      description: "Freshly squeezed juices, creamy smoothies, and iced beverages made to order. Beat the heat deliciously! 🌡️"
+    }
+  ],
+  dinner: [
+    {
+      title: "🍔 Flame-Grilled Burger Heaven",
+      description: "Juicy patties topped with crispy lettuce, ripe tomatoes, and our secret sauce. One bite says it all! 🔥"
+    },
+    {
+      title: "🦐 Dive Into Coastal Flavors",
+      description: "Fresh prawns and fish cooked in aromatic coastal spices. A seafood lover's dream come true 🌊"
+    },
+    {
+      title: "🍗 Aromatic Biryani Fresh from the Kitchen",
+      description: "Fragrant basmati rice layered with tender chicken and signature spices. A flavor explosion in every bite! 🔥"
+    },
+    {
+      title: "🍜 Wok-Fired Noodle Perfection",
+      description: "Stir-fried noodles tossed with fresh vegetables and your choice of protein. Authentic flavors in every forkful 🥢"
+    }
+  ],
+  lateNight: [
+    {
+      title: "🌙 Midnight Hunger Sorted!",
+      description: "Hot burgers, crispy fries, and cheesy pizzas ready to satisfy those late-night cravings! 🍔"
+    },
+    {
+      title: "🍕 Late Night Pizza Delivery",
+      description: "Craving something cheesy at midnight? Fresh pizza delivered hot to your doorstep. We're open late! 🌃"
+    },
+    {
+      title: "🍜 Comfort Food After Dark",
+      description: "Steaming noodles, crispy fried chicken, and hot soups perfect for late-night indulgence! 🥡"
+    },
+    {
+      title: "🌮 Night Owl Special",
+      description: "Loaded tacos, spicy wings, and cheesy nachos. Because midnight snacks should be legendary! 🦉"
+    }
+  ]
+};
 
 const greetBySlot = (hour: number): string => {
   if (hour >= 5 && hour < 12) return 'Good Morning';
   if (hour >= 12 && hour < 17) return 'Good Afternoon';
-  if (hour >= 17 && hour < 21) return 'Good Evening';
+  if (hour >= 17 && hour < 20) return 'Good Evening';
   return 'Good Night';
+};
+
+const getDealByTime = (hour: number): { title: string; description: string } => {
+  let timeSlotDeals: { title: string; description: string }[];
+  let slotName: string;
+
+  if (hour >= 7 && hour < 11) {
+    timeSlotDeals = dealsByTimeSlot.breakfast;
+    slotName = 'breakfast';
+  } else if (hour >= 11 && hour < 15) {
+    timeSlotDeals = dealsByTimeSlot.lunch;
+    slotName = 'lunch';
+  } else if (hour >= 15 && hour < 19) {
+    timeSlotDeals = dealsByTimeSlot.snacks;
+    slotName = 'snacks';
+  } else if (hour >= 19 && hour < 22) {
+    timeSlotDeals = dealsByTimeSlot.dinner;
+    slotName = 'dinner';
+  } else {
+    timeSlotDeals = dealsByTimeSlot.lateNight;
+    slotName = 'lateNight';
+  }
+
+  const dealIndex = hour % timeSlotDeals.length;
+  const deal = timeSlotDeals[dealIndex];
+
+  console.log(`⏰ Time slot: ${slotName} (${hour}:00) - Deal index: ${dealIndex}`);
+  return deal;
 };
 
 const sendScheduledDealsNotifications = async () => {
@@ -121,8 +189,7 @@ const sendScheduledDealsNotifications = async () => {
     const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
     const hour = istTime.getHours();
     const greeting = greetBySlot(hour);
-    const dealIndex = hour % deals.length;
-    const deal = deals[dealIndex];
+    const deal = getDealByTime(hour);
 
     console.log(`⏰ Time: ${hour}:00 IST - Sending: ${deal.title}`);
 
