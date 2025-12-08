@@ -221,22 +221,22 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
         const getOrderNotification = (status: string) => {
           const notifications: Record<string, { title: string; body: string }> = {
             'Pending': {
-              title: '✅ Order Confirmed!',
-              body: `We've received your order and our kitchen is getting started. Your delicious meal is on its way! 🍴`
+              title: '🎉 Order Confirmed!',
+              body: `Restaurant is preparing your food with love.`
             },
             'Shipped': {
-              title: '🚗 On the Way to You!',
-              body: `Your order is out for delivery. Get ready to enjoy your delicious meal! 🛵`
+              title: '🛵 Your food is on the way!',
+              body: `Delivery partner is heading towards you. Hang tight!`
             },
             'Delivered': {
-              title: '✨ Delivered Successfully!',
-              body: `Enjoy your meal! Thank you for ordering with us. We hope it's delicious! 💛`
+              title: '✅ Order Delivered!',
+              body: `Enjoy your meal! Don't forget to rate us.`
             }
           };
 
           return notifications[status] || {
             title: '📦 Order Update',
-            body: `Your order status has been updated. Check the app for details!`
+            body: `Your order status has been updated.`
           };
         };
 
@@ -285,5 +285,6 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById };

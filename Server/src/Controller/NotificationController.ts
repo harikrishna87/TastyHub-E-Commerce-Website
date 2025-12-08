@@ -52,100 +52,54 @@ const deleteNotification = async (req: Request, res: Response) => {
   }
 };
 
+const titles = [
+  "🍕 Hey Buddy, food time!",
+  "🍔 Hey Buddy, your cravings called!",
+  "😋 Hey Buddy, hungry much?",
+  "🔥 Hey Buddy, mood = food!",
+  "🎉 Hey Buddy, let's feast!",
+  "🫶 Hey Buddy, treat yourself today!",
+  "👌 Hey Buddy, taste buds are waiting!",
+  "🌟 Hey Buddy, something yummy is loading...",
+  "💫 Hey Buddy, your order vibe is ON!",
+  "✨ Hey Buddy, ready for something delicious?"
+];
+
 const dealsByTimeSlot = {
   breakfast: [
-    {
-      title: "☕ Craving Comfort Food?",
-      description: "Fluffy pancakes, perfectly cooked eggs, and freshly brewed coffee. Pure breakfast bliss awaits you ☀️"
-    },
-    {
-      title: "🥞 Start Your Day Right!",
-      description: "Freshly made tiffins, crispy dosas, and hot idlis with chutneys. The perfect breakfast combo! 🌅"
-    },
-    {
-      title: "🥤 Morning Refreshment Special",
-      description: "Freshly squeezed juices, creamy smoothies, and power-packed breakfast bowls. Energize your morning! ⚡"
-    }
+    "Meal mood ON? Order before your hunger takes over!",
+    "Today's vibe: Paneer Butter Masala. Agree?",
+    "Pizza doesn't judge. Order now!",
+    "Good food = good mood. Let's make your mood better"
   ],
   lunch: [
-    {
-      title: "🍗 Aromatic Biryani Fresh from the Kitchen",
-      description: "Fragrant basmati rice layered with tender chicken and signature spices. A flavor explosion in every bite! 🔥"
-    },
-    {
-      title: "🥗 Fresh & Flavorful Bowls",
-      description: "Crisp salads and grilled chicken loaded with nutrients and flavor. Healthy never tasted this good! 💪"
-    },
-    {
-      title: "🍜 Wok-Fired Noodle Perfection",
-      description: "Stir-fried noodles tossed with fresh vegetables and your choice of protein. Authentic flavors in every forkful 🥢"
-    }
+    "Burgers are calling you. Pick up the call!",
+    "Meal mood ON? Order before your hunger takes over!",
+    "Today's vibe: Paneer Butter Masala. Agree?",
+    "Good food = good mood. Let's make your mood better"
   ],
   snacks: [
-    {
-      title: "🍕 Hand-Tossed Pizza Perfection",
-      description: "Crispy crust, bubbling cheese, and premium toppings baked fresh just for you. Order your slice of heaven! 🧀"
-    },
-    {
-      title: "🌮 Let's Taco 'Bout Deliciousness",
-      description: "Crispy shells packed with seasoned meat, fresh veggies, and zesty sauces. Your taste buds will thank you! 🔥"
-    },
-    {
-      title: "🍰 Sweet Indulgence Awaits",
-      description: "Decadent cakes, flaky pastries, and traditional desserts made fresh daily. Treat yourself to something special 🎂"
-    },
-    {
-      title: "🥤 Refreshment Calling Your Name",
-      description: "Freshly squeezed juices, creamy smoothies, and iced beverages made to order. Beat the heat deliciously! 🌡️"
-    }
+    "Pizza doesn't judge. Order now!",
+    "Burgers are calling you. Pick up the call!",
+    "Meal mood ON? Order before your hunger takes over!",
+    "Good food = good mood. Let's make your mood better"
   ],
   dinner: [
-    {
-      title: "🍔 Flame-Grilled Burger Heaven",
-      description: "Juicy patties topped with crispy lettuce, ripe tomatoes, and our secret sauce. One bite says it all! 🔥"
-    },
-    {
-      title: "🦐 Dive Into Coastal Flavors",
-      description: "Fresh prawns and fish cooked in aromatic coastal spices. A seafood lover's dream come true 🌊"
-    },
-    {
-      title: "🍗 Aromatic Biryani Fresh from the Kitchen",
-      description: "Fragrant basmati rice layered with tender chicken and signature spices. A flavor explosion in every bite! 🔥"
-    },
-    {
-      title: "🍜 Wok-Fired Noodle Perfection",
-      description: "Stir-fried noodles tossed with fresh vegetables and your choice of protein. Authentic flavors in every forkful 🥢"
-    }
+    "Today's vibe: Paneer Butter Masala. Agree?",
+    "Burgers are calling you. Pick up the call!",
+    "Good food = good mood. Let's make your mood better",
+    "Meal mood ON? Order before your hunger takes over!"
   ],
   lateNight: [
-    {
-      title: "🌙 Midnight Hunger Sorted!",
-      description: "Hot burgers, crispy fries, and cheesy pizzas ready to satisfy those late-night cravings! 🍔"
-    },
-    {
-      title: "🍕 Late Night Pizza Delivery",
-      description: "Craving something cheesy at midnight? Fresh pizza delivered hot to your doorstep. We're open late! 🌃"
-    },
-    {
-      title: "🍜 Comfort Food After Dark",
-      description: "Steaming noodles, crispy fried chicken, and hot soups perfect for late-night indulgence! 🥡"
-    },
-    {
-      title: "🌮 Night Owl Special",
-      description: "Loaded tacos, spicy wings, and cheesy nachos. Because midnight snacks should be legendary! 🦉"
-    }
+    "Midnight cravings? Order from late-night restaurants near you.",
+    "Hot noodles + cold night = perfect combo!",
+    "Meal mood ON? Order before your hunger takes over!",
+    "Pizza doesn't judge. Order now!"
   ]
 };
 
-const greetBySlot = (hour: number): string => {
-  if (hour >= 5 && hour < 12) return 'Good Morning';
-  if (hour >= 12 && hour < 17) return 'Good Afternoon';
-  if (hour >= 17 && hour < 20) return 'Good Evening';
-  return 'Good Night';
-};
-
-const getDealByTime = (hour: number): { title: string; description: string } => {
-  let timeSlotDeals: { title: string; description: string }[];
+const getDealByTime = (hour: number): string => {
+  let timeSlotDeals: string[];
   let slotName: string;
 
   if (hour >= 7 && hour < 11) {
@@ -172,6 +126,11 @@ const getDealByTime = (hour: number): { title: string; description: string } => 
   return deal;
 };
 
+const getRandomTitle = (): string => {
+  const randomIndex = Math.floor(Math.random() * titles.length);
+  return titles[randomIndex];
+};
+
 const sendScheduledDealsNotifications = async () => {
   try {
     console.log('🔔 Starting scheduled deals notification job...');
@@ -188,18 +147,17 @@ const sendScheduledDealsNotifications = async () => {
     const now = new Date();
     const istTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
     const hour = istTime.getHours();
-    const greeting = greetBySlot(hour);
-    const deal = getDealByTime(hour);
+    const dealMessage = getDealByTime(hour);
 
-    console.log(`⏰ Time: ${hour}:00 IST - Sending: ${deal.title}`);
+    console.log(`⏰ Time: ${hour}:00 IST - Sending: ${dealMessage}`);
 
     let sentCount = 0;
     let failedCount = 0;
 
     for (const user of users) {
       for (const token of user.fcmTokens || []) {
-        const title = `${greeting} ${user.name || 'Friend'}!`;
-        const body = `${deal.title}\n${deal.description}`;
+        const title = getRandomTitle();
+        const body = dealMessage;
 
         const message = {
           token,
@@ -207,7 +165,7 @@ const sendScheduledDealsNotifications = async () => {
           android: { priority: "high" as const, notification: { sound: "default", channelId: "tastyhub_channel" } },
           apns: { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } },
           webpush: { headers: { Urgency: "high" } },
-          data: { type: "deals", dealTitle: deal.title }
+          data: { type: "deals", dealTitle: title }
         };
 
         try {
