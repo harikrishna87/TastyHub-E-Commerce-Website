@@ -1,5 +1,5 @@
-import React from 'react';
-import { Row, Col, Card, Button, Typography } from 'antd';
+import React, { useState } from 'react';
+import { Row, Col, Card, Button, Typography, Pagination } from 'antd';
 import { ArrowRightOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -22,13 +22,20 @@ interface ProductCategoriesProps {
 }
 
 const categoryImages: { [key: string]: string } = {
-  'NonVeg': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&h=300&fit=crop',
-  'Veg': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop',
-  'Desserts': 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&h=300&fit=crop',
-  'Fruit Juice': 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=400&h=300&fit=crop',
+  'NonVeg': 'https://media.istockphoto.com/id/1334383300/photo/fish-biryani-spicy-and-delicious-malabar-biryani-or-hydrabadi-biryani-dum-biriyani.webp?a=1&b=1&s=612x612&w=0&k=20&c=ZqTAGd2qFYQHDxhmvWC5XSwKLIQSPEGFDOEz9wK9SEE=',
+  'Veg': 'https://media.istockphoto.com/id/2126807238/photo/healthy-super-food-ragi-roti-with-raw-ragi-and-flour-selective-focus.jpg?s=612x612&w=0&k=20&c=cfFx6cC6q1ZHIp0xLaMifyPByPM-2Oq6ern7ygmgi6E=',
+  'Desserts': 'https://media.istockphoto.com/id/1214305490/photo/blackforest-cake.jpg?s=612x612&w=0&k=20&c=yxQZHJ6HSGamPFo5UId6JeC0RICcuZo1DuXfYWIdpyY=',
+  'Sweets': 'https://media.istockphoto.com/id/1194662949/photo/indian-dessert-or-sweet-dish-gulab-jamun-in-white-bowl-on-yellow-background.jpg?s=612x612&w=0&k=20&c=XAOQkQC-Mu-XXviGtWU6NTz8vZzT1sY0oaJQ4jWo2Fo=',
+  'IceCream': 'https://www.keep-calm-and-eat-ice-cream.com/wp-content/uploads/2022/09/Pistachio-ice-cream-hero-06-500x375.jpg',
+  'Fruit Juice': 'https://media-cldnry.s-nbcnews.com/image/upload/t_fit-560w,f_auto,q_auto:best/rockcms/2024-03/orange-juice-1-jp-240311-1e99ea.jpg',
   'Pizzas': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=300&fit=crop',
-  'IceCream': 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&h=300&fit=crop',
-  'Default': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop'
+  'BreakFast': 'https://media.istockphoto.com/id/1364757902/photo/crispy-crepes-made-of-barnyard-millets-and-lentils-commonly-known-as-barnyard-millet-ghee.jpg?s=612x612&w=0&k=20&c=OujKblDoHPThj7fcxLL1FBfzRNlHK6ZwNYVXnqDhDBU=',
+  'MilkShakes': 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=400&h=300&fit=crop',
+  'Burgers': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop',
+  'Snacks': 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&h=300&fit=crop',
+  'Soups': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=300&fit=crop',
+  'Cold Drinks': 'https://images.unsplash.com/photo-1581006852262-e4307cf6283a?w=400&h=300&fit=crop',
+  'Hot Drinks': 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400&h=300&fit=crop',
 };
 
 const ProductCategories: React.FC<ProductCategoriesProps> = ({
@@ -37,8 +44,21 @@ const ProductCategories: React.FC<ProductCategoriesProps> = ({
   selectedCategory,
   handleCategoryClick
 }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 7;
+
   const getCategoryImage = (category: string): string => {
     return categoryImages[category] || categoryImages['Default'];
+  };
+
+  const categories = Array.from(new Set(products.map(p => p.category)));
+  const totalCategories = categories.length;
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedCategories = categories.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -47,7 +67,7 @@ const ProductCategories: React.FC<ProductCategoriesProps> = ({
         <Title level={2} className="section-title">Product Categories</Title>
       </div>
       <Row gutter={[16, 16]}>
-        {Array.from(new Set(products.map(p => p.category))).map((category) => (
+        {paginatedCategories.map((category) => (
           <Col xs={24} md={8} key={category}>
             <Card
               hoverable
@@ -127,6 +147,17 @@ const ProductCategories: React.FC<ProductCategoriesProps> = ({
           </Col>
         ))}
       </Row>
+      {totalCategories > pageSize && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+          <Pagination
+            current={currentPage}
+            total={totalCategories}
+            pageSize={pageSize}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+          />
+        </div>
+      )}
     </div>
   );
 };
