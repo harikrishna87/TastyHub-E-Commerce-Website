@@ -58,6 +58,39 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
       console.error('Failed to send order confirmation email:', error);
     });
 
+    if (user && user.fcmTokens?.length) {
+      const notification = {
+        title: '🎉 Order Confirmed!',
+        body: 'Restaurant is preparing your food with love.'
+      };
+
+      for (const token of user.fcmTokens) {
+        const message = {
+          token,
+          notification: { title: notification.title, body: notification.body },
+          android: { priority: "high" as const, notification: { sound: "default", channelId: "tastyhub_channel" } },
+          apns: { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } },
+          webpush: { headers: { Urgency: "high" } },
+          data: { type: "order_status", orderId: String(order._id), status: "Pending" }
+        };
+
+        try {
+          await admin.messaging().send(message);
+          await Notification.create({ 
+            user: user._id, 
+            title: notification.title, 
+            body: notification.body, 
+            type: "order_status" 
+          });
+        } catch (e) {
+          const err = e as any;
+          if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
+            await User.updateOne({ _id: user._id }, { $pull: { fcmTokens: token } });
+          }
+        }
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Order placed successfully!',
@@ -222,21 +255,21 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
           const notifications: Record<string, { title: string; body: string }> = {
             'Pending': {
               title: '🎉 Order Confirmed!',
-              body: `Restaurant is preparing your food with love.`
+              body: 'Restaurant is preparing your food with love.'
             },
             'Shipped': {
               title: '🛵 Your food is on the way!',
-              body: `Delivery partner is heading towards you. Hang tight!`
+              body: 'Delivery partner is heading towards you. Hang tight!'
             },
             'Delivered': {
               title: '✅ Order Delivered!',
-              body: `Enjoy your meal! Don't forget to rate us.`
+              body: 'Enjoy your meal! Don\'t forget to rate us.'
             }
           };
 
           return notifications[status] || {
             title: '📦 Order Update',
-            body: `Your order status has been updated.`
+            body: 'Your order status has been updated.'
           };
         };
 
@@ -285,6 +318,5 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById };
