@@ -59,7 +59,6 @@ const titles = [
   "🔥 Hey Buddy, mood = food!",
   "🎉 Hey Buddy, let's feast!",
   "🫶 Hey Buddy, treat yourself today!",
-  "👌 Hey Buddy, taste buds are waiting!",
   "🌟 Hey Buddy, something yummy is loading...",
   "💫 Hey Buddy, your order vibe is ON!",
   "✨ Hey Buddy, ready for something delicious?"

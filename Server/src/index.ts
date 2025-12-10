@@ -54,75 +54,111 @@ app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", message: "API is healthy" });
 });
 
-cron.schedule('0 8 * * *', async () => {
-  console.log('🌅 Sending notification at 8:00 AM');
+// MONDAY - 2 notifications
+cron.schedule('0 11 * * 1', async () => {
+  console.log('🍽️ Monday: Sending notification at 11:00 AM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('30 10 * * *', async () => {
-  console.log('🌅 Sending notification at 10:30 AM');
+cron.schedule('0 19 * * 1', async () => {
+  console.log('🌙 Monday: Sending notification at 7:00 PM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('30 12 * * *', async () => {
-  console.log('🍽️ Sending notification at 12:30 PM');
+// TUESDAY - 2 notifications
+cron.schedule('30 10 * * 2', async () => {
+  console.log('🌅 Tuesday: Sending notification at 10:30 AM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('30 14 * * *', async () => {
-  console.log('🍽️ Sending notification at 2:30 PM');
+cron.schedule('30 18 * * 2', async () => {
+  console.log('🌙 Tuesday: Sending notification at 6:30 PM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('15 16 * * *', async () => {
-  console.log('☕ Sending notification at 4:15 PM');
+// WEDNESDAY - 2 notifications
+cron.schedule('0 13 * * 3', async () => {
+  console.log('🍽️ Wednesday: Sending notification at 1:00 PM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('30 18 * * *', async () => {
-  console.log('🌙 Sending notification at 6:30 PM');
+cron.schedule('0 20 * * 3', async () => {
+  console.log('🌙 Wednesday: Sending notification at 8:00 PM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('15 20 * * *', async () => {
-  console.log('🌙 Sending notification at 8:15 PM');
+// THURSDAY - 2 notifications
+cron.schedule('30 12 * * 4', async () => {
+  console.log('🍽️ Thursday: Sending notification at 12:30 PM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('30 22 * * *', async () => {
-  console.log('🌙 Sending notification at 10:30 PM');
+cron.schedule('15 19 * * 4', async () => {
+  console.log('🌙 Thursday: Sending notification at 7:15 PM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('30 0 * * *', async () => {
-  console.log('🦉 Sending notification at 12:30 AM');
+// FRIDAY - 2 notifications
+cron.schedule('0 12 * * 5', async () => {
+  console.log('🍽️ Friday: Sending notification at 12:00 PM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
 
-cron.schedule('0 3 * * *', async () => {
-  console.log('🦉 Sending notification at 3:00 AM');
+cron.schedule('30 20 * * 5', async () => {
+  console.log('🌙 Friday: Sending notification at 8:30 PM');
   await sendScheduledDealsNotifications();
 }, {
   timezone: 'Asia/Kolkata'
 });
+
+// SATURDAY - 2 notifications
+cron.schedule('30 11 * * 6', async () => {
+  console.log('🍽️ Saturday: Sending notification at 11:30 AM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
+cron.schedule('0 20 * * 6', async () => {
+  console.log('🌙 Saturday: Sending notification at 8:00 PM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
+// SUNDAY - 2 notifications
+cron.schedule('0 12 * * 0', async () => {
+  console.log('🍽️ Sunday: Sending notification at 12:00 PM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
+cron.schedule('30 19 * * 0', async () => {
+  console.log('🌙 Sunday: Sending notification at 7:30 PM');
+  await sendScheduledDealsNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
