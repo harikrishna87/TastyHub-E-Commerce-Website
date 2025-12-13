@@ -651,5 +651,72 @@ const FcmToken = async (req: Request, res: Response) => {
   }
 };
 
+const getAllCustomers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const adminUser = req.user;
+    if (!adminUser || adminUser.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin privileges required.' });
+      return;
+    }
 
-export { register, login, logout, getMe, updateProfile, uploadImage, getUploadedImage, updatePassword, DeleteAccount, verifyEmail, resetPassword, verifyOTP, resendOTP, FcmToken };
+    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      users,
+      count: users.length
+    });
+  } catch (error: any) {
+    console.error('Get all customers error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const deleteCustomerById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const adminUser = req.user;
+    if (!adminUser || adminUser.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin privileges required.' });
+      return;
+    }
+
+    const { userId } = req.params;
+
+    if (!userId) {
+      res.status(400).json({ success: false, message: 'User ID is required' });
+      return;
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+
+    if (user.image) {
+      try {
+        const imageUrl = user.image;
+        const publicIdMatch = imageUrl.match(/user_profiles\/user_[^.]+/);
+        if (publicIdMatch) {
+          await cloudinary.v2.uploader.destroy(publicIdMatch[0]);
+        }
+      } catch (cloudinaryError) {
+        console.error('Failed to delete image from Cloudinary:', cloudinaryError);
+      }
+    }
+
+    await Cart.deleteMany({ user: userId });
+    await Order.deleteMany({ user: userId });
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Customer deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Delete customer error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export { register, login, logout, getMe, updateProfile, uploadImage, getUploadedImage, updatePassword, DeleteAccount, verifyEmail, resetPassword, verifyOTP, resendOTP, FcmToken, getAllCustomers, deleteCustomerById };
