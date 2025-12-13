@@ -76,11 +76,11 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
 
         try {
           await admin.messaging().send(message);
-          await Notification.create({ 
-            user: user._id, 
-            title: notification.title, 
-            body: notification.body, 
-            type: "order_status" 
+          await Notification.create({
+            user: user._id,
+            title: notification.title,
+            body: notification.body,
+            type: "order_status"
           });
         } catch (e) {
           const err = e as any;
@@ -319,4 +319,46 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById };
+const deleteOrder = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid order ID format'
+      });
+    }
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const orderUserId = order.user.toString();
+    if (orderUserId !== userId.toString() && req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to delete this order'
+      });
+    }
+
+    await Order.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Order deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Error deleting order:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById, deleteOrder };
