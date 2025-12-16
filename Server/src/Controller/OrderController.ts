@@ -7,11 +7,11 @@ import User from '../Models/Users';
 import { OrderDeliveryStatus, IOrderPopulated, IOrder } from '../Types';
 import { Types } from 'mongoose';
 import EmailService from '../Utils/EmailService';
+import AdminNotification from '../Models/AdminNotification';
 
 const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?._id;
-
     if (!userId) {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
@@ -27,7 +27,6 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const shippingAddress = req.body.shippingAddress || user.shippingAddress;
-
     if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.phone || !shippingAddress.addressLine1) {
       return res.status(400).json({
         success: false,
@@ -36,7 +35,6 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const totalAmount = cart.items.reduce((sum, item) => sum + item.discount_price * item.quantity, 0);
-
     const order = await Order.create({
       user: userId,
       items: cart.items,
@@ -45,6 +43,18 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
       shippingAddress: shippingAddress,
       paymentMethod: req.body.paymentMethod || 'cod',
       paymentId: req.body.paymentId,
+    });
+
+    await AdminNotification.create({
+      type: 'new_order',
+      title: '🛒 New Order Placed',
+      message: `${user.name} placed an order worth ₹${totalAmount.toFixed(2)}`,
+      userId: user._id,
+      orderId: order._id,
+      userName: user.name,
+      userEmail: user.email,
+      orderAmount: totalAmount,
+      isRead: false,
     });
 
     cart.items = [];
@@ -63,7 +73,6 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
         title: '🎉 Order Confirmed!',
         body: 'Restaurant is preparing your food with love.'
       };
-
       for (const token of user.fcmTokens) {
         const message = {
           token,
@@ -73,7 +82,6 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
           webpush: { headers: { Urgency: "high" } },
           data: { type: "order_status", orderId: String(order._id), status: "Pending" }
         };
-
         try {
           await admin.messaging().send(message);
           await Notification.create({
@@ -101,6 +109,7 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {

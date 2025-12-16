@@ -7,6 +7,7 @@ import payment_router from "./Routes/Razorpay_payment"
 import product_router from "./Routes/ProductRoutes"
 import favorite_router from "./Routes/FavoritesRoutes"
 import notify_router from "./Routes/NotificationRoutes"
+import adminNotificationRoutes from './Routes/AdminNotification';
 import {sendScheduledDealsNotifications} from "./Controller/NotificationController"
 import cron from "node-cron"
 import cors from "cors";
@@ -168,6 +169,8 @@ app.use("/api/products", product_router);
 app.use("/razorpay", payment_router);
 app.use("/api/favorites", favorite_router);
 app.use("/api/notifications", notify_router);
+app.use('/api/admin/notifications', adminNotificationRoutes);
+
 
 const PORT = process.env.PORT || 3000;
 

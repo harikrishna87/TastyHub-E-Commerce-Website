@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import cloudinary from 'cloudinary';
 import { Readable } from 'stream';
 import sgMail from '@sendgrid/mail';
+import AdminNotification from '../Models/AdminNotification';
 
 dotenv.config();
 
@@ -178,14 +179,12 @@ const register = async (req: Request, res: Response, next: NextFunction): Promis
 const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, otp } = req.body;
-
     if (!email || !otp) {
       res.status(400).json({ success: false, message: 'Please provide email and OTP' });
       return;
     }
 
     const storedData = otpStore.get(email);
-
     if (!storedData) {
       res.status(400).json({ success: false, message: 'OTP expired or invalid. Please register again.' });
       return;
@@ -203,7 +202,6 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
     }
 
     const { name, email: userEmail, password } = storedData.userData;
-
     const user = await User.create({
       name,
       email: userEmail,
@@ -211,14 +209,24 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
       role: userEmail === process.env.ADMIN_EMAIL ? 'admin' : 'user',
     });
 
-    otpStore.delete(email);
+    await AdminNotification.create({
+      type: 'new_user',
+      title: '👤 New User Registered',
+      message: `${name} (${userEmail}) has created a new account`,
+      userId: user._id,
+      userName: name,
+      userEmail: userEmail,
+      isRead: false,
+    });
 
+    otpStore.delete(email);
     sendToken(user, 201, res);
   } catch (error: any) {
     console.error('OTP verification error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 const resendOTP = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
