@@ -32,6 +32,7 @@ const allowedOrigins = [
   "https://tastyhub-admin-dashboard-sable-zeta.vercel.app",
   "http://localhost:5173",
   "http://localhost:4200",
+  "http://localhost:57306"
 ];
 
 app.use(cors({
