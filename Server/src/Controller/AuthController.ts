@@ -212,7 +212,7 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
     await AdminNotification.create({
       type: 'new_user',
       title: 'New User Registered',
-      message: `${name} (${userEmail}) has created a new account`,
+      message: `${name} has Created a New Account`,
       userId: user._id,
       userName: name,
       userEmail: userEmail,
