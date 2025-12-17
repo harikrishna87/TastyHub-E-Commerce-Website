@@ -48,7 +48,7 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     await AdminNotification.create({
       type: 'new_order',
       title: 'New Order Placed',
-      message: `${user.name} placed an order worth ₹${totalAmount.toFixed(2)}`,
+      message: `${user.name} Placed an Order Worth ₹${totalAmount.toFixed(2)}`,
       userId: user._id,
       orderId: order._id,
       userName: user.name,
