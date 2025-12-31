@@ -246,7 +246,7 @@ const CheckoutPage: React.FC = () => {
                 key,
                 amount: order.amount,
                 currency: 'INR',
-                name: 'FoodDelights',
+                name: 'TastyHub',
                 description: 'Food Order Payment',
                 order_id: order.id,
                 prefill: {

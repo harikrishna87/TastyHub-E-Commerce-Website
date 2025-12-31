@@ -60,13 +60,20 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     cart.items = [];
     await cart.save();
 
-    EmailService.sendOrderConfirmation(
-      user.email,
-      user.name || 'Customer',
-      order
-    ).catch((error: any) => {
-      console.error('Failed to send order confirmation email:', error);
-    });
+    // ✅ UPDATED: Pass order object directly (Brevo migration)
+    const orderWithUser = {
+      ...order.toObject(),
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    };
+
+    EmailService.sendOrderConfirmation(orderWithUser)
+      .catch((error: any) => {
+        console.error('Failed to send order confirmation email via Brevo:', error);
+      });
 
     if (user && user.fcmTokens?.length) {
       const notification = {
@@ -109,7 +116,6 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -235,9 +241,14 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
     if (user) {
       console.log(`👤 User found: ${user.email}`);
 
+      // ✅ UPDATED: Create order object with populated user (Brevo migration)
       const orderForEmail = {
         _id: order._id,
-        user: order.user,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email
+        },
         items: order.items,
         totalAmount: order.totalAmount,
         deliveryStatus: order.deliveryStatus,
@@ -246,16 +257,13 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
         paymentId: order.paymentId,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
-      } as IOrder;
+      };
 
-      EmailService.sendOrderStatusUpdate(
-        user.email,
-        user.name || 'Customer',
-        orderForEmail,
-        status
-      ).catch((error: any) => {
-        console.error('❌ Failed to send order status update email:', error);
-      });
+      // ✅ UPDATED: Pass order object and new status (Brevo migration)
+      EmailService.sendOrderStatusUpdate(orderForEmail, status)
+        .catch((error: any) => {
+          console.error('❌ Failed to send order status update email via Brevo:', error);
+        });
 
       if (user && user.fcmTokens?.length) {
         console.log(`📱 Sending notification to ${user.fcmTokens.length} device(s)`);
