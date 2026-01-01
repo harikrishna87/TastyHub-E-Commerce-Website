@@ -41,7 +41,6 @@ const sendOTPEmail = async (email: string, otp: string, name: string): Promise<v
     name: process.env.BREVO_FROM_NAME || 'TastyHub'
   };
   sendSmtpEmail.subject = 'Verify Your TastyHub Account';
-  sendSmtpEmail.textContent = `Your TastyHub verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this code, please ignore this email.`;
   sendSmtpEmail.htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -50,57 +49,59 @@ const sendOTPEmail = async (email: string, otp: string, name: string): Promise<v
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; }
-        .preview-text { display: none; max-height: 0; overflow: hidden; opacity: 0; }
-        .email-wrapper { background-color: #f5f5f5; padding: 40px 20px; }
-        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background-color: #2d2d2d; color: #ffffff; padding: 30px 40px; text-align: center; }
-        .header h1 { font-size: 24px; font-weight: 600; margin: 0; }
-        .content { padding: 40px 40px 30px; background-color: #ffffff; }
-        .greeting { font-size: 16px; color: #2d2d2d; margin-bottom: 20px; font-weight: 500; }
-        .message { font-size: 14px; color: #666666; line-height: 1.8; margin-bottom: 20px; }
-        .otp-section { background-color: #f9f9f9; border-radius: 6px; padding: 30px; text-align: center; margin: 30px 0; }
-        .otp-label { font-size: 13px; color: #666666; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
-        .otp-code { background-color: #ffffff; border: 2px solid #d0d0d0; border-radius: 6px; padding: 20px 30px; display: inline-block; font-size: 32px; font-weight: 700; color: #2d2d2d; letter-spacing: 8px; margin: 10px 0; }
-        .timer-text { font-size: 13px; color: #666666; margin-top: 20px; line-height: 1.6; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; }
+        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .content { padding: 50px 40px 40px; background-color: #ffffff; }
+        .logo { text-align: center; margin-bottom: 35px; }
+        .logo-text { font-size: 28px; font-weight: 700; color: #2d2d2d; letter-spacing: -0.5px; }
+        .greeting { font-size: 18px; color: #2d2d2d; margin-bottom: 20px; font-weight: 600; }
+        .message { font-size: 15px; color: #666666; line-height: 1.8; margin-bottom: 20px; }
+        .otp-section { background: linear-gradient(135deg, #f9f9f9 0%, #f5f5f5 100%); border-radius: 12px; padding: 35px; text-align: center; margin: 35px 0; border: 1px solid #e5e5e5; }
+        .otp-label { font-size: 12px; color: #888888; margin-bottom: 18px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
+        .otp-code { background-color: #ffffff; border: 2px dashed #d0d0d0; border-radius: 8px; padding: 22px 35px; display: inline-block; font-size: 36px; font-weight: 700; color: #2d2d2d; letter-spacing: 10px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .timer-text { font-size: 13px; color: #888888; margin-top: 20px; line-height: 1.6; }
+        .divider { height: 1px; background-color: #e5e5e5; margin: 30px 0; }
+        .info-box { background-color: #f9f9f9; border-left: 3px solid #2d2d2d; padding: 15px 20px; margin: 25px 0; border-radius: 4px; }
+        .info-text { font-size: 13px; color: #666666; line-height: 1.7; }
         .warning { font-size: 13px; color: #888888; line-height: 1.8; margin-top: 25px; }
-        .support-link { color: #2d2d2d; text-decoration: underline; }
-        .note { font-size: 12px; color: #999999; font-style: italic; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eeeeee; }
-        .footer { background-color: #2d2d2d; color: #ffffff; text-align: center; padding: 25px 40px; }
-        .footer-text { font-size: 14px; margin-bottom: 8px; font-weight: 500; }
-        .footer-copyright { font-size: 11px; color: #999999; margin-top: 15px; }
-        .brand-name { font-size: 18px; font-weight: 600; margin-bottom: 5px; }
+        .support-link { color: #2d2d2d; text-decoration: underline; font-weight: 500; }
+        .footer { background-color: #ffffff; text-align: center; padding: 30px 40px; border-top: 1px solid #e5e5e5; }
+        .footer-brand { font-size: 16px; font-weight: 600; color: #2d2d2d; margin-bottom: 8px; }
+        .footer-text { font-size: 13px; color: #666666; margin-bottom: 15px; }
+        .footer-copyright { font-size: 11px; color: #999999; margin-top: 12px; line-height: 1.6; }
       </style>
     </head>
     <body>
-      <span class="preview-text">Please verify your email address to complete your TastyHub registration and start ordering delicious food.</span>
       <div class="email-wrapper">
         <div class="email-container">
-          <div class="header">
-            <h1>Otp For Email Verification</h1>
-          </div>
           <div class="content">
-            <p class="greeting">Hello ${name},</p>
-            <p class="message">Thank you for signing up with TastyHub! We're excited to have you on board.</p>
-            <p class="message">To complete your registration and ensure the security of your account, please verify your email address using the One-Time Password (OTP) below.</p>
-            
-            <div class="otp-section">
-              <div class="otp-label">Your Verification Code</div>
-              <div class="otp-code">${otp}</div>
-              <p class="timer-text">This code is valid for 10 minutes only.<br>Please enter this code in your browser window to complete the verification process.</p>
+            <div class="logo">
+              <div class="logo-text">OTP For Email Verification</div>
             </div>
             
-            <p class="message">Once verified, you'll have full access to all TastyHub features and can start exploring delicious food options near you.</p>
+            <p class="greeting">Hello ${name},</p>
+            <p class="message">Thank you for signing up with TastyHub! We're excited to have you on board.</p>
+            <p class="message">To complete your registration and verify your email address, please use the verification code below:</p>
             
-            <p class="warning">If you didn't create a TastyHub account, please disregard this email or contact our support team at <a href="mailto:tastyhub87@gmail.com" class="support-link">support@tastyhub.com</a> if you have concerns.</p>
+            <div class="otp-section">
+              <div class="otp-label">Verification Code</div>
+              <div class="otp-code">${otp}</div>
+              <p class="timer-text">⏱ This code expires in 10 minutes<br>Enter this code to complete your verification</p>
+            </div>
             
-            <p class="note">Note: This is an automated message. Please do not reply to this email.</p>
+            <div class="info-box">
+              <p class="info-text">Once verified, you'll have full access to explore and order from hundreds of restaurants near you.</p>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p class="warning">If you didn't create a TastyHub account, please ignore this email or contact our support team at <a href="mailto:support@tastyhub.com" class="support-link">support@tastyhub.com</a> if you have concerns.</p>
           </div>
+          
           <div class="footer">
-            <p class="brand-name">TastyHub</p>
+            <p class="footer-brand">TastyHub</p>
             <p class="footer-text">Your effortless food delivery solution</p>
-            <p class="footer-copyright">© ${new Date().getFullYear()} TastyHub. All rights reserved.</p>
-            <p class="footer-copyright">This is an automated message. Please do not reply to this email.</p>
+            <p class="footer-copyright">© ${new Date().getFullYear()} TastyHub. All rights reserved.<br>This is an automated message. Please do not reply to this email.</p>
           </div>
         </div>
       </div>
@@ -179,7 +180,6 @@ const sendWelcomeEmail = async (email: string, name: string): Promise<void> => {
     name: process.env.BREVO_FROM_NAME || 'TastyHub'
   };
   sendSmtpEmail.subject = 'Welcome to TastyHub - Your Account is Ready!';
-  sendSmtpEmail.textContent = `Welcome to TastyHub, ${name}! Your account has been successfully created. Start exploring delicious food options near you.`;
   sendSmtpEmail.htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -188,68 +188,84 @@ const sendWelcomeEmail = async (email: string, name: string): Promise<void> => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; }
-        .email-wrapper { background-color: #f5f5f5; padding: 40px 20px; }
-        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background-color: #2d2d2d; color: #ffffff; padding: 40px 40px 30px; text-align: center; }
-        .header h1 { font-size: 28px; font-weight: 600; margin: 15px 0 10px; }
-        .header-icon { font-size: 48px; }
-        .header-subtitle { font-size: 14px; color: #cccccc; }
-        .content { padding: 40px 40px 30px; background-color: #ffffff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; }
+        .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .content { padding: 50px 40px 40px; background-color: #ffffff; }
+        .logo { text-align: center; margin-bottom: 35px; }
+        .logo-text { font-size: 28px; font-weight: 700; color: #2d2d2d; letter-spacing: -0.5px; }
         .greeting { font-size: 18px; color: #2d2d2d; margin-bottom: 20px; font-weight: 600; }
-        .message { font-size: 14px; color: #666666; line-height: 1.8; margin-bottom: 20px; }
-        .welcome-section { background-color: #f9f9f9; border-radius: 6px; padding: 30px; margin: 30px 0; text-align: center; }
-        .welcome-icon { font-size: 64px; margin-bottom: 20px; }
-        .welcome-title { font-size: 20px; color: #2d2d2d; font-weight: 600; margin-bottom: 15px; }
-        .welcome-text { font-size: 14px; color: #666666; line-height: 1.8; }
-        .cta-section { text-align: center; margin: 30px 0; }
-        .cta-button { display: inline-block; background-color: #2d2d2d; color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 6px; font-size: 14px; font-weight: 600; margin-top: 10px; }
-        .support-section { background-color: #f9f9f9; border-radius: 6px; padding: 20px; margin-top: 30px; text-align: center; }
-        .support-text { font-size: 13px; color: #666666; margin-bottom: 10px; }
+        .message { font-size: 15px; color: #666666; line-height: 1.8; margin-bottom: 20px; }
+        .welcome-section { background: linear-gradient(135deg, #f9f9f9 0%, #f5f5f5 100%); border-radius: 12px; padding: 40px; text-align: center; margin: 35px 0; border: 1px solid #e5e5e5; }
+        .welcome-emoji { font-size: 48px; margin-bottom: 20px; }
+        .welcome-title { font-size: 24px; color: #2d2d2d; font-weight: 700; margin-bottom: 15px; }
+        .welcome-text { font-size: 15px; color: #666666; line-height: 1.8; }
+        .cta-section { text-align: center; margin: 35px 0; }
+        .cta-button { display: inline-block; background-color: #2d2d2d; color: #ffffff; text-decoration: none; padding: 16px 45px; border-radius: 8px; font-size: 15px; font-weight: 600; transition: background-color 0.3s; box-shadow: 0 2px 8px rgba(45,45,45,0.2); }
+        .features-section { margin: 35px 0; }
+        .feature-item { background-color: #f9f9f9; border-left: 3px solid #2d2d2d; padding: 15px 20px; margin-bottom: 15px; border-radius: 4px; }
+        .feature-title { font-size: 14px; color: #2d2d2d; font-weight: 600; margin-bottom: 5px; }
+        .feature-text { font-size: 13px; color: #666666; line-height: 1.6; }
+        .divider { height: 1px; background-color: #e5e5e5; margin: 30px 0; }
+        .support-section { background-color: #f9f9f9; border-radius: 8px; padding: 25px; margin-top: 30px; text-align: center; }
+        .support-text { font-size: 14px; color: #666666; margin-bottom: 10px; }
         .support-link { color: #2d2d2d; text-decoration: underline; font-weight: 500; }
-        .note { font-size: 12px; color: #999999; font-style: italic; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eeeeee; }
-        .footer { background-color: #2d2d2d; color: #ffffff; text-align: center; padding: 25px 40px; }
-        .footer-text { font-size: 14px; margin-bottom: 8px; font-weight: 500; }
-        .footer-copyright { font-size: 11px; color: #999999; margin-top: 15px; }
-        .brand-name { font-size: 18px; font-weight: 600; margin-bottom: 5px; }
+        .footer { background-color: #ffffff; text-align: center; padding: 30px 40px; border-top: 1px solid #e5e5e5; }
+        .footer-brand { font-size: 16px; font-weight: 600; color: #2d2d2d; margin-bottom: 8px; }
+        .footer-text { font-size: 13px; color: #666666; margin-bottom: 15px; }
+        .footer-copyright { font-size: 11px; color: #999999; margin-top: 12px; line-height: 1.6; }
       </style>
     </head>
     <body>
       <div class="email-wrapper">
         <div class="email-container">
-          <div class="header">
-            <h1>Welcome to TastyHub!</h1>
-            <p class="header-subtitle">Your account has been successfully created!</p>
-          </div>
           <div class="content">
+            <div class="logo">
+              <div class="logo-text">TastyHub</div>
+            </div>
+            
             <p class="greeting">Hello ${name},</p>
-            <p class="message">We're absolutely delighted to welcome you to TastyHub!🎉 \nThank you for choosing us as your go-to food delivery platform.</p>
-            <p class="message">Your account is now active and ready to use. You can start exploring a wide variety of delicious cuisines from your favorite categories, all delivered right to your doorstep with just a few clicks.</p>
+            <p class="message">We're thrilled to welcome you to TastyHub! 🎉 Your account has been successfully created and you're all set to start your culinary journey with us.</p>
             
             <div class="welcome-section">
-              <div class="welcome-title">You're All Set!</div>
-              <p class="welcome-text">Your culinary journey begins now. Discover amazing restaurants, enjoy hassle-free ordering, and experience fast delivery every time you crave something delicious.</p>
+              <div class="welcome-title">Welcome Aboard!</div>
+              <p class="welcome-text">Your account is now active and ready to use. Discover amazing restaurants, order your favorite dishes, and enjoy fast delivery right to your doorstep.</p>
             </div>
 
             <div class="cta-section">
-              <p class="message" style="margin-bottom: 10px;">Ready to satisfy your cravings?</p>
               <a href="${process.env.FRONTEND_URL || 'https://tasty-hub-e-commerce-website.vercel.app/'}" class="cta-button">Start Ordering Now</a>
             </div>
 
-            <p class="message">We're committed to providing you with the best food delivery experience. From tracking your orders in real-time to discovering new favorite dishes, we're here to make every meal memorable.</p>
+            <p class="message">Here's what you can enjoy with TastyHub:</p>
+
+            <div class="features-section">
+              <div class="feature-item">
+                <div class="feature-title">🍕 Wide Selection</div>
+                <p class="feature-text">Browse through multiple categories to find exactly what you're craving.</p>
+              </div>
+              <div class="feature-item">
+                <div class="feature-title">⚡ Fast Delivery</div>
+                <p class="feature-text">Get your food delivered quickly with real-time order tracking every step of the way.</p>
+              </div>
+              <div class="feature-item">
+                <div class="feature-title">💳 Secure Payments</div>
+                <p class="feature-text">Enjoy safe and convenient payment options for a hassle-free checkout experience.</p>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <p class="message">We're committed to making every meal memorable and providing you with the best food delivery experience possible.</p>
 
             <div class="support-section">
-              <p class="support-text">Have questions or need assistance? We're here to help!</p>
-              <p class="support-text">Contact us at <a href="mailto:tastyhub87@gmail.com" class="support-link">support@tastyhub.com</a></p>
+              <p class="support-text">Have questions or need assistance?</p>
+              <p class="support-text">Our support team is here to help at <a href="mailto:support@tastyhub.com" class="support-link">support@tastyhub.com</a></p>
             </div>
-            
-            <p class="note">Note: This is an automated message. Please do not reply to this email.</p>
           </div>
+          
           <div class="footer">
-            <p class="brand-name">TastyHub</p>
+            <p class="footer-brand">TastyHub</p>
             <p class="footer-text">Your effortless food delivery solution</p>
-            <p class="footer-copyright">© ${new Date().getFullYear()} TastyHub. All rights reserved.</p>
-            <p class="footer-copyright">This is an automated message. Please do not reply to this email.</p>
+            <p class="footer-copyright">© ${new Date().getFullYear()} TastyHub. All rights reserved.<br>This is an automated message. Please do not reply to this email.</p>
           </div>
         </div>
       </div>
