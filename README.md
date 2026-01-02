@@ -1,4 +1,4 @@
-# 🍽️ **FoodDelight E-Commerce Web Application**
+# 🍽️ **TastyHub E-Commerce Web Application**
 
 ![React](https://img.shields.io/badge/Frontend-React.js-61DBFB?logo=react&logoColor=white)
 ![Node](https://img.shields.io/badge/Backend-Node.js-68A063?logo=node.js&logoColor=white)
