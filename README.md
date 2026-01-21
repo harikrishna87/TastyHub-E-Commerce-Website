@@ -1,4 +1,4 @@
-# 🍽️ **FoodDelight E-Commerce Web Application**
+# 🍽️ **TastyHub E-Commerce Web Application**
 
 ![React](https://img.shields.io/badge/Frontend-React.js-61DBFB?logo=react&logoColor=white)
 ![Node](https://img.shields.io/badge/Backend-Node.js-68A063?logo=node.js&logoColor=white)
@@ -13,13 +13,13 @@
 **Personal Project**
 
 ## 🌐 **Live Demo**
-👉 [**FoodDelight E-Commerce Application**](https://food-delight-ecommerce-application-chi.vercel.app)
+👉 [**TastyHub E-Commerce Application**](https://tasty-hub-e-commerce-website.vercel.app/)
 
 ---
 
 ## 🧠 **Overview**
 
-**FoodDelight** is a full-stack e-commerce food ordering web application built to deliver a seamless online food ordering experience.  
+**TastyHub** is a full-stack e-commerce food ordering web application built to deliver a seamless online food ordering experience.  
 It provides users with an **interactive food catalog**, **real-time order tracking**, and **secure payments**, while administrators can efficiently manage orders and inventory through a **role-based dashboard**.
 
 ---
@@ -74,7 +74,7 @@ Copy code
 ### 1️⃣ Clone the Repository
 ```bash
 git clone https://github.com/harikrishna87/FoodDelight.git
-cd FoodDelight
+cd Client
 2️⃣ Install Dependencies
 Client:
 bash
