@@ -11,7 +11,6 @@ import PrivacyPolicy from './Pages/PrivacyPolicy'
 import TermsOfService from './Pages/TermsOfService'
 import { AuthProvider, AuthContext } from './context/AuthContext'
 import AuthPage from './Pages/Auth'
-// import AdminDashboard from './Pages/OrderAnalytics'
 import UserOrders from './Pages/UserOrders'
 import ProtectedRoute from './Components/ProtectedRoute'
 import ProductsPage from './Pages/ProductsPage'
@@ -27,6 +26,7 @@ import OrderAnalytics from './Pages/OrderAnalytics'
 import ProfilePage from './Pages/ProfilePage'
 import CheckoutPage from './Pages/CheckoutPage'
 import OrderSuccessPage from './Pages/OrderSuccessPage'
+import GoogleCallback from '../src/Components/GoogleCallback'
 
 const AppContent: React.FC = () => {
   const auth = useContext(AuthContext)
@@ -34,51 +34,53 @@ const AppContent: React.FC = () => {
   if (auth?.isAuthenticated && auth.user?.role === 'admin') {
     return (
       <>
-        <FoodNavbar/>
+        <FoodNavbar />
         <Container className='mb-4 mt-4'>
           <Routes>
             <Route path="/admin/orderanalytics" element={<OrderAnalytics />} />
-            <Route path='/admin/productspage' element={<ProductsPage/>}/>
-            <Route path='/admin/paymentoverview' element={<PaymentOverview/>}/>
-            <Route path='/admin/ordermanagement' element={<OrderManagement/>}/>
-            <Route path='/admin/profilepage' element={<ProfilePage/>} />
+            <Route path='/admin/productspage' element={<ProductsPage />} />
+            <Route path='/admin/paymentoverview' element={<PaymentOverview />} />
+            <Route path='/admin/ordermanagement' element={<OrderManagement />} />
+            <Route path='/admin/profilepage' element={<ProfilePage />} />
+            <Route path='/auth/callback' element={<GoogleCallback />} />
             <Route path="*" element={<Navigate to="/admin/orderanalytics" replace />} />
           </Routes>
         </Container>
-        <FoodFooter/>
+        <FoodFooter />
       </>
     )
   }
 
   return (
     <>
-      <FoodNavbar/>
+      <FoodNavbar />
       <Container className='mb-4 mt-4'>
         <Routes>
-          <Route path="/" element={<Home/>} />
-          <Route path="/menu-items" element={<Store/>} />
-          <Route path="/contact" element={<Contact/>}/>
-          <Route path='/profilepage' element={<ProfilePage/>} />
-          <Route path="/privacy" element={<PrivacyPolicy/>} />
-          <Route path='/faq' element={<FAQ/>}/>
-          <Route path='/checkout' element={<CheckoutPage/>}/>
+          <Route path="/" element={<Home />} />
+          <Route path="/menu-items" element={<Store />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path='/profilepage' element={<ProfilePage />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path='/faq' element={<FAQ />} />
+          <Route path='/checkout' element={<CheckoutPage />} />
           <Route path="/ordersuccess/:orderId" element={<OrderSuccessPage />} />
-          <Route path='/newarrivals' element={<NewArrivals/>}/>
-          <Route path='/dealsdiscount' element={<DealsDiscounts/>}/>
-          <Route path='/giftcards' element={<GiftCards/>}/>
-          <Route path='/shoppinginfo' element={<ShoppingInfo/>} />
-          <Route path='/returnexchanges' element={<ReturnsExchanges/>} />
-          <Route path='/terms' element={<TermsOfService/>} />
-          <Route path='/auth' element={<AuthPage/>} />
-          
+          <Route path='/newarrivals' element={<NewArrivals />} />
+          <Route path='/dealsdiscount' element={<DealsDiscounts />} />
+          <Route path='/giftcards' element={<GiftCards />} />
+          <Route path='/shoppinginfo' element={<ShoppingInfo />} />
+          <Route path='/returnexchanges' element={<ReturnsExchanges />} />
+          <Route path='/terms' element={<TermsOfService />} />
+          <Route path='/auth' element={<AuthPage />} />
+          <Route path='/auth/callback' element={<GoogleCallback />} />
+
           <Route element={<ProtectedRoute allowedRoles={['user', 'admin']} />}>
             <Route path="/my-orders" element={<UserOrders />} />
           </Route>
-          
+
           <Route path="/admin/orderanalytics" element={<Navigate to="/" replace />} />
         </Routes>
       </Container>
-      <FoodFooter/>
+      <FoodFooter />
     </>
   )
 }
