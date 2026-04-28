@@ -792,7 +792,7 @@ const sendPasswordResetOTP = async (req: Request, res: Response, next: NextFunct
       return;
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
       res.status(404).json({ success: false, message: 'No account found with this email address' });
