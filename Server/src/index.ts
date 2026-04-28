@@ -30,6 +30,8 @@ app.use(cookieParser());
 const allowedOrigins = [
   "https://tasty-hub-e-commerce-website.vercel.app",
   "https://tastyhub-admin-dashboard-sable-zeta.vercel.app",
+  "https://tastyhubadmin.haritechinfo.online",
+  "https://tastyhub.haritechinfo.online",
   "http://localhost:5173",
   "http://localhost:4200",
   "http://localhost:57306"
