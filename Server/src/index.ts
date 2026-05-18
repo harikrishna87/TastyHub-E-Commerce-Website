@@ -34,7 +34,8 @@ const allowedOrigins = [
   "https://tastyhub.haritechinfo.online",
   "http://localhost:5173",
   "http://localhost:4200",
-  "http://localhost:57306"
+  "http://localhost:57306",
+  "http://localhost:3000"
 ];
 
 app.use(cors({
