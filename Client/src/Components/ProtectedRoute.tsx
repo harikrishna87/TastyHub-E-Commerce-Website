@@ -4,7 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { Spin, message } from 'antd';
 
 interface ProtectedRouteProps {
-  allowedRoles?: ('user' | 'admin')[];
+  allowedRoles?: ('user' | 'admin' | 'delivery_executive')[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
@@ -43,7 +43,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
         marginTop: '20vh',
       },
     });
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {

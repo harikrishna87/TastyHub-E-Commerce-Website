@@ -19,13 +19,15 @@ interface Product {
   ingredients?: string[];
   calories?: number;
   ageRecommendation?: string;
+  discountPercentage?: number;
+  discountPrice?: number;
 }
 
 interface ProductSelectionProps {
   selectedProducts: Product[];
   selectedCategory: string | null;
   resetCategoryFilter: () => void;
-  categoryDiscounts: { [key: string]: number };
+  categoryDiscounts?: { [key: string]: number };
   currentPage: number;
   paginate: (pageNumber: number) => void;
   filteredProducts: Product[];
@@ -99,7 +101,6 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
   selectedProducts,
   selectedCategory,
   resetCategoryFilter,
-  categoryDiscounts,
   currentPage,
   paginate,
   filteredProducts,
@@ -127,11 +128,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
     };
   }, []);
 
-  const calculateDiscountedPrice = (originalPrice: number, category: string) => {
-    const discountPercentage = categoryDiscounts[category];
-    if (!discountPercentage) return originalPrice;
-    return originalPrice - (originalPrice * (discountPercentage / 100));
-  };
+
 
   const addToCart = async (product: Product) => {
     if (!auth?.isAuthenticated) {
@@ -150,7 +147,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
         description: product.description,
         quantity: 1,
         original_price: product.price,
-        discount_price: calculateDiscountedPrice(product.price, product.category),
+        discount_price: product.discountPrice ?? product.price,
       };
 
       const response = await axios.post(`${backendUrl}/api/cart/add_item`, cartItem, {
@@ -326,11 +323,11 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
                           target.style.display = 'none';
                         }}
                       />
-                      {categoryDiscounts[product.category] && (
+                      {product.discountPercentage && product.discountPercentage > 0 ? (
                         <div className="discount-badge">
-                          {categoryDiscounts[product.category]}% OFF
+                          {product.discountPercentage}% OFF
                         </div>
-                      )}
+                      ) : null}
                       <div className="category-badge">
                       </div>
                     </div>
@@ -398,10 +395,10 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
                       alignItems: 'center'
                     }}>
                       <div>
-                        {categoryDiscounts[product.category] ? (
+                        {product.discountPercentage && product.discountPercentage > 0 ? (
                           <Space>
                             <Text strong style={{ color: '#52c41a' }}>
-                              ₹ {calculateDiscountedPrice(product.price, product.category).toFixed(2)}
+                              ₹ {(product.discountPrice ?? product.price).toFixed(2)}
                             </Text>
                             <Text delete type="secondary" style={{ fontSize: '12px' }}>
                               ₹ {product.price.toFixed(2)}
@@ -488,7 +485,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
         className="product-details-modal"
         closeIcon={<CloseOutlined style={{ color: '#52c41a' }} />}
         style={{ maxHeight: 'none', top: 50 }}
-        bodyStyle={{ maxHeight: 'none', overflow: 'visible' }}
+        styles={{ body: { maxHeight: 'none', overflow: 'visible' } }}
       >
         {selectedProduct && !loadingProductDetails ? (
           <div style={{ overflow: 'visible' }}>
@@ -559,17 +556,17 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
 
                     <div>
                       <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Price:</Text>
-                      {categoryDiscounts[selectedProduct.category] ? (
+                      {selectedProduct.discountPercentage && selectedProduct.discountPercentage > 0 ? (
                         <Space>
                           <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-                            ₹ {calculateDiscountedPrice(selectedProduct.price, selectedProduct.category).toFixed(2)}
+                            ₹ {(selectedProduct.discountPrice ?? selectedProduct.price).toFixed(2)}
                           </Text>
                           <Text delete type="secondary" style={{ fontSize: '14px' }}>
                             ₹ {selectedProduct.price.toFixed(2)}
                           </Text>
                         </Space>
                       ) : (
-                        <Text strong style={{ fontSize: '16px' }}>
+                        <Text strong style={{ fontSize: '16px', color: '#52c41a' }}>
                           ₹ {selectedProduct.price.toFixed(2)}
                         </Text>
                       )}

@@ -16,16 +16,18 @@ import {
     message,
     Spin,
     Layout,
-    Carousel,
     Modal,
-    Image
+    Image,
+    Badge
 } from 'antd';
 import {
     SearchOutlined,
     FilterOutlined,
     ShoppingCartOutlined,
     InfoCircleOutlined,
-    CloseOutlined
+    CloseOutlined,
+    GiftOutlined,
+    ThunderboltOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import 'antd/dist/reset.css';
@@ -50,6 +52,8 @@ interface Product {
     ingredients?: string[];
     calories?: number;
     ageRecommendation?: string;
+    discountPercentage?: number;
+    discountPrice?: number;
 }
 
 interface FilterOptions {
@@ -58,23 +62,6 @@ interface FilterOptions {
     maxPrice: number;
     minRating: number;
 }
-
-interface CategoryDiscount {
-    [key: string]: number;
-}
-
-interface CarouselImage {
-    src: string;
-    alt: string;
-    title: string;
-    description: string;
-}
-
-const LeafIconCustom = () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z" />
-    </svg>
-);
 
 const SkeletonPulse = ({ height = '20px', width = '100%', className = '', style = {} }) => (
     <div
@@ -95,31 +82,17 @@ const customStyles = `
     box-shadow: 0 10px 20px rgba(25, 135, 84, 0.1) !important;
     transition: all 0.3s ease;
 }
-.header-ribbon {
-    position: relative;
-    overflow: hidden;
-}
-.header-ribbon:before, .header-ribbon:after {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    width: 20px;
-    height: 20px;
-    z-index: -1;
-    background: #52c41a;
-    opacity: 0.7;
-}
-.header-ribbon:before {
-    left: -10px;
-    border-radius: 0 0 100% 0;
-}
-.header-ribbon:after {
-    right: -10px;
-    border-radius: 0 0 0 100%;
-}
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+}
+@keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
 }
 .ant-card-cover img {
     border-top-left-radius: 12px;
@@ -130,9 +103,9 @@ const customStyles = `
     overflow: hidden;
 }
 .store-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 32px 20px;
+    width: 100%;
+    margin: 0;
+    padding: 24px 0;
 }
 .decoration-left-bottom {
     position: absolute;
@@ -252,6 +225,22 @@ const customStyles = `
     font-size: 16px;
     text-align: center;
 }
+.combo-deals-btn {
+    animation: pulse-glow 2s infinite;
+    border-radius: 10px !important;
+}
+.combo-card {
+    transition: all 0.3s ease;
+    border-radius: 14px !important;
+    overflow: hidden;
+}
+.combo-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(22, 163, 74, 0.18) !important;
+}
+.combo-modal-scroll::-webkit-scrollbar {
+    display: none;
+}
 @media (max-width: 768px) {
     .store-container {
         padding: 20px 16px;
@@ -259,16 +248,6 @@ const customStyles = `
     .ant-card {
         width: 301px;
         margin: 0 auto;
-    }
-}
-@media (max-width: 1440px) {
-    .store-container {
-        max-width: 1000px;
-    }
-}
-@media (max-width: 1024px) {
-    .store-container {
-        max-width: 900px;
     }
 }
 `;
@@ -297,52 +276,70 @@ const Store: React.FC = () => {
         minRating: 0
     });
     const [messageApi, contextHolder] = message.useMessage();
-    const [categoryDiscounts, setCategoryDiscounts] = useState<CategoryDiscount>({});
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [showProductModal, setShowProductModal] = useState<boolean>(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [modalLoading, setModalLoading] = useState<boolean>(false);
+    const [combos, setCombos] = useState<any[]>([]);
+    const [claimingCombo, setClaimingCombo] = useState<{ [key: string]: boolean }>({});
+    const [showComboModal, setShowComboModal] = useState<boolean>(false);
     const productsPerPage = 12;
 
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const auth = useContext(AuthContext);
+
+    const fetchCombos = async () => {
+        try {
+            const response = await axios.get(`${backendUrl}/api/promo/combos`);
+            if (response.data.success) {
+                setCombos(response.data.combos || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch combos:', err);
+        }
+    };
+
+    const handleClaimCombo = async (comboId: string) => {
+        if (!auth?.isAuthenticated) {
+            setShowComboModal(false);
+            setShowAuthModal(true);
+            setIsLoginMode(true);
+            return;
+        }
+
+        try {
+            setClaimingCombo(prev => ({ ...prev, [comboId]: true }));
+            const token = auth?.token || localStorage.getItem('token');
+            const res = await axios.post(`${backendUrl}/api/promo/combos/${comboId}/access`, {}, {
+                headers: { Authorization: `Bearer ${token}` },
+                withCredentials: true
+            });
+
+            if (res.data.success) {
+                messageApi.success({
+                    content: res.data.message || 'Combo Deal claimed successfully! Check your email receipt.',
+                    duration: 4,
+                    style: { marginTop: '10vh' }
+                });
+                fetchCombos();
+            }
+        } catch (err: any) {
+            messageApi.error({
+                content: err.response?.data?.message || 'Failed to claim combo deal',
+                duration: 4,
+                style: { marginTop: '10vh' }
+            });
+        } finally {
+            setClaimingCombo(prev => ({ ...prev, [comboId]: false }));
+        }
+    };
+
+    useEffect(() => {
+        fetchCombos();
+    }, []);
 
     const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
     const [isLoginMode, setIsLoginMode] = useState<boolean>(true);
-
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
-    const carouselImages: CarouselImage[] = [
-        {
-            src: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
-            alt: "Veg Food",
-            title: "Veg Food",
-            description: "Farm-fresh organic veg Food delivered to your door"
-        },
-        {
-            src: "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
-            alt: "Grilled Chicken",
-            title: "Premium Non-Veg",
-            description: "Succulent grilled meats and seafood specialties"
-        },
-        {
-            src: "https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
-            alt: "Delicious Pizza",
-            title: "Artisan Pizzas",
-            description: "Hand-tossed pizzas with premium toppings"
-        },
-        {
-            src: "https://images.unsplash.com/photo-1488477181946-6428a0291777?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
-            alt: "Sweet Desserts",
-            title: "Divine Desserts",
-            description: "Indulgent treats to satisfy your sweet cravings"
-        },
-        {
-            src: "https://images.unsplash.com/photo-1551024601-bec78aea704b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80",
-            alt: "Fresh Fruit Juices",
-            title: "Fresh Juices",
-            description: "Refreshing natural fruit juices and smoothies"
-        }
-    ];
 
     useEffect(() => {
         const styleElement = document.createElement('style');
@@ -366,13 +363,6 @@ const Store: React.FC = () => {
 
                 const uniqueCategories = [...new Set(response.data.data.map((product: Product) => product.category))] as string[];
                 setCategories(uniqueCategories);
-
-                const discounts: CategoryDiscount = {};
-                uniqueCategories.forEach(category => {
-                    discounts[category] = Math.floor(Math.random() * 30) + 5;
-                });
-
-                setCategoryDiscounts(discounts);
 
                 setTimeout(() => {
                     setLoading(false);
@@ -445,7 +435,7 @@ const Store: React.FC = () => {
                 description: product.description,
                 quantity: 1,
                 original_price: product.price,
-                discount_price: calculateDiscountedPrice(product.price, product.category)
+                discount_price: product.discountPrice ?? product.price
             };
 
             const token = localStorage.getItem('token') || auth?.token;
@@ -529,12 +519,6 @@ const Store: React.FC = () => {
         setSearchTerm('');
     };
 
-    const calculateDiscountedPrice = (originalPrice: number, category: string) => {
-        const discountPercentage = categoryDiscounts[category];
-        if (!discountPercentage) return originalPrice;
-        return originalPrice - (originalPrice * (discountPercentage / 100));
-    };
-
     const handleKnowMore = async (product: Product) => {
         setModalLoading(true);
         setShowProductModal(true);
@@ -565,7 +549,7 @@ const Store: React.FC = () => {
 
     if (loading) {
         return (
-            <Layout style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Layout style={{ minHeight: '100vh', backgroundColor: 'transparent', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <Spin size="large" style={{ color: '#52c41a' }} />
                 <Paragraph style={{ marginTop: '16px', color: '#52c41a' }}>Loading your Store Page...</Paragraph>
             </Layout>
@@ -573,7 +557,7 @@ const Store: React.FC = () => {
     }
 
     return (
-        <Layout style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+        <Layout style={{ minHeight: '100vh', backgroundColor: 'transparent' }}>
             <Content>
                 <div className="store-wrapper">
                     <div className="decoration-left-bottom" style={{ display: window.innerWidth > 768 ? 'block' : 'none' }}>
@@ -592,89 +576,6 @@ const Store: React.FC = () => {
                         </svg>
                     </div>
 
-                    <div style={{
-                        maxWidth: '1200px',
-                        width: '90%',
-                        margin: '0 auto',
-                        marginBottom: '30px',
-                        marginTop: "30px"
-                    }}>
-                        <Carousel
-                            autoplay
-                            dots={true}
-                            arrows={false}
-                            style={{
-                                width: '100%',
-                                borderRadius: '12px',
-                                overflow: 'hidden'
-                            }}
-                        >
-                            {carouselImages.map((image, index) => (
-                                <div key={index}>
-                                    <div
-                                        style={{
-                                            height: window.innerWidth >= 768 ? '200px' : '175px',
-                                            background: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${image.src})`,
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexDirection: 'column',
-                                            position: 'relative'
-                                        }}
-                                    >
-                                        <div style={{
-                                            textAlign: 'center',
-                                            padding: '20px',
-                                            maxWidth: '1200px',
-                                            margin: '0 auto'
-                                        }}>
-                                            <Title level={1} style={{ color: 'white', margin: 10, fontWeight: 'bold', fontSize: '2em' }}>
-                                                For the Love of Delicious Food
-                                            </Title>
-                                            <Paragraph
-                                                style={{
-                                                    color: 'white',
-                                                    fontSize: window.innerWidth >= 768 ? '1.4rem' : '1.0rem',
-                                                    marginBottom: '24px',
-                                                    textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                                                    maxWidth: '800px',
-                                                    margin: '0 auto 24px auto',
-                                                    fontWeight: '500',
-                                                    lineHeight: '1.4'
-                                                }}
-                                            >
-                                                <q>Come with family & feel the joy of mouthwatering foods</q>
-                                            </Paragraph>
-                                        </div>
-
-                                        <div style={{
-                                            position: 'absolute',
-                                            left: '20px',
-                                            top: '20px',
-                                            color: 'white',
-                                            opacity: 0.7,
-                                            display: window.innerWidth >= 768 ? 'block' : 'none'
-                                        }}>
-                                            <LeafIconCustom />
-                                        </div>
-                                        <div style={{
-                                            position: 'absolute',
-                                            right: '20px',
-                                            top: '20px',
-                                            color: 'white',
-                                            opacity: 0.7,
-                                            display: window.innerWidth >= 768 ? 'block' : 'none'
-                                        }}>
-                                            <ShoppingCartOutlined style={{ fontSize: '24px' }} />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </Carousel>
-                    </div>
-
                     <div className="store-container">
                         <Row gutter={[16, 16]} className="search-section">
                             <Col md={12} xs={24}>
@@ -690,21 +591,45 @@ const Store: React.FC = () => {
                                     }
                                 />
                             </Col>
-                            <Col md={12} xs={24} style={{ textAlign: 'right' }}>
-                                <Button
-                                    type="default"
-                                    style={{
-                                        borderColor: '#52c41a',
-                                        color: '#52c41a',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        marginLeft: 'auto'
-                                    }}
-                                    onClick={() => setShowFilters(!showFilters)}
-                                >
-                                    <FilterOutlined style={{ marginRight: '8px' }} />
-                                    {showFilters ? 'Hide Filters' : 'Show Filters'}
-                                </Button>
+                            <Col md={12} xs={24}>
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                    {combos.length > 0 && (
+                                        <Badge count={combos.length} color="#16a34a" offset={[-4, 4]}>
+                                            <Button
+                                                className="combo-deals-btn"
+                                                type="primary"
+                                                onClick={() => setShowComboModal(true)}
+                                                style={{
+                                                    background: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
+                                                    borderColor: '#16a34a',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    fontWeight: 700,
+                                                    height: '36px',
+                                                    paddingInline: '16px'
+                                                }}
+                                                icon={<GiftOutlined />}
+                                            >
+                                                Combo Deals
+                                            </Button>
+                                        </Badge>
+                                    )}
+                                    <Button
+                                        type="default"
+                                        style={{
+                                            borderColor: '#52c41a',
+                                            color: '#52c41a',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            height: '36px'
+                                        }}
+                                        onClick={() => setShowFilters(!showFilters)}
+                                    >
+                                        <FilterOutlined style={{ marginRight: '8px' }} />
+                                        {showFilters ? 'Hide Filters' : 'Show Filters'}
+                                    </Button>
+                                </div>
                             </Col>
                         </Row>
 
@@ -816,13 +741,12 @@ const Store: React.FC = () => {
                                                             borderTopRightRadius: '12px'
                                                         }}
                                                     />
-                                                    {categoryDiscounts[product.category] && (
+                                                    {product.discountPercentage && product.discountPercentage > 0 ? (
                                                         <div className="discount-badge">
-                                                            {categoryDiscounts[product.category]}% OFF
+                                                            {product.discountPercentage}% OFF
                                                         </div>
-                                                    )}
-                                                    <div className="category-badge">
-                                                    </div>
+                                                    ) : null}
+                                                    <div className="category-badge"></div>
                                                 </div>
                                             }
                                         >
@@ -884,10 +808,10 @@ const Store: React.FC = () => {
                                                     alignItems: 'center'
                                                 }}>
                                                     <div>
-                                                        {categoryDiscounts[product.category] ? (
+                                                        {product.discountPercentage && product.discountPercentage > 0 ? (
                                                             <Space>
                                                                 <Text strong style={{ color: '#52c41a' }}>
-                                                                    ₹ {calculateDiscountedPrice(product.price, product.category).toFixed(2)}
+                                                                    ₹ {(product.discountPrice ?? product.price).toFixed(2)}
                                                                 </Text>
                                                                 <Text delete type="secondary" style={{ fontSize: '12px' }}>
                                                                     ₹ {product.price.toFixed(2)}
@@ -957,6 +881,141 @@ const Store: React.FC = () => {
                 </div>
                 {contextHolder}
 
+                {/* Combo Deals Modal */}
+                <Modal
+                    open={showComboModal}
+                    onCancel={() => setShowComboModal(false)}
+                    footer={null}
+                    width={860}
+                    centered
+                    closeIcon={<CloseOutlined style={{ color: '#fff', fontSize: '16px' }} />}
+                    styles={{
+                        content: { padding: 0, borderRadius: '16px', overflow: 'hidden' },
+                        body: { padding: 0 }
+                    }}
+                >
+                    <div style={{ padding: '20px 24px 16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                            <GiftOutlined style={{ color: '#16a34a', fontSize: '26px' }} />
+                            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: '#166534' }}>
+                                Exclusive TastyHub Combo Deals
+                            </h2>
+                            <Tag color="error" style={{ fontWeight: 700, fontSize: '0.75rem', borderRadius: '6px', marginLeft: 'auto' }}>
+                                <ThunderboltOutlined /> LIMITED OFFER
+                            </Tag>
+                        </div>
+                        <p style={{ color: '#15803d', fontSize: '0.88rem', margin: 0, fontWeight: 500 }}>
+                            Feast like royalty with special curated collections at discounted prices!
+                        </p>
+                    </div>
+
+                    <div className="combo-modal-scroll" style={{ padding: '24px', maxHeight: '65vh', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {combos.length === 0 ? (
+                            <Empty description="No combo deals available right now" style={{ padding: '40px 0' }} />
+                        ) : (
+                            <Row gutter={[20, 20]}>
+                                {combos.map((combo) => {
+                                    const isAlreadyClaimed = combo.accessedUsers.includes(auth?.user?._id);
+                                    const isExpired = new Date() > new Date(combo.endTime);
+                                    const totalOriginal = combo.products.reduce((sum: number, p: any) => sum + p.price, 0);
+                                    const savings = Math.max(0, totalOriginal - combo.comboPrice);
+
+                                    return (
+                                        <Col key={combo._id} md={12} xs={24}>
+                                            <Card
+                                                className="combo-card"
+                                                style={{
+                                                    border: isAlreadyClaimed
+                                                        ? '1.5px solid #86efac'
+                                                        : isExpired
+                                                        ? '1.5px solid #e2e8f0'
+                                                        : '1.5px solid #bbf7d0',
+                                                    background: isAlreadyClaimed
+                                                        ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
+                                                        : isExpired
+                                                        ? '#fafafa'
+                                                        : '#fff',
+                                                    height: '100%'
+                                                }}
+                                                styles={{ body: { padding: '18px', display: 'flex', flexDirection: 'column', height: '100%' } }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827', margin: 0, flex: 1, paddingRight: '8px' }}>
+                                                        {combo.name}
+                                                    </h3>
+                                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                        <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', lineHeight: 1 }}>₹{combo.comboPrice}</div>
+                                                        {savings > 0 && (
+                                                            <div style={{ fontSize: '0.72rem', color: '#9ca3af', textDecoration: 'line-through' }}>
+                                                                ₹{totalOriginal}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {savings > 0 && (
+                                                    <div style={{ backgroundColor: '#22c55e', color: 'white', fontSize: '0.73rem', fontWeight: 700, padding: '3px 10px', borderRadius: '6px', width: 'fit-content', marginBottom: '12px' }}>
+                                                        SAVE ₹{savings.toFixed(2)} INSTANTLY!
+                                                    </div>
+                                                )}
+
+                                                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginBottom: '14px', flex: 1 }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                        Items Included:
+                                                    </span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                        {combo.products.map((p: any) => (
+                                                            <div key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                <img
+                                                                    src={p.image}
+                                                                    alt={p.title}
+                                                                    style={{ width: '34px', height: '34px', borderRadius: '7px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
+                                                                />
+                                                                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#374151' }}>{p.title}</span>
+                                                                <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, marginLeft: 'auto', flexShrink: 0 }}>₹{p.price}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <Button
+                                                        type="primary"
+                                                        disabled={isAlreadyClaimed || claimingCombo[combo._id] || isExpired}
+                                                        loading={claimingCombo[combo._id]}
+                                                        onClick={() => handleClaimCombo(combo._id)}
+                                                        style={{
+                                                            width: '100%',
+                                                            height: '40px',
+                                                            borderRadius: '8px',
+                                                            background: isAlreadyClaimed || isExpired
+                                                                ? '#cbd5e1'
+                                                                : 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
+                                                            borderColor: isAlreadyClaimed || isExpired ? '#cbd5e1' : '#16a34a',
+                                                            fontWeight: 700,
+                                                            fontSize: '0.9rem'
+                                                        }}
+                                                    >
+                                                        {isAlreadyClaimed
+                                                            ? 'Claimed Successfully ✓'
+                                                            : isExpired
+                                                            ? 'Deal Expired'
+                                                            : 'Claim Combo Deal 🎁'}
+                                                    </Button>
+                                                    <span style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center' }}>
+                                                        Claimed {combo.timesAccessed} of {combo.totalLimit} available
+                                                    </span>
+                                                </div>
+                                            </Card>
+                                        </Col>
+                                    );
+                                })}
+                            </Row>
+                        )}
+                    </div>
+                </Modal>
+
+                {/* Product Details Modal */}
                 <Modal
                     title={
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -971,7 +1030,7 @@ const Store: React.FC = () => {
                     className="product-details-modal"
                     closeIcon={<CloseOutlined style={{ color: '#52c41a' }} />}
                     style={{ maxHeight: 'none', top: 50 }}
-                    bodyStyle={{ maxHeight: 'none', overflow: 'visible' }}
+                    styles={{ body: { maxHeight: 'none', overflow: 'visible' } }}
                 >
                     {modalLoading ? (
                         <div className="modal-loading-content">
@@ -1014,18 +1073,12 @@ const Store: React.FC = () => {
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                             <div>
                                                 <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Product ID:</Text>
-                                                <Tag color='purple' style={{ fontSize: '12px', border: '1px dashed' }} >{selectedProduct._id}</Tag>
+                                                <Tag color='purple' style={{ fontSize: '12px', border: '1px dashed' }}>{selectedProduct._id}</Tag>
                                             </div>
 
                                             <div>
                                                 <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Category:</Text>
-                                                <Tag
-                                                    color="cyan"
-                                                    style={{
-                                                        fontSize: '12px',
-                                                        border: '1px dashed'
-                                                    }}
-                                                >
+                                                <Tag color="cyan" style={{ fontSize: '12px', border: '1px dashed' }}>
                                                     {selectedProduct.category}
                                                 </Tag>
                                             </div>
@@ -1043,17 +1096,17 @@ const Store: React.FC = () => {
 
                                             <div>
                                                 <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Price:</Text>
-                                                {categoryDiscounts[selectedProduct.category] ? (
+                                                {selectedProduct.discountPercentage && selectedProduct.discountPercentage > 0 ? (
                                                     <Space>
                                                         <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-                                                            ₹ {calculateDiscountedPrice(selectedProduct.price, selectedProduct.category).toFixed(2)}
+                                                            ₹ {(selectedProduct.discountPrice ?? selectedProduct.price).toFixed(2)}
                                                         </Text>
                                                         <Text delete type="secondary" style={{ fontSize: '14px' }}>
                                                             ₹ {selectedProduct.price.toFixed(2)}
                                                         </Text>
                                                     </Space>
                                                 ) : (
-                                                    <Text strong style={{ fontSize: '16px' }}>
+                                                    <Text strong style={{ fontSize: '16px', color: '#52c41a' }}>
                                                         ₹ {selectedProduct.price.toFixed(2)}
                                                     </Text>
                                                 )}
@@ -1113,7 +1166,7 @@ const Store: React.FC = () => {
                                                     display: 'block',
                                                     wordBreak: 'break-all',
                                                     whiteSpace: 'normal',
-                                                    background: '#f5f5f5',
+                                                    background: 'transparent',
                                                     padding: '8px',
                                                     borderRadius: '4px',
                                                     border: '1px solid #e8e8e8'

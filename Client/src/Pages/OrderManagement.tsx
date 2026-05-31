@@ -1,512 +1,51 @@
-import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
-import {
-  Card,
-  Table,
-  Tag,
-  Select,
-  Alert,
-  Col,
-  Typography,
-  Button,
-  Modal,
-  Pagination,
-  Descriptions,
-  Space,
-  message,
-  Tooltip,
-  Flex,
-  Row,
-  Spin,
-  Statistic
-} from 'antd';
-import {
-  CheckCircleOutlined,
-  TruckOutlined,
-  ClockCircleOutlined,
-  UnorderedListOutlined,
-  EyeOutlined,
-  ShoppingCartOutlined,
-  UserOutlined,
-  CalendarOutlined,
-  InfoCircleOutlined,
-  LoadingOutlined,
-  DownloadOutlined,
-  CreditCardOutlined,
-  HomeOutlined,
-  PhoneOutlined,
-  EnvironmentOutlined
-} from '@ant-design/icons';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Dialog } from 'primereact/dialog';
+import { Button } from 'primereact/button';
+import { Tag } from 'primereact/tag';
+import { Dropdown } from 'primereact/dropdown';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import { IOrder, OrderDeliveryStatus } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const { Title, Text } = Typography;
-const { Option } = Select;
-
-interface ProductDetailsModalProps {
-  visible: boolean;
-  onClose: () => void;
-  order: IOrder | null;
-}
-
-const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({ visible, onClose, order }) => {
-  const [isMobile, setIsMobile] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 4;
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [visible, order]);
-
-  if (!order || !order._id) {
-    return (
-      <Modal
-        title="Order Details"
-        open={visible}
-        onCancel={onClose}
-        footer={null}
-        width={isMobile ? '95%' : 800}
-        style={isMobile ? { top: 15 } : { top: 15 }}
-      >
-        <Alert message="No order data available" type="warning" showIcon />
-      </Modal>
-    );
-  }
-
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
-
-  const totalItems = order.items?.length || 0;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentItems = order.items?.slice(startIndex, endIndex) || [];
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  return (
-    <Modal
-      title={
-        <Space>
-          <ShoppingCartOutlined style={{ color: '#52c41a' }} />
-          <span style={{ color: '#52c41a', fontWeight: 'bold' }}>
-            Order Details - {isMobile ? order._id.substring(0, 6) + '...' : order._id}
-          </span>
-        </Space>
-      }
-      open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={isMobile ? '95%' : 800}
-      style={isMobile ? { top: 15 } : { top: 15 }}
-    >
-      <Title level={4} style={{ marginBottom: 16, color: '#52c41a' }}>Customer Details</Title>
-      <Descriptions
-        bordered
-        column={isMobile ? 1 : 2}
-        size={isMobile ? 'small' : 'default'}
-        style={{ marginBottom: 24 }}
-      >
-        <Descriptions.Item label="Customer Name">
-          <Space>
-            <UserOutlined style={{ color: '#52c41a' }} />
-            {order.user?.name || 'N/A'}
-          </Space>
-        </Descriptions.Item>
-        <Descriptions.Item label="Customer Email">
-          <Tooltip title={order.user?.email || 'N/A'}>
-            <Text>{isMobile ? truncateText(order.user?.email || 'N/A', 20) : (order.user?.email || 'N/A')}</Text>
-          </Tooltip>
-        </Descriptions.Item>
-      </Descriptions>
-
-      <Title level={4} style={{ marginBottom: 16, color: '#52c41a' }}>Order Information</Title>
-      <Descriptions
-        bordered
-        column={isMobile ? 1 : 2}
-        size={isMobile ? 'small' : 'default'}
-        style={{ marginBottom: 24 }}
-      >
-        <Descriptions.Item label="Order ID">
-          <Tooltip title={order._id}>
-            <Text code style={{ color: '#52c41a' }}>{isMobile ? truncateText(order._id, 15) : order._id}</Text>
-          </Tooltip>
-        </Descriptions.Item>
-        <Descriptions.Item label="Order Date">
-          <Space>
-            <CalendarOutlined style={{ color: '#52c41a' }} />
-            {new Date(order.createdAt).toLocaleDateString()}
-          </Space>
-        </Descriptions.Item>
-        <Descriptions.Item label="Total Amount">
-          <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-            ₹{order.totalAmount.toFixed(2)}
-          </Text>
-        </Descriptions.Item>
-        <Descriptions.Item label="Status">
-          {getStatusTag(order.deliveryStatus)}
-        </Descriptions.Item>
-      </Descriptions>
-
-      <Title level={4} style={{ marginBottom: 16, color: '#52c41a' }}>
-        Order Items ({totalItems} items)
-      </Title>
-
-      <Row gutter={[16, 16]}>
-        {currentItems.length > 0 ? (
-          currentItems.map((item, idx) => (
-            <Col
-              span={isMobile ? 24 : 12}
-              key={startIndex + idx}
-            >
-              <Card size="small" hoverable style={{
-                padding: '16px',
-                height: '100%',
-                border: '2px dashed #b7eb8f',
-                borderRadius: '8px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '16px'
-                }}>
-                  {item.image && (
-                    <div style={{
-                      flexShrink: 0
-                    }}>
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        style={{
-                          width: 80,
-                          height: 80,
-                          borderRadius: 8,
-                          objectFit: 'cover',
-                          border: '2px solid #b7eb8f'
-                        }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RUG8G+5BhMlyJFAcxBOJqhE8wQ7kKQQtKSlkZzZnZklBW1KKaUKZhJFM7MpIQ6lJTJKKJGJ6GElJvK5Z+cFklVVr6vr9e/39v3V/e8P";
-                        }}
-                      />
-                    </div>
-                  )}
-                  <div style={{
-                    flex: 1,
-                    minWidth: 0
-                  }}>
-                    <Title level={5} style={{
-                      margin: '0 0 8px 0',
-                      fontSize: '16px',
-                      color: '#52c41a'
-                    }}>
-                      {item.name || 'Unknown Item'}
-                    </Title>
-                    <div style={{ marginBottom: '8px' }}>
-                      <Text type="secondary" style={{ fontSize: '14px' }}>
-                        Quantity: <Text strong style={{ color: '#52c41a' }}>{item.quantity || 0}</Text>
-                      </Text>
-                    </div>
-                    <div>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <Text
-                          delete
-                          style={{
-                            color: '#8c8c8c',
-                            fontSize: '14px'
-                          }}
-                        >
-                          ₹{((item as any).original_price || 0).toFixed(2)}
-                        </Text>
-                        <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-                          ₹{((item as any).discount_price || 0).toFixed(2)}
-                        </Text>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          ))
-        ) : (
-          <Col span={24}>
-            <Alert message="No items found in this order" type="info" showIcon />
-          </Col>
-        )}
-      </Row>
-
-      {totalItems > itemsPerPage && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginTop: 24
-        }}>
-          <Pagination
-            current={currentPage}
-            total={totalItems}
-            pageSize={itemsPerPage}
-            onChange={handlePageChange}
-            showSizeChanger={false}
-            showQuickJumper={false}
-            size={isMobile ? 'small' : 'default'}
-          />
-        </div>
-      )}
-    </Modal>
-  );
-};
-
-interface ShippingAddressModalProps {
-  visible: boolean;
-  onClose: () => void;
-  order: IOrder | null;
-}
-
-const ShippingAddressModal: React.FC<ShippingAddressModalProps> = ({ visible, onClose, order }) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  if (!order || !order._id) {
-    return (
-      <Modal
-        title="Shipping Address"
-        open={visible}
-        onCancel={onClose}
-        footer={null}
-        width={isMobile ? '95%' : 600}
-        style={isMobile ? { top: 15 } : { top: 15 }}
-      >
-        <Alert message="No order data available" type="warning" showIcon />
-      </Modal>
-    );
-  }
-
-  const shippingAddress = order.shippingAddress;
-  const hasAddress = shippingAddress && Object.values(shippingAddress).some((val) => val);
-
-  return (
-    <Modal
-      title={
-        <Space>
-          <HomeOutlined style={{ color: '#52c41a' }} />
-          <span style={{ color: '#52c41a', fontWeight: 'bold', marginBottom: 20 }}>
-            Shipping Address
-          </span>
-        </Space>
-      }
-      open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={isMobile ? '95%' : 600}
-      style={isMobile ? { top: 15 } : { top: 15 }}
-    >
-      {hasAddress ? (
-        <div
-          style={{
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            borderRadius: '16px'
-          }}
-        >
-          <Descriptions
-            bordered
-            column={1}
-            size={isMobile ? 'small' : 'default'}
-          >
-            {shippingAddress.fullName && (
-              <Descriptions.Item label={
-                <Space>
-                  <UserOutlined style={{ color: '#52c41a' }} />
-                  Full Name
-                </Space>
-              }>
-                <Text strong>{shippingAddress.fullName}</Text>
-              </Descriptions.Item>
-            )}
-            {shippingAddress.phone && (
-              <Descriptions.Item label={
-                <Space>
-                  <PhoneOutlined style={{ color: '#52c41a' }} />
-                  Phone Number
-                </Space>
-              }>
-                <Text>{shippingAddress.phone}</Text>
-              </Descriptions.Item>
-            )}
-            {shippingAddress.addressLine1 && (
-              <Descriptions.Item label={
-                <Space>
-                  <HomeOutlined style={{ color: '#52c41a' }} />
-                  Address Line 1
-                </Space>
-              }>
-                <Text>{shippingAddress.addressLine1}</Text>
-              </Descriptions.Item>
-            )}
-            {shippingAddress.addressLine2 && (
-              <Descriptions.Item label={
-                <Space>
-                  <HomeOutlined style={{ color: '#52c41a' }} />
-                  Address Line 2
-                </Space>
-              }>
-                <Text>{shippingAddress.addressLine2}</Text>
-              </Descriptions.Item>
-            )}
-            {shippingAddress.city && (
-              <Descriptions.Item label={
-                <Space>
-                  <EnvironmentOutlined style={{ color: '#52c41a' }} />
-                  City
-                </Space>
-              }>
-                <Text>{shippingAddress.city}</Text>
-              </Descriptions.Item>
-            )}
-            {shippingAddress.state && (
-              <Descriptions.Item label={
-                <Space>
-                  <EnvironmentOutlined style={{ color: '#52c41a' }} />
-                  State
-                </Space>
-              }>
-                <Text>{shippingAddress.state}</Text>
-              </Descriptions.Item>
-            )}
-            {shippingAddress.postalCode && (
-              <Descriptions.Item label={
-                <Space>
-                  <EnvironmentOutlined style={{ color: '#52c41a' }} />
-                  Postal Code
-                </Space>
-              }>
-                <Text>{shippingAddress.postalCode}</Text>
-              </Descriptions.Item>
-            )}
-            {shippingAddress.country && (
-              <Descriptions.Item label={
-                <Space>
-                  <EnvironmentOutlined style={{ color: '#52c41a' }} />
-                  Country
-                </Space>
-              }>
-                <Text>{shippingAddress.country}</Text>
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-        </div>
-      ) : (
-        <div style={{
-          textAlign: 'center',
-          padding: '40px 20px',
-          background: '#f6ffed',
-          borderRadius: '12px',
-          border: '1px dashed #d9f7be'
-        }}>
-          <EnvironmentOutlined style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }} />
-          <Title level={4} style={{ color: '#52c41a', margin: 0 }}>No shipping address available</Title>
-          <Text style={{ color: '#8c8c8c' }}>This order does not have a shipping address</Text>
-        </div>
-      )}
-    </Modal>
-  );
-};
-
-const getStatusTag = (status: OrderDeliveryStatus) => {
-  switch (status) {
-    case 'Pending':
-      return <Tag icon={<ClockCircleOutlined />} style={{ border: '1px dashed' }} color="warning">Pending</Tag>;
-    case 'Shipped':
-      return <Tag icon={<TruckOutlined />} style={{ border: '1px dashed' }} color="processing">Shipped</Tag>;
-    case 'Delivered':
-      return <Tag icon={<CheckCircleOutlined />} style={{ border: '1px dashed' }} color="success">Delivered</Tag>;
-    default:
-      return <Tag color="default">{status}</Tag>;
-  }
-};
-
-const getAvailableStatusOptions = (currentStatus: OrderDeliveryStatus) => {
-  const statusFlow = {
-    'Pending': ['Pending', 'Shipped'],
+const getAvailableStatusOptions = (currentStatus: OrderDeliveryStatus): OrderDeliveryStatus[] => {
+  const statusFlow: Record<OrderDeliveryStatus, OrderDeliveryStatus[]> = {
+    'Pending': ['Pending', 'Accepted'],
+    'Accepted': ['Accepted', 'Preparing'],
+    'Preparing': ['Preparing', 'Pickup'],
+    'Pickup': ['Pickup', 'Out for Delivery'],
+    'Out for Delivery': ['Out for Delivery', 'Delivered'],
     'Shipped': ['Shipped', 'Delivered'],
     'Delivered': ['Delivered']
   };
   return statusFlow[currentStatus] || ['Pending'];
 };
 
-const LoadingSpinner: React.FC = () => {
-  return (
-    <Row justify="center" align="middle" style={{ minHeight: '60vh' }}>
-      <Col>
-        <Row justify="center">
-          <Col>
-            <Spin size="large" />
-          </Col>
-        </Row>
-        <Row justify="center" style={{ marginTop: '16px' }}>
-          <Col>
-            <Text style={{ color: '#52c41a', fontSize: '16px' }}>
-              Loading order data...
-            </Text>
-          </Col>
-        </Row>
-      </Col>
-    </Row>
-  );
-};
-
 const OrderManagement: React.FC = () => {
   const auth = useContext(AuthContext);
   const [orders, setOrders] = useState<IOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  
   const [selectedOrder, setSelectedOrder] = useState<IOrder | null>(null);
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [addressModalVisible, setAddressModalVisible] = useState<boolean>(false);
-  const [messageApi, contextHolder] = message.useMessage();
+  const [detailsVisible, setDetailsVisible] = useState<boolean>(false);
+  const [addressVisible, setAddressVisible] = useState<boolean>(false);
+  
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const fetchOrders = useCallback(async () => {
     if (!auth?.token) {
-      setError('Not authenticated.');
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
-
-      const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1000));
-
+      
       const config = {
         headers: {
           Authorization: `Bearer ${auth.token}`,
@@ -514,32 +53,19 @@ const OrderManagement: React.FC = () => {
         withCredentials: true,
       };
 
-      const [response] = await Promise.all([
-        axios.get(`${backendUrl}/api/orders`, config),
-        minLoadingTime
-      ]);
-
+      const response = await axios.get(`${backendUrl}/api/orders`, config);
       if (response.data.success) {
         setOrders(response.data.orders);
-        setError(null);
       } else {
-        setError(response.data.message || 'Failed to fetch orders.');
+        console.warn(response.data.message || 'Failed to fetch orders.');
       }
     } catch (err: any) {
       console.error('Error fetching orders:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to fetch orders.';
-      setError(errorMessage);
-      messageApi.error({
-        content: errorMessage,
-        duration: 3,
-        style: {
-          marginTop: '20vh',
-        },
-      });
     } finally {
       setLoading(false);
     }
-  }, [auth?.token, backendUrl, messageApi]);
+  }, [auth?.token, backendUrl]);
+
 
   useEffect(() => {
     fetchOrders();
@@ -547,7 +73,7 @@ const OrderManagement: React.FC = () => {
 
   const handleStatusChange = async (orderId: string, newStatus: OrderDeliveryStatus) => {
     if (!auth?.token) {
-      message.error('You are not authenticated to perform this action.');
+      alert('You are not authenticated to perform this action.');
       return;
     }
 
@@ -569,7 +95,6 @@ const OrderManagement: React.FC = () => {
       );
 
       if (response.data.success) {
-        message.success(`Order status updated to ${newStatus}`);
         setOrders(prevOrders =>
           prevOrders.map(order =>
             order._id === orderId
@@ -578,32 +103,21 @@ const OrderManagement: React.FC = () => {
           )
         );
       } else {
-        message.error(response.data.message || 'Failed to update status.');
+        alert(response.data.message || 'Failed to update status.');
       }
     } catch (err: any) {
       console.error('Error updating order status:', err);
-      message.error(err.response?.data?.message || 'Failed to update order status.');
+      alert(err.response?.data?.message || 'Failed to update order status.');
     } finally {
       setStatusUpdateLoading(null);
     }
   };
 
-  const handleViewOrder = (order: IOrder) => {
-    setSelectedOrder(order);
-    setModalVisible(true);
-  };
-
-  const handleViewAddress = (order: IOrder) => {
-    setSelectedOrder(order);
-    setAddressModalVisible(true);
-  };
-
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
-
     doc.setFont('times', 'bold');
     doc.setFontSize(22);
-    doc.setTextColor('#52c41a');
+    doc.setTextColor('#22c55e');
     doc.text('TastyHub - Order Management Report', 14, 22);
 
     const tableColumns = ["Order ID", "Customer", "Amount(₹)", "Status", "Date", "Items"];
@@ -618,7 +132,7 @@ const OrderManagement: React.FC = () => {
 
       const orderData = [
         order._id,
-        `${order.user.name}\n${order.user.email}`,
+        `${order.user?.name || 'N/A'}\n${order.user?.email || 'N/A'}`,
         amountString,
         order.deliveryStatus,
         new Date(order.createdAt).toLocaleDateString(),
@@ -633,7 +147,7 @@ const OrderManagement: React.FC = () => {
       startY: 30,
       theme: 'grid',
       headStyles: {
-        fillColor: [82, 196, 26],
+        fillColor: [34, 197, 94],
         textColor: [255, 255, 255],
         font: 'times',
         fontStyle: 'bold'
@@ -657,729 +171,398 @@ const OrderManagement: React.FC = () => {
     doc.save('order-management-report.pdf');
   };
 
-  const mostOrderedCategory = useMemo(() => {
-    if (orders.length === 0) {
-      return { name: 'N/A', count: 0 };
-    }
-    const categoryCounts: { [key: string]: number } = {};
-    orders.flatMap(order => order.items).forEach(item => {
-      const category = (item as any).category || 'Uncategorized';
-      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-    });
+  const handleViewOrder = (order: IOrder) => {
+    setSelectedOrder(order);
+    setDetailsVisible(true);
+  };
 
-    if (Object.keys(categoryCounts).length === 0) {
-      return { name: 'N/A', count: 0 };
-    }
-    const mostOrdered = Object.entries(categoryCounts).reduce(
-      (max, [name, count]) => (count > max.count ? { name, count } : max),
-      { name: 'N/A', count: 0 }
+  const handleViewAddress = (order: IOrder) => {
+    setSelectedOrder(order);
+    setAddressVisible(true);
+  };
+
+  // Plain Text Status Tag for Dialogs
+  const getStatusTag = (status: OrderDeliveryStatus) => {
+    let severity: "success" | "warning" | "info" | "danger" | null = 'info';
+    if (status === 'Delivered') severity = 'success';
+    else if (status === 'Pending') severity = 'warning';
+    else if (status === 'Accepted') severity = 'info';
+    else if (status === 'Preparing') severity = 'warning';
+    else if (status === 'Pickup' || status === 'Out for Delivery' || status === 'Shipped') severity = 'info';
+    return <Tag value={status} severity={severity} style={{ borderRadius: '6px' }} />;
+  };
+
+  // --- TEMPLATES FOR DATATABLE COLUMNS ---
+
+  const orderIdTemplate = (row: IOrder) => (
+    <code style={{ color: '#64748b', fontWeight: 600 }}>{row._id.substring(0, 10)}...</code>
+  );
+
+  const customerTemplate = (row: IOrder) => {
+    const userImg = row.user?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <img
+          src={userImg}
+          alt={row.user?.name || 'Customer'}
+          style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #22c55e' }}
+          onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+        />
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontWeight: 600, color: '#0f172a' }}>{row.user?.name || 'N/A'}</span>
+          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{row.user?.email || 'N/A'}</span>
+        </div>
+      </div>
     );
-    return mostOrdered;
-  }, [orders]);
+  };
+
+  const amountTemplate = (row: IOrder) => (
+    <span style={{ fontWeight: 700, color: '#22c55e', fontSize: '0.95rem' }}>
+      ₹{row.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </span>
+  );
+
+  const paymentMethodTemplate = (row: IOrder) => {
+    const method = (row.paymentMethod || 'cod').toUpperCase();
+    return (
+      <Tag
+        value={method}
+        severity={method === 'COD' ? 'info' : 'success'}
+        style={{ borderRadius: '6px' }}
+      />
+    );
+  };
+
+  const paymentStatusTemplate = (row: IOrder) => {
+    const method = (row.paymentMethod || 'cod').toLowerCase();
+    const delivery = row.deliveryStatus || 'Pending';
+    
+    let isPaid = false;
+    if (method === 'cod') {
+      isPaid = delivery === 'Delivered';
+    } else {
+      isPaid = true; // online, gift_card, etc.
+    }
+    
+    return (
+      <Tag
+        value={isPaid ? "Paid" : "Unpaid"}
+        severity={isPaid ? "success" : "danger"}
+        icon={isPaid ? "pi pi-check-circle" : "pi pi-times-circle"}
+        style={{ borderRadius: '6px' }}
+      />
+    );
+  };
+
+  // Custom UI status change dropdown template
+  const statusDropdownTemplate = (row: IOrder) => {
+    const isUpdating = statusUpdateLoading === row._id;
+    const statusColor = row.deliveryStatus === 'Delivered' ? '#22c55e' : 
+                        (row.deliveryStatus === 'Out for Delivery' || row.deliveryStatus === 'Shipped' || row.deliveryStatus === 'Pickup' ? '#3b82f6' : '#f59e0b');
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Dropdown
+          value={row.deliveryStatus}
+          options={getAvailableStatusOptions(row.deliveryStatus).map(opt => ({ label: opt, value: opt }))}
+          onChange={(e) => handleStatusChange(row._id, e.value as any)}
+          disabled={isUpdating || row.deliveryStatus === 'Delivered'}
+          style={{
+            borderRadius: '8px',
+            color: statusColor,
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            width: '135px'
+          }}
+          panelStyle={{ minWidth: '135px' }}
+        />
+        {isUpdating && <i className="pi pi-spin pi-spinner" style={{ color: '#22c55e', fontSize: '0.9rem' }} />}
+      </div>
+    );
+  };
+
+  const actionsTemplate = (row: IOrder) => (
+    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-start', alignItems: 'center' }}>
+      <Button
+        icon="pi pi-eye"
+        className="p-button-text p-button-plain p-button-sm"
+        style={{ color: '#22c55e', padding: '4px', minWidth: 'auto', background: 'transparent', border: 'none', boxShadow: 'none' }}
+        tooltip="View Details"
+        onClick={() => handleViewOrder(row)}
+      />
+      <Button
+        icon="pi pi-map-marker"
+        className="p-button-text p-button-plain p-button-sm"
+        style={{ color: '#3b82f6', padding: '4px', minWidth: 'auto', background: 'transparent', border: 'none', boxShadow: 'none' }}
+        tooltip="View Address"
+        onClick={() => handleViewAddress(row)}
+      />
+    </div>
+  );
+
+  const dateTemplate = (row: IOrder) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.88rem' }}>
+      <i className="pi pi-calendar" style={{ color: '#22c55e' }} />
+      <span>{new Date(row.createdAt).toLocaleDateString('en-IN')}</span>
+    </div>
+  );
 
   if (loading) {
     return (
-      <div style={{ padding: '40px 24px', maxWidth: 1250, margin: '0 auto' }}>
-        <LoadingSpinner />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', flexDirection: 'column', gap: '1rem' }}>
+        <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#22c55e' }} />
+        <span style={{ color: '#22c55e', fontWeight: 600 }}>Loading Orders...</span>
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div style={{ padding: '40px 24px', maxWidth: 1250, margin: '0 auto' }}>
-        {contextHolder}
-        <div style={{ padding: '40px 0', textAlign: 'center' }}>
-          <Alert
-            message="Access Denied or Error!"
-            description={
-              <div>
-                <p>{error}</p>
-                <p>Please ensure you are logged in as an administrator.</p>
-                <Button
-                  type="primary"
-                  onClick={fetchOrders}
-                  style={{ marginTop: 16, backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                >
-                  Retry
-                </Button>
-              </div>
-            }
-            type="error"
-            showIcon
-            icon={<InfoCircleOutlined />}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-  const pendingOrders = orders.filter(order => order.deliveryStatus === 'Pending').length;
-  const shippedOrders = orders.filter(order => order.deliveryStatus === 'Shipped').length;
-  const deliveredOrders = orders.filter(order => order.deliveryStatus === 'Delivered').length;
 
   const sortedOrders = [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const orderStatusData = [
-    { type: 'Pending', value: pendingOrders },
-    { type: 'Shipped', value: shippedOrders },
-    { type: 'Delivered', value: deliveredOrders },
-  ].filter(item => item.value > 0);
-
-  const statusColors: { [key: string]: string } = {
-    Pending: '#faad14',
-    Shipped: '#1890ff',
-    Delivered: '#52c41a',
-  };
-
-  const createResponsivePieChart = () => {
-    if (orderStatusData.length === 0) return null;
-
-    const total = orderStatusData.reduce((sum, item) => sum + item.value, 0);
-    let currentAngle = 0;
-
-    const radius = 100;
-    const centerX = 100;
-    const centerY = 100;
-    const svgSize = 200;
-
-    return (
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${svgSize} ${svgSize}`}
-        style={{ maxWidth: '200px', maxHeight: '200px' }}
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <circle
-          cx={centerX}
-          cy={centerY}
-          r="40"
-          fill="white"
-          stroke="#f0f0f0"
-          strokeWidth="2"
-        />
-        {orderStatusData.map((item) => {
-          const percentage = (item.value / total) * 100;
-          const angle = (item.value / total) * 360;
-          const startAngle = currentAngle;
-          const endAngle = currentAngle + angle;
-
-          const x1 = centerX + radius * Math.cos((startAngle * Math.PI) / 180);
-          const y1 = centerY + radius * Math.sin((startAngle * Math.PI) / 180);
-          const x2 = centerX + radius * Math.cos((endAngle * Math.PI) / 180);
-          const y2 = centerY + radius * Math.sin((endAngle * Math.PI) / 180);
-
-          const largeArcFlag = angle > 180 ? 1 : 0;
-
-          const pathData = [
-            `M ${centerX} ${centerY}`,
-            `L ${x1} ${y1}`,
-            `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-            'Z'
-          ].join(' ');
-
-          const labelAngle = (startAngle + endAngle) / 2;
-          const labelRadius = radius * 0.65;
-          const labelX = centerX + labelRadius * Math.cos((labelAngle * Math.PI) / 180);
-          const labelY = centerY + labelRadius * Math.sin((labelAngle * Math.PI) / 180);
-
-          currentAngle += angle;
-
-          return (
-            <g key={item.type}>
-              <path
-                d={pathData}
-                fill={statusColors[item.type]}
-                stroke="white"
-                strokeWidth="2"
-                style={{ cursor: 'pointer' }}
-              />
-              {percentage > 5 && (
-                <text
-                  x={labelX}
-                  y={labelY + 1}
-                  textAnchor="middle"
-                  fontSize="12px"
-                  fill="white"
-                  fontWeight="bold"
-                >
-                  {percentage.toFixed(1)}%
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-    );
-  };
-
-  const columns = [
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Order ID</span>,
-      dataIndex: '_id',
-      key: 'orderId',
-      render: (id: string) => (
-        <Tooltip title={id}>
-          <Tag color="blue">{id.substring(0, 14)}...</Tag>
-        </Tooltip>
-      ),
-      width: 150,
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Customer</span>,
-      key: 'customer',
-      render: (record: IOrder) => (
-        <div style={{ minWidth: 0 }}>
-          <Space size={4} style={{ marginBottom: 4 }}>
-            <UserOutlined style={{ color: '#52c41a', flexShrink: 0 }} />
-            <Tooltip title={record.user?.name || 'N/A'}>
-              <Text
-                strong
-                style={{
-                  display: 'block',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  maxWidth: '150px'
-                }}
-              >
-                {record.user?.name || 'N/A'}
-              </Text>
-            </Tooltip>
-          </Space>
-          <Tooltip title={record.user?.email || 'N/A'}>
-            <Text
-              type="secondary"
-              style={{
-                fontSize: '12px',
-                display: 'block',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                maxWidth: '170px'
-              }}
-            >
-              {record.user?.email || 'N/A'}
-            </Text>
-          </Tooltip>
-        </div>
-      ),
-      width: 200,
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Amount</span>,
-      dataIndex: 'totalAmount',
-      key: 'totalAmount',
-      render: (amount: number) => (
-        <Text strong style={{ color: '#52c41a', fontSize: '14px', whiteSpace: 'nowrap' }}>
-          ₹ {amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-        </Text>
-      ),
-      width: 120,
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Status</span>,
-      dataIndex: 'deliveryStatus',
-      key: 'status',
-      render: (status: OrderDeliveryStatus) => getStatusTag(status),
-      width: 120,
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Order Date</span>,
-      dataIndex: 'createdAt',
-      key: 'orderDate',
-      render: (date: string) => (
-        <Space style={{ whiteSpace: 'nowrap' }}>
-          <CalendarOutlined style={{ color: '#52c41a' }} />
-          {new Date(date).toLocaleDateString()}
-        </Space>
-      ),
-      width: 140,
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Items</span>,
-      dataIndex: 'items',
-      key: 'items',
-      render: (items: any, record: IOrder) => (
-        <Button
-          type="link"
-          size="small"
-          icon={<EyeOutlined />}
-          onClick={() => handleViewOrder(record)}
-        >
-          View Items ({items?.length || 0})
-        </Button>
-      ),
-      width: 130,
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Address</span>,
-      key: 'address',
-      render: (record: IOrder) => (
-        <Button
-          type="link"
-          size="small"
-          icon={<HomeOutlined />}
-          onClick={() => handleViewAddress(record)}
-        >
-          View Address
-        </Button>
-      ),
-      width: 130,
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Actions</span>,
-      key: 'action',
-      render: (record: IOrder) => {
-        const availableOptions = getAvailableStatusOptions(record.deliveryStatus);
-        const isUpdating = statusUpdateLoading === record._id;
-
-        return (
-          <Tooltip title={record.deliveryStatus === 'Delivered' ? 'Order is already delivered' : ''}>
-            <Select
-              value={record.deliveryStatus}
-              onChange={(value) => handleStatusChange(record._id, value)}
-              style={{ width: 120 }}
-              size="small"
-              disabled={record.deliveryStatus === 'Delivered' || isUpdating}
-              loading={isUpdating}
-              suffixIcon={isUpdating ? <LoadingOutlined /> : undefined}
-            >
-              {availableOptions.map(status => (
-                <Option key={status} value={status}>
-                  {status}
-                </Option>
-              ))}
-            </Select>
-          </Tooltip>
-        );
-      },
-      width: 140,
-    },
-  ];
-
   return (
-    <div style={{ padding: '40px 24px', maxWidth: 1250, margin: '0 auto' }}>
-      {contextHolder}
+    <div style={styles.container}>
+      {/* Title Header Section */}
+      <div style={styles.headerRow}>
+        <div>
+          <h1 style={styles.title}>Order Management</h1>
+          <p style={styles.sub}>Track, update, and manage restaurant orders</p>
+        </div>
+        
+        <button onClick={handleDownloadPDF} style={styles.pdfBtn}>
+          <i className="pi pi-file-pdf" style={{ fontSize: '1.1rem' }} />
+          <span>Export PDF Report</span>
+        </button>
+      </div>
 
-      <Title level={2} style={{ textAlign: 'center', marginBottom: 40, color: "#52c41a" }}>
-        Order Management Dashboard
-      </Title>
+      {/* Main DataTable panel (Strip KPI summary cards) */}
+      <div style={styles.tablePanel}>
+        <DataTable
+          value={sortedOrders}
+          paginator
+          rows={10}
+          rowsPerPageOptions={[5, 10, 20]}
+          className="p-datatable-striped"
+          responsiveLayout="scroll"
+          emptyMessage={() => (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
+              <i className="pi pi-shopping-bag" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+              <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No orders found.</div>
+              <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Customer checkout orders will display here once placed.</div>
+            </div>
+          )}
+        >
+          <Column field="user.name" header="CUSTOMER" body={customerTemplate} style={{ width: '22%' }} />
+          <Column field="_id" header="ORDER ID" body={orderIdTemplate} style={{ width: '12%' }} />
+          <Column field="paymentMethod" header="PAYMENT METHOD" body={paymentMethodTemplate} style={{ width: '12%' }} />
+          <Column header="PAYMENT STATUS" body={paymentStatusTemplate} style={{ width: '12%' }} />
+          <Column field="totalAmount" header="TOTAL AMOUNT" body={amountTemplate} style={{ width: '12%' }} />
+          <Column field="deliveryStatus" header="DELIVERY STATUS" body={statusDropdownTemplate} style={{ width: '15%' }} />
+          <Column field="createdAt" header="ORDER DATE" body={dateTemplate} style={{ width: '10%' }} />
+          <Column header="ACTIONS" body={actionsTemplate} style={{ width: '5%' }} />
+        </DataTable>
+      </div>
 
-      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-        <Col xs={24} lg={12}>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={12}>
-              <Card
-                style={{
-                  borderRadius: '12px',
-                  border: '2px dashed #b7eb8f',
-                  boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
-                  background: 'white',
-                  height: '140px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center'
-                }}
-                bodyStyle={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}
-              >
-                <Statistic
-                  title={<span style={{ color: '#8c8c8c', fontSize: '14px' }}>Total Orders</span>}
-                  value={totalOrders}
-                  valueStyle={{
-                    color: '#52c41a',
-                    fontSize: '25px',
-                    fontWeight: 700
-                  }}
-                />
-                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
-                  <ShoppingCartOutlined style={{ marginRight: 4, fontSize: '16px', color: '#52c41a' }} />
-                  <Text style={{ color: '#8c8c8c', fontSize: '12px' }}>
-                    All time orders
-                  </Text>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} md={12}>
-              <Card
-                style={{
-                  borderRadius: '12px',
-                  border: '2px dashed #b7eb8f',
-                  boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
-                  background: 'white',
-                  height: '140px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center'
-                }}
-                bodyStyle={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}
-              >
-                <Statistic
-                  title={<span style={{ color: '#8c8c8c', fontSize: '14px' }}>Total Revenue</span>}
-                  value={totalRevenue}
-                  precision={2}
-                  prefix="₹"
-                  valueStyle={{
-                    color: '#52c41a',
-                    fontSize: '25px',
-                    fontWeight: 700
-                  }}
-                />
-                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
-                  <Text style={{ color: '#8c8c8c', fontSize: '12px' }}>
-                    <span style={{ color: '#52c41a', fontSize: "16px" }}>₹ </span>Total earnings
-                  </Text>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} md={12}>
-              <Card
-                style={{
-                  borderRadius: '12px',
-                  border: '2px dashed #b7eb8f',
-                  boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
-                  background: 'white',
-                  height: '140px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center'
-                }}
-                bodyStyle={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}
-              >
-                <Statistic
-                  title={<span style={{ color: '#8c8c8c', fontSize: '14px' }}>Average Order</span>}
-                  value={averageOrderValue}
-                  precision={2}
-                  prefix="₹"
-                  valueStyle={{
-                    color: '#52c41a',
-                    fontSize: '25px',
-                    fontWeight: 700
-                  }}
-                />
-                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
-                  <CreditCardOutlined style={{ marginRight: 4, fontSize: '16px', color: '#52c41a' }} />
-                  <Text style={{ color: '#8c8c8c', fontSize: '12px' }}>
-                    Per order value
-                  </Text>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} md={12}>
-              <Card
-                style={{
-                  borderRadius: '12px',
-                  border: '2px dashed #b7eb8f',
-                  boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
-                  background: 'white',
-                  height: '140px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center'
-                }}
-                bodyStyle={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}
-              >
-                <Statistic
-                  title={<span style={{ color: '#8c8c8c', fontSize: '14px' }}>Most Ordered Category</span>}
-                  value={mostOrderedCategory.name}
-                  valueStyle={{
-                    color: '#52c41a',
-                    fontSize: '20px',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}
-                />
-                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center' }}>
-                  <UnorderedListOutlined style={{ marginRight: 4, fontSize: '16px', color: '#52c41a' }} />
-                  <Text style={{ color: '#8c8c8c', fontSize: '12px' }}>
-                    {mostOrderedCategory.count} items ordered
-                  </Text>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card
-            style={{
-              borderRadius: '12px',
-              border: '2px dashed #b7eb8f',
-              boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
-              background: 'white',
-              minHeight: '296px'
-            }}
-          >
-            <Title level={4} style={{ marginBottom: '20px', color: '#52c41a' }}>
-              <UnorderedListOutlined /> Order Status Summary
-            </Title>
+      {/* Product Details Modal (Dialog) */}
+      <Dialog
+        header={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#22c55e' }}>
+            <i className="pi pi-shopping-cart" />
+            <span>Order Product Items</span>
+          </div>
+        }
+        visible={detailsVisible}
+        style={{ width: '50vw' }}
+        onHide={() => setDetailsVisible(false)}
+      >
+        {selectedOrder && (
+          <div>
+            <div style={styles.dialogSectionTitle}>Customer Information</div>
+            <div style={styles.infoGrid}>
+              <div><strong>Name:</strong> {selectedOrder.user?.name || 'N/A'}</div>
+              <div><strong>Email:</strong> {selectedOrder.user?.email || 'N/A'}</div>
+              <div><strong>Order Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</div>
+              <div><strong>Status:</strong> {getStatusTag(selectedOrder.deliveryStatus)}</div>
+            </div>
 
-            {orderStatusData.length > 0 ? (
-              <>
-                <div className="mobile-orders" style={{ display: 'block' }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginBottom: '20px'
-                  }}>
-                    <div style={{
-                      width: '100%',
-                      maxWidth: '280px',
-                      aspectRatio: '1',
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center'
-                    }}>
-                      {createResponsivePieChart()}
+            <div style={{ ...styles.dialogSectionTitle, marginTop: '1.5rem' }}>Product Items</div>
+            <div style={styles.itemList}>
+              {selectedOrder.items?.map((item, idx) => (
+                <div key={idx} style={styles.itemCard}>
+                  <img src={item.image} alt={item.name} style={styles.itemImg} onError={(e)=>{(e.target as any).src='https://primefaces.org/cdn/primereact/images/logo.png'}} />
+                  <div style={{ flex: 1 }}>
+                    <div style={styles.itemName}>{item.name}</div>
+                    <div style={styles.itemMeta}>Quantity: {item.quantity}</div>
+                    <div style={styles.itemMeta}>
+                      <span style={{ textDecoration: 'line-through', marginRight: '6px' }}>₹{item.original_price ?? 0}</span>
+                      <strong style={{ color: '#22c55e' }}>₹{(item.discount_price ?? item.original_price) ?? 0}</strong>
                     </div>
                   </div>
-
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                  }}>
-                    {orderStatusData.map((item) => (
-                      <div
-                        key={`status-${item.type}`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          padding: '8px 12px',
-                          borderRadius: '6px',
-                          background: '#f9f9f9',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          border: '1px solid #e6f7ff',
-                          minHeight: '40px'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#e6f7ff';
-                          e.currentTarget.style.transform = 'translateX(5px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#f9f9f9';
-                          e.currentTarget.style.transform = 'translateX(0px)';
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '12px',
-                            height: '12px',
-                            backgroundColor: statusColors[item.type],
-                            borderRadius: '50%',
-                            marginRight: '12px',
-                            border: '2px solid white',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                            flexShrink: 0
-                          }}
-                        />
-                        <Text strong style={{ color: '#262626', fontSize: '14px', flex: 1 }}>
-                          {item.type}
-                        </Text>
-                        <Text style={{ color: '#52c41a', fontSize: '14px', fontWeight: 'bold' }}>
-                          {item.value}
-                        </Text>
-                      </div>
-                    ))}
-                  </div>
+                  <div style={styles.itemTotal}>₹{(((item.discount_price ?? item.original_price) ?? 0) * item.quantity).toFixed(2)}</div>
                 </div>
+              ))}
+            </div>
 
-                <div className="desktop-orders" style={{ display: 'none' }}>
-                  <Row gutter={[24, 24]}>
-                    <Col span={10}>
-                      <div style={{
-                        height: '200px',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}>
-                        {createResponsivePieChart()}
-                      </div>
-                    </Col>
-                    <Col span={14}>
-                      <div style={{
-                        padding: '10px 0',
-                        height: '200px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center'
-                      }}>
-                        {orderStatusData.map((item) => (
-                          <div
-                            key={`status-${item.type}`}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '6px 12px',
-                              marginBottom: '4px',
-                              borderRadius: '6px',
-                              background: '#f9f9f9',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease',
-                              border: '1px solid #e6f7ff'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = '#e6f7ff';
-                              e.currentTarget.style.transform = 'translateX(5px)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = '#f9f9f9';
-                              e.currentTarget.style.transform = 'translateX(0px)';
-                            }}
-                          >
-                            <div
-                              style={{
-                                width: '12px',
-                                height: '12px',
-                                backgroundColor: statusColors[item.type],
-                                borderRadius: '50%',
-                                marginRight: '12px',
-                                border: '2px solid white',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                flexShrink: 0
-                              }}
-                            />
-                            <Text strong style={{ color: '#262626', fontSize: '14px', flex: 1 }}>
-                              {item.type}
-                            </Text>
-                            <Text style={{ color: '#52c41a', fontSize: '14px', fontWeight: 'bold' }}>
-                              {item.value}
-                            </Text>
-                          </div>
-                        ))}
-                      </div>
-                    </Col>
-                  </Row>
-                </div>
-              </>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                color: '#8c8c8c',
-                padding: '40px 20px',
-                minHeight: '200px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                <UnorderedListOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
-                <Text>No order status data available</Text>
-              </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
+            <div style={styles.dialogFooterLine}>
+              <span>Total Amount:</span>
+              <strong style={{ color: '#22c55e', fontSize: '1.4rem' }}>₹{selectedOrder.totalAmount.toFixed(2)}</strong>
+            </div>
+          </div>
+        )}
+      </Dialog>
 
-      <Card
-        title={
-          <Flex justify='space-between' align='center' wrap gap={10}>
-            <Space>
-              <UnorderedListOutlined style={{ color: '#52c41a' }} />
-              <span style={{ color: '#52c41a', fontWeight: 'bold' }}>Order Management</span>
-            </Space>
-            <Tag
-              icon={<DownloadOutlined />}
-              onClick={handleDownloadPDF}
-              color='green'
-              style={{
-                cursor: 'pointer',
-                padding: "5px 10px",
-                fontSize: "15px"
-              }}
-            >
-              Download Order Report
-            </Tag>
-          </Flex>
+      {/* Shipping Address Modal (Dialog) */}
+      <Dialog
+        header={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#22c55e' }}>
+            <i className="pi pi-map-marker" />
+            <span>Delivery Destination Address</span>
+          </div>
         }
-        style={{
-          borderRadius: '12px',
-          border: '2px dashed #b7eb8f',
-          boxShadow: '0 4px 12px rgba(183, 235, 143, 0.2)',
-          background: 'white'
-        }}
+        visible={addressVisible}
+        style={{ width: '40vw' }}
+        onHide={() => setAddressVisible(false)}
       >
-        {orders.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '60px 20px',
-            background: '#f6ffed',
-            borderRadius: '12px',
-            border: '1px dashed #d9f7be'
-          }}>
-            <InfoCircleOutlined style={{ fontSize: '64px', color: '#52c41a', marginBottom: '16px' }} />
-            <Title level={4} style={{ color: '#52c41a', margin: 0 }}>No orders found</Title>
-            <Text style={{ color: '#8c8c8c' }}>Orders will appear here once customers start placing orders</Text>
+        {selectedOrder && selectedOrder.shippingAddress ? (
+          <div style={styles.addressBox}>
+            <div style={styles.addressLine}><strong>Full Name:</strong> {selectedOrder.shippingAddress.fullName}</div>
+            <div style={styles.addressLine}><strong>Phone Number:</strong> {selectedOrder.shippingAddress.phone}</div>
+            <div style={styles.addressLine}><strong>Address:</strong> {selectedOrder.shippingAddress.addressLine1} {selectedOrder.shippingAddress.addressLine2 ? `, ${selectedOrder.shippingAddress.addressLine2}` : ''}</div>
+            <div style={styles.addressLine}><strong>City / State:</strong> {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}</div>
+            <div style={styles.addressLine}><strong>Postal Code / Country:</strong> {selectedOrder.shippingAddress.postalCode}, {selectedOrder.shippingAddress.country}</div>
           </div>
         ) : (
-          <Table
-            columns={columns}
-            dataSource={sortedOrders}
-            rowKey="_id"
-            scroll={{ x: '1000' }}
-            pagination={{
-              pageSize: 10,
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} orders`,
-            }}
-            loading={statusUpdateLoading !== null}
-            rowClassName={(_, index) =>
-              index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
-            }
-          />
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+            <i className="pi pi-info-circle" style={{ fontSize: '2rem', marginBottom: '0.5rem' }} />
+            <div>No delivery shipping address is specified for this order.</div>
+          </div>
         )}
-      </Card>
-
-      <ProductDetailsModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        order={selectedOrder}
-      />
-
-      <ShippingAddressModal
-        visible={addressModalVisible}
-        onClose={() => setAddressModalVisible(false)}
-        order={selectedOrder}
-      />
-
-      <style>{`
-        .table-row-light {
-          background-color: #fafafa;
-        }
-        .table-row-dark {
-          background-color: #ffffff;
-        }
-        .table-row-light:hover,
-        .table-row-dark:hover {
-          background-color: #f6ffed !important;
-        }
-        
-        @media (max-width: 991px) {
-          .desktop-orders {
-            display: none !important;
-          }
-          .mobile-orders {
-            display: block !important;
-          }
-        }
-        
-        @media (min-width: 992px) {
-          .mobile-orders {
-            display: none !important;
-          }
-          .desktop-orders {
-            display: block !important;
-          }
-        }
-      `}</style>
+      </Dialog>
     </div>
   );
+};
+
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '1.5rem',
+  },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    flexWrap: 'wrap' as const,
+    gap: '1rem',
+  },
+  title: {
+    fontSize: '1.6rem',
+    fontWeight: 800,
+    color: '#0f172a',
+    margin: 0,
+  },
+  sub: {
+    fontSize: '0.88rem',
+    color: '#64748b',
+    margin: '0.2rem 0 0 0',
+  },
+  pdfBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    backgroundColor: '#ef4444',
+    color: '#ffffff',
+    border: 'none',
+    padding: '0.65rem 1.25rem',
+    borderRadius: '12px',
+    fontSize: '0.88rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
+    transition: 'all 0.2s ease',
+  },
+  tablePanel: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)',
+  },
+  dialogSectionTitle: {
+    fontWeight: 700,
+    color: '#0f172a',
+    fontSize: '1rem',
+    borderBottom: '2px solid #f1f5f9',
+    paddingBottom: '0.45rem',
+    marginBottom: '0.85rem',
+  },
+  infoGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '0.75rem',
+    fontSize: '0.88rem',
+    color: '#334155',
+  },
+  itemList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+    maxHeight: '260px',
+    overflowY: 'auto' as const,
+    paddingRight: '5px',
+  },
+  itemCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '0.65rem',
+    borderRadius: '8px',
+    border: '1px solid #f1f5f9',
+    backgroundColor: '#f8fafc',
+  },
+  itemImg: {
+    width: '50px',
+    height: '50px',
+    borderRadius: '6px',
+    objectFit: 'cover' as const,
+  },
+  itemName: {
+    fontWeight: 600,
+    color: '#0f172a',
+    fontSize: '0.88rem',
+  },
+  itemMeta: {
+    fontSize: '0.78rem',
+    color: '#64748b',
+    marginTop: '0.15rem',
+  },
+  itemTotal: {
+    fontWeight: 700,
+    color: '#0f172a',
+    fontSize: '0.92rem',
+  },
+  dialogFooterLine: {
+    marginTop: '1.5rem',
+    borderTop: '2px solid #f1f5f9',
+    paddingTop: '1rem',
+    display: 'flex',
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    fontWeight: 700,
+    fontSize: '1.1rem',
+    color: '#0f172a',
+  },
+  addressBox: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+    padding: '1rem',
+    borderRadius: '12px',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    fontSize: '0.92rem',
+    color: '#334155',
+  },
+  addressLine: {
+    lineHeight: '1.5',
+  },
 };
 
 export default OrderManagement;

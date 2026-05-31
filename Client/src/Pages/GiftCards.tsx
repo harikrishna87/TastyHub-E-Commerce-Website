@@ -1,476 +1,558 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Breadcrumb,
-  Typography,
-  Row,
-  Col,
-  Space,
-  Divider,
-  Alert,
-  Tag,
-  Timeline,
-  Spin,
-  Button,
-  Steps,
-  message
-} from 'antd';
-import {
-  HomeOutlined,
-  GiftOutlined,
-  InfoCircleOutlined,
-  CreditCardOutlined,
-  DollarOutlined,
-  ShoppingCartOutlined,
-  SyncOutlined,
-  PhoneOutlined,
-  MailOutlined,
-  EnvironmentOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  SafetyCertificateOutlined,
-  TeamOutlined,
-  HeartOutlined,
-  StarOutlined,
-  CalendarOutlined
-} from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
+import axios from 'axios';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Tag } from 'primereact/tag';
+import { Toast } from 'primereact/toast';
+import { Dialog } from 'primereact/dialog';
+import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-const { Title, Paragraph, Text } = Typography;
+interface IGiftCard {
+  _id: string;
+  code: string;
+  originalValue: number;
+  balance: number;
+  recipientEmail?: string;
+  expiryDate: string;
+  isActive: boolean;
+  createdAt: string;
+}
 
 const GiftCards: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [messageApi, contextHolder] = message.useMessage();
+  const auth = useContext(AuthContext);
+  const navigate = useNavigate();
+  const toast = useRef<Toast>(null);
 
+  const [myGiftCards, setMyGiftCards] = useState<IGiftCard[]>([]);
+  const [loadingCards, setLoadingCards] = useState<boolean>(true);
+  const [purchasing, setPurchasing] = useState<boolean>(false);
+  const [redeeming, setRedeeming] = useState<boolean>(false);
+
+  // Buy Gift Card fields
+  const [selectedPresetAmount, setSelectedPresetAmount] = useState<number>(1000);
+  const [customAmount, setCustomAmount] = useState<string>('');
+  const [recipientEmail, setRecipientEmail] = useState<string>('');
+
+  // Redeem Card dialog state
+  const [redeemModalOpen, setRedeemModalOpen] = useState<boolean>(false);
+  const [redeemCode, setRedeemCode] = useState<string>('');
+
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  // Load Razorpay Script on mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+    if (!auth?.isAuthenticated) {
+      navigate('/');
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, []);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
 
-  const shownotification = () => {
-    messageApi.info({
-      content: "This Feature will be added in UpComing Update",
-      duration: 3,
-      style: {
-        marginTop: '10vh',
-      },
+    fetchMyGiftCards();
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [auth?.isAuthenticated]);
+
+  // Fetch My Gift Cards
+  const fetchMyGiftCards = useCallback(async () => {
+    if (!auth?.token) {
+      setLoadingCards(false);
+      return;
+    }
+
+    try {
+      setLoadingCards(true);
+      const config = {
+        headers: { Authorization: `Bearer ${auth.token}` },
+        withCredentials: true,
+      };
+      const res = await axios.get(`${backendUrl}/api/promo/giftcards/my`, config);
+      if (res.data.success) {
+        setMyGiftCards(res.data.giftCards || []);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || 'Failed to load gift cards history'
+      });
+    } finally {
+      setLoadingCards(false);
+    }
+  }, [auth?.token, backendUrl]);
+
+  // Get active purchase amount
+  const getPurchaseAmount = () => {
+    if (customAmount) {
+      const parsed = parseFloat(customAmount);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return selectedPresetAmount;
+  };
+
+  // Buy Gift Card using Razorpay payment
+  const handlePurchaseGiftCard = async () => {
+    const amount = getPurchaseAmount();
+    if (amount <= 0) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Invalid Amount',
+        detail: 'Please select or enter a valid gift card purchase amount'
+      });
+      return;
+    }
+
+    try {
+      setPurchasing(true);
+
+      // 1. Fetch Razorpay API key
+      const keyRes = await axios.get<{ key: string }>(`${backendUrl}/razorpay/getkey`);
+      const razorpayKey = keyRes.data.key;
+
+      // 2. Initialize payment process on backend to get Razorpay order object
+      const processRes = await axios.post(
+        `${backendUrl}/razorpay/payment/process`,
+        { amount },
+        { withCredentials: true }
+      );
+
+      if (!processRes.data.success) {
+        throw new Error('Razorpay order process failed');
+      }
+
+      const rzpOrder = processRes.data.order;
+
+      // 3. Configure Razorpay checkout options
+      const options = {
+        key: razorpayKey,
+        amount: rzpOrder.amount,
+        currency: 'INR',
+        name: 'TastyHub Gift Cards',
+        description: `Purchase ₹${amount} Gift Card`,
+        order_id: rzpOrder.id,
+        prefill: {
+          name: auth?.user?.name || '',
+          email: auth?.user?.email || '',
+        },
+        theme: { color: '#15803d' },
+        handler: async function (response: any) {
+          if (response.razorpay_payment_id) {
+            try {
+              // 4. Hit Promo giftcard creation endpoint after successful payment validation
+              const res = await axios.post(
+                `${backendUrl}/api/promo/giftcards`,
+                {
+                  amount,
+                  recipientEmail: recipientEmail || undefined,
+                  paymentId: response.razorpay_payment_id
+                },
+                {
+                  headers: { Authorization: `Bearer ${auth?.token}` },
+                  withCredentials: true
+                }
+              );
+
+              if (res.data.success) {
+                toast.current?.show({
+                  severity: 'success',
+                  summary: 'Success',
+                  detail: res.data.message || 'Gift card purchased successfully!'
+                });
+                
+                // Reset form fields
+                setCustomAmount('');
+                setRecipientEmail('');
+                
+                // Refresh list
+                fetchMyGiftCards();
+              }
+            } catch (err: any) {
+              console.error(err);
+              toast.current?.show({
+                severity: 'error',
+                summary: 'Activation Error',
+                detail: err.response?.data?.message || 'Failed to record purchased gift card'
+              });
+            }
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setPurchasing(false);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      console.error(err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Payment Error',
+        detail: err.response?.data?.message || 'Razorpay checkout initialization failed'
+      });
+      setPurchasing(false);
+    }
+  };
+
+  // Redeem Gift Card
+  const handleRedeemGiftCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!redeemCode.trim()) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Required',
+        detail: 'Please enter a Gift Card code'
+      });
+      return;
+    }
+
+    try {
+      setRedeeming(true);
+      const config = {
+        headers: { Authorization: `Bearer ${auth?.token}` },
+        withCredentials: true,
+      };
+      const res = await axios.post(`${backendUrl}/api/promo/giftcards/redeem`, {
+        code: redeemCode.trim()
+      }, config);
+
+      if (res.data.success) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Redeemed',
+          detail: res.data.message || 'Wallet balance updated successfully!'
+        });
+        
+        // Update user context wallet balance if supported
+        if (auth?.login && auth.user && auth.token && res.data.walletBalance !== undefined) {
+          auth.login({ ...auth.user, walletBalance: res.data.walletBalance } as any, auth.token);
+        }
+
+        setRedeemModalOpen(false);
+        setRedeemCode('');
+        fetchMyGiftCards();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Failed',
+        detail: err.response?.data?.message || 'Invalid or expired Gift Card code'
+      });
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  // Helper copy code
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.current?.show({
+      severity: 'info',
+      summary: 'Copied',
+      detail: 'Gift Card code copied to clipboard'
     });
-  }
+  };
 
-  const giftCardValues = [
-    { value: '$25', color: '#52c41a', description: 'Perfect for appetizers' },
-    { value: '$50', color: '#1890ff', description: 'Great for main courses' },
-    { value: '$100', color: '#fa8c16', description: 'Complete dining experience' },
-    { value: '$200', color: '#eb2f96', description: 'Special celebrations' }
-  ];
-
-  const features = [
-    { icon: <CalendarOutlined />, text: 'No expiration date', color: '#52c41a' },
-    { icon: <DollarOutlined />, text: 'No additional fees', color: '#1890ff' },
-    { icon: <SyncOutlined />, text: 'Transferable to others', color: '#fa8c16' },
-    { icon: <SafetyCertificateOutlined />, text: 'Secure and protected', color: '#eb2f96' },
-    { icon: <StarOutlined />, text: 'Perfect for any occasion', color: '#722ed1' },
-    { icon: <HeartOutlined />, text: 'Show you care', color: '#f5222d' }
-  ];
-
-  const occasions = [
-    { title: 'Birthdays', description: 'Celebrate another year of deliciousness' },
-    { title: 'Anniversaries', description: 'Mark special moments with great food' },
-    { title: 'Graduations', description: 'Reward achievements with tasty treats' },
-    { title: 'Holidays', description: 'Share the joy of good food' },
-    { title: 'Thank You', description: 'Express gratitude in a meaningful way' },
-    { title: 'Just Because', description: 'Surprise someone special' }
-  ];
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '75vh',
-        flexDirection: 'column',
-        backgroundColor: '#f5f5f5'
-      }}>
-        <Spin size="large" style={{ color: '#52c41a' }} />
-        <Paragraph style={{ marginTop: '16px', color: '#52c41a' }}>Loading Gift Cards...</Paragraph>
-      </div>
-    );
-  }
+  // Preset button styling helper
+  const presetButtonStyle = (amount: number) => ({
+    padding: '0.85rem 1.5rem',
+    borderRadius: '10px',
+    border: `2px solid ${selectedPresetAmount === amount && !customAmount ? '#15803d' : '#e5e7eb'}`,
+    backgroundColor: selectedPresetAmount === amount && !customAmount ? '#dcfce7' : '#ffffff',
+    color: selectedPresetAmount === amount && !customAmount ? '#15803d' : '#374151',
+    fontWeight: 700,
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    transition: 'all 0.2s ease',
+    flex: 1,
+    textAlign: 'center' as const
+  });
 
   return (
-    <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-      <Row justify="center">
-        <Col xs={24} sm={24} md={22} lg={20} xl={18}>
-          <div
-            style={{
-              marginBottom: '24px',
-              borderRadius: '12px'
+    <div style={{ padding: '0.25rem', fontFamily: 'Inter, sans-serif' }}>
+      <Toast ref={toast} className="custom-toast" />
+
+      {/* Header section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: 0 }}>
+            <i className="pi pi-gift" style={{ color: '#15803d', marginRight: '0.5rem' }}></i> TastyHub Gift Cards
+          </h2>
+          <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0.25rem 0 0 0' }}>
+            Buy dining credits for friends or redeem received gift cards into your wallet instantly.
+          </p>
+        </div>
+        <Button
+          label="Redeem Gift Card"
+          icon="pi pi-wallet"
+          severity="success"
+          onClick={() => setRedeemModalOpen(true)}
+          style={{ borderRadius: '8px', padding: '0.6rem 1.2rem', fontSize: '0.88rem', fontWeight: 600 }}
+        />
+      </div>
+
+      {/* Side-by-side purchase and promo settings */}
+      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'stretch', marginBottom: '2.5rem' }}>
+        
+        {/* Left Buy Gift Card configuration */}
+        <div style={{
+          flex: '1 1 450px',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e5e7eb',
+          padding: '2rem',
+          boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#111827', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
+              Purchase Gift Card
+            </h3>
+            
+            {/* Presets Grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#4b5563' }}>Select Denomination</label>
+              <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                <button type="button" onClick={() => { setSelectedPresetAmount(500); setCustomAmount(''); }} style={presetButtonStyle(500)}>₹500</button>
+                <button type="button" onClick={() => { setSelectedPresetAmount(1000); setCustomAmount(''); }} style={presetButtonStyle(1000)}>₹1,000</button>
+                <button type="button" onClick={() => { setSelectedPresetAmount(2000); setCustomAmount(''); }} style={presetButtonStyle(2000)}>₹2,000</button>
+                <button type="button" onClick={() => { setSelectedPresetAmount(5000); setCustomAmount(''); }} style={presetButtonStyle(5000)}>₹5,000</button>
+              </div>
+            </div>
+
+            {/* Custom Amount */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#4b5563' }}>Or Custom Amount (₹)</label>
+              <InputText
+                type="number"
+                value={customAmount}
+                onChange={(e) => setCustomAmount(e.target.value)}
+                placeholder="Enter custom value in Rupees"
+                style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.88rem' }}
+              />
+            </div>
+
+            {/* Optional Recipient Email */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#4b5563' }}>Recipient Email</label>
+                <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontWeight: 500 }}>Optional (Sends code directly)</span>
+              </div>
+              <InputText
+                type="email"
+                value={recipientEmail}
+                onChange={(e) => setRecipientEmail(e.target.value)}
+                placeholder="e.g. friend@example.com"
+                style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.88rem' }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '0.85rem 1rem', borderRadius: '10px', marginBottom: '1.25rem', border: '1px solid #f3f4f6' }}>
+              <span style={{ fontSize: '0.85rem', color: '#4b5563', fontWeight: 600 }}>Total Purchase Payable:</span>
+              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#15803d' }}>₹{getPurchaseAmount().toLocaleString()}</span>
+            </div>
+            
+            <Button
+              label={purchasing ? "Processing Secure Payment..." : "Buy Gift Card with Razorpay"}
+              icon="pi pi-credit-card"
+              severity="success"
+              loading={purchasing}
+              onClick={handlePurchaseGiftCard}
+              style={{ width: '100%', borderRadius: '8px', padding: '0.75rem', fontWeight: 700, fontSize: '0.92rem' }}
+            />
+          </div>
+        </div>
+
+        {/* Right Info Section / How it works */}
+        <div style={{
+          flex: '1 1 350px',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e5e7eb',
+          padding: '2rem',
+          boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
+        }}>
+          <div>
+            <h3 style={{ margin: '0 0 1.25rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#111827', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem' }}>
+              How it works
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <div style={{ backgroundColor: '#dcfce7', color: '#15803d', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem', flexShrink: 0 }}>1</div>
+                <div>
+                  <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.9rem', fontWeight: 700, color: '#1f2937' }}>Choose Amount</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280', lineHeight: '1.4' }}>Select a preset credit value or input your own. Set a recipient email if buying as a surprise gift!</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <div style={{ backgroundColor: '#dcfce7', color: '#15803d', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem', flexShrink: 0 }}>2</div>
+                <div>
+                  <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.9rem', fontWeight: 700, color: '#1f2937' }}>Complete Secure Payment</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280', lineHeight: '1.4' }}>Razorpay processes standard Indian cards, UPI, Wallets, and NetBanking securely in one window.</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <div style={{ backgroundColor: '#dcfce7', color: '#15803d', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem', flexShrink: 0 }}>3</div>
+                <div>
+                  <h4 style={{ margin: '0 0 0.15rem 0', fontSize: '0.9rem', fontWeight: 700, color: '#1f2937' }}>Code Delivery</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280', lineHeight: '1.4' }}>The system creates a unique code starting with <code>GIFT-</code>. We send code receipt instructions to your inbox.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '0.85rem 1rem', marginTop: '1.5rem', color: '#15803d', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <i className="pi pi-info-circle" style={{ fontSize: '1rem' }}></i>
+            <span>All purchased gift cards carry a 1-year validity from their purchase timestamp.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Gift Card History table */}
+      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)', padding: '1.5rem', overflow: 'hidden' }}>
+        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', fontWeight: 700, color: '#1f2937' }}>
+          My Gift Cards History
+        </h3>
+
+        <DataTable
+          value={myGiftCards}
+          loading={loadingCards}
+          paginator
+          rows={5}
+          responsiveLayout="scroll"
+          style={{ fontSize: '0.88rem' }}
+          emptyMessage={() => (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
+              <i className="pi pi-gift" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#374151' }}>No gift cards found</div>
+              <div style={{ fontSize: '0.82rem', color: '#9ca3af', marginTop: '0.25rem' }}>You haven't purchased or received any gift cards yet.</div>
+            </div>
+          )}
+        >
+          <Column
+            header="GIFT CARD CODE"
+            body={(rowData: IGiftCard) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <code style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#111827' }}>{rowData.code}</code>
+                <Button
+                  icon="pi pi-copy"
+                  className="p-button-text p-button-success p-button-sm"
+                  onClick={() => handleCopyCode(rowData.code)}
+                  style={{ padding: '0.25rem', width: '1.5rem', height: '1.5rem' }}
+                  tooltip="Copy Code"
+                />
+              </div>
+            )}
+            style={{ fontWeight: 'bold' }}
+          />
+          <Column
+            header="ORIGINAL VALUE"
+            body={(rowData: IGiftCard) => <span>₹{rowData.originalValue.toFixed(2)}</span>}
+          />
+          <Column
+            header="REMAINING BALANCE"
+            body={(rowData: IGiftCard) => <span style={{ fontWeight: 700, color: '#15803d' }}>₹{rowData.balance.toFixed(2)}</span>}
+          />
+          <Column
+            header="RECIPIENT EMAIL"
+            body={(rowData: IGiftCard) => <span>{rowData.recipientEmail || 'Self (Bought for me)'}</span>}
+          />
+          <Column
+            header="EXPIRY"
+            body={(rowData: IGiftCard) => <span>{new Date(rowData.expiryDate).toLocaleDateString()}</span>}
+          />
+          <Column
+            header="STATUS"
+            body={(rowData: IGiftCard) => {
+              const isExpired = new Date() > new Date(rowData.expiryDate);
+              const isConsumed = rowData.balance <= 0;
+
+              let sev: 'success' | 'warning' | 'danger' = 'success';
+              let val = 'Active';
+
+              if (isConsumed) {
+                sev = 'danger';
+                val = 'Fully Consumed';
+              } else if (isExpired) {
+                sev = 'warning';
+                val = 'Expired';
+              }
+
+              return <Tag severity={sev} value={val} style={{ fontSize: '0.75rem' }} />;
             }}
-          >
-            <Breadcrumb
-              items={[
-                {
-                  title: (
-                    <Link to="/">
-                      <Space>
-                        <HomeOutlined />
-                        <span>Home</span>
-                      </Space>
-                    </Link>
-                  ),
-                },
-                {
-                  title: (
-                    <Space>
-                      <GiftOutlined />
-                      <span>Gift Cards</span>
-                    </Space>
-                  ),
-                },
-              ]}
+          />
+        </DataTable>
+      </div>
+
+      {/* Redeem Card Dialog Modal */}
+      <Dialog
+        visible={redeemModalOpen}
+        onHide={() => setRedeemModalOpen(false)}
+        header={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem', width: '100%' }}>
+            <i className="pi pi-wallet" style={{ color: '#15803d', fontSize: '1.2rem' }}></i>
+            <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1f2937' }}>Redeem Gift Card to Wallet</span>
+          </div>
+        }
+        style={{ width: '400px', maxWidth: '95vw', borderRadius: '12px' }}
+        modal
+      >
+        <form onSubmit={handleRedeemGiftCard} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4b5563' }}>Enter Gift Card Code *</label>
+            <InputText
+              value={redeemCode}
+              onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
+              required
+              style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.88rem' }}
+              placeholder="e.g. GIFT-XXXX-YYYY"
             />
           </div>
 
-          <div
-            style={{
-              borderRadius: '12px',
-              border: 'none',
-              overflow: 'hidden'
-            }}
-          >
-            <div
-              style={{
-                color: '#52c41a',
-                padding: '20px 0 30px 0',
-                textAlign: 'left'
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}
-              >
-                <GiftOutlined style={{ fontSize: '40px' }} />
-                <Title level={1} style={{ margin: 0, fontSize: '36px' }}>
-                  Gift Cards
-                </Title>
-              </div>
-
-              <Paragraph style={{ fontSize: '16px', marginBottom: 0, marginTop: '8px', color: '#8c8c8c', marginLeft: '52px' }}>
-                Share the gift of great food with your loved ones
-              </Paragraph>
-            </div>
-
-            <div style={{ padding: '0 8px' }}>
-              <Alert
-                message="Perfect Gift for Food Lovers"
-                description="TastyHub gift cards are the ideal way to treat someone special to an amazing dining experience. Available in multiple denominations and perfect for any occasion."
-                type="info"
-                icon={<InfoCircleOutlined />}
-                showIcon
-                style={{
-                  marginBottom: '32px',
-                  borderRadius: '16px',
-                  backgroundColor: '#f6ffed',
-                  border: '1px solid #b7eb8f'
-                }}
-              />
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <DollarOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      Available Denominations
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '24px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Row gutter={[16, 16]}>
-                  {giftCardValues.map((card, index) => (
-                    <Col xs={12} sm={6} key={index}>
-                      <div
-                        style={{
-                          textAlign: 'center',
-                          borderRadius: '16px',
-                          border: '1px solid #d9d9d9',
-                          padding: '16px 12px',
-                          borderTop: `4px solid ${card.color}`
-                        }}
-                      >
-                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                          <Text style={{ fontSize: '24px', fontWeight: 'bold', color: card.color }}>
-                            {card.value}
-                          </Text>
-                          <Text style={{ fontSize: '12px', color: '#595959', textAlign: 'center' }}>
-                            {card.description}
-                          </Text>
-                          <Button type="primary" size="small" style={{ fontSize: '12px' }}
-                            onClick={shownotification}
-                          >
-                            Buy Now
-                          </Button>
-                        </Space>
-                      </div>
-                    </Col>
-                  ))}
-                </Row>
-              </Card>
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <ShoppingCartOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      How to Use Your Gift Card
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '24px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Steps
-                  direction="vertical"
-                  size="small"
-                  current={4}
-                  items={[
-                    {
-                      title: 'Purchase Gift Card',
-                      description: 'Buy online or visit any TastyHub location',
-                      icon: <ShoppingCartOutlined />,
-                    },
-                    {
-                      title: 'Receive Your Card',
-                      description: 'Get your gift card code via email or physical card',
-                      icon: <MailOutlined />,
-                    },
-                    {
-                      title: 'Redeem at Checkout',
-                      description: 'Present your code when ordering online or in-store',
-                      icon: <CreditCardOutlined />,
-                    },
-                    {
-                      title: 'Enjoy Your Meal',
-                      description: 'Savor delicious food with your gift card',
-                      icon: <CheckCircleOutlined />,
-                    },
-                  ]}
-                />
-              </Card>
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <StarOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      Gift Card Features
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '24px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Row gutter={[16, 16]}>
-                  {features.map((feature, index) => (
-                    <Col xs={24} sm={12} key={index}>
-                      <div
-                        style={{
-                          height: '100%',
-                          borderRadius: '16px',
-                          border: '1px solid #d9d9d9',
-                          padding: '12px 16px',
-                          borderLeft: `4px solid ${feature.color}`
-                        }}
-                      >
-                        <Space align="start" size="middle">
-                          <div style={{
-                            backgroundColor: `${feature.color}15`,
-                            padding: '8px 12px',
-                            borderRadius: '50%',
-                            color: feature.color,
-                            fontSize: '16px'
-                          }}>
-                            {feature.icon}
-                          </div>
-                          <Text style={{ fontSize: '15px' }}>{feature.text}</Text>
-                        </Space>
-                      </div>
-                    </Col>
-                  ))}
-                </Row>
-              </Card>
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <HeartOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      Perfect for Every Occasion
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '24px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Row gutter={[16, 16]}>
-                  {occasions.map((occasion, index) => (
-                    <Col xs={24} sm={12} md={8} key={index}>
-                      <div
-                        style={{
-                          height: '100%',
-                          borderRadius: '16px',
-                          textAlign: 'center',
-                          border: '1px solid #d9d9d9',
-                          padding: '16px',
-                        }}
-                      >
-                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                          <Tag color="green" style={{ margin: 0, border: '1px dashed' }}>
-                            {occasion.title}
-                          </Tag>
-                          <Text style={{ fontSize: '14px', color: '#595959' }}>
-                            {occasion.description}
-                          </Text>
-                        </Space>
-                      </div>
-                    </Col>
-                  ))}
-                </Row>
-              </Card>
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <ClockCircleOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      Terms & Conditions
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '24px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Timeline
-                  items={[
-                    {
-                      dot: <CheckCircleOutlined style={{ fontSize: '16px' }} />,
-                      children: 'Gift cards never expire and have no maintenance fees',
-                      color: 'green',
-                    },
-                    {
-                      dot: <CreditCardOutlined style={{ fontSize: '16px' }} />,
-                      children: 'Can be used for online orders and in-store purchases',
-                      color: 'blue',
-                    },
-                    {
-                      dot: <SyncOutlined style={{ fontSize: '16px' }} />,
-                      children: 'Transferable and can be combined with other gift cards',
-                      color: 'orange',
-                    },
-                    {
-                      dot: <SafetyCertificateOutlined style={{ fontSize: '16px' }} />,
-                      children: 'Protected against unauthorized use when registered',
-                      color: 'green',
-                    },
-                  ]}
-                />
-              </Card>
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <PhoneOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      Need Help with Gift Cards?
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '32px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Paragraph style={{ fontSize: '16px', marginBottom: '20px' }}>
-                  Our customer service team is ready to help with any gift card questions:
-                </Paragraph>
-
-                <div
-                  style={{
-                    backgroundColor: '#fafafa',
-                    border: '1px solid #d9d9d9',
-                    borderRadius: '16px',
-                    padding: '30px'
-                  }}
-                >
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    <div>
-                      <Space>
-                        <TeamOutlined style={{ color: '#52c41a', fontSize: '18px' }} />
-                        <Text strong style={{ fontSize: '16px' }}>TastyHub Gift Card Support</Text>
-                      </Space>
-                    </div>
-
-                    <Divider style={{ margin: '12px 0' }} />
-
-                    <Row gutter={[24, 16]}>
-                      <Col xs={24} sm={12}>
-                        <Space>
-                          <EnvironmentOutlined style={{ color: '#1890ff' }} />
-                          <div style={{ paddingLeft: '8px' }}>
-                            <Text style={{ fontSize: '14px', color: '#595959' }}>Visit Us</Text>
-                            <br />
-                            <Text>Any TastyHub location</Text>
-                          </div>
-                        </Space>
-                      </Col>
-                      <Col xs={24} sm={12}>
-                        <Space>
-                          <MailOutlined style={{ color: '#52c41a' }} />
-                          <div style={{ paddingLeft: '8px' }}>
-                            <Text style={{ fontSize: '14px', color: '#595959' }}>Email</Text>
-                            <br />
-                            <Text copyable>giftcards@TastyHub.com</Text>
-                          </div>
-                        </Space>
-                      </Col>
-                      <Col xs={24} sm={12}>
-                        <Space >
-                          <PhoneOutlined style={{ color: '#fa8c16' }} />
-                          <div style={{ paddingLeft: '8px' }}>
-                            <Text style={{ fontSize: '14px', color: '#595959' }}>Phone</Text>
-                            <br />
-                            <Text copyable>(+91) 99887 76655</Text>
-                          </div>
-                        </Space>
-                      </Col>
-                    </Row>
-                  </Space>
-                </div>
-              </Card>
-
-              <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <Divider
-                  style={{borderColor:'#52c41a'}}
-                >
-                  <Space>
-                    <GiftOutlined style={{ color: '#8c8c8c' }} />
-                    <Text type="secondary" style={{ fontSize: '14px' }}>
-                      Give the gift of great food today!
-                    </Text>
-                  </Space>
-                </Divider>
-              </div>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Cancel"
+              severity="secondary"
+              outlined
+              onClick={() => setRedeemModalOpen(false)}
+              style={{ borderRadius: '8px', fontSize: '0.82rem', padding: '0.5rem 1rem' }}
+            />
+            <Button
+              type="submit"
+              label="Redeem Now"
+              severity="success"
+              loading={redeeming}
+              style={{ borderRadius: '8px', fontSize: '0.82rem', padding: '0.5rem 1rem' }}
+            />
           </div>
-        </Col>
-      </Row>
-      {contextHolder}
+        </form>
+      </Dialog>
+
     </div>
   );
 };

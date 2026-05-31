@@ -30,8 +30,29 @@ const UserSchema: Schema = new Schema<IUser>({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin', 'delivery_executive'],
     default: 'user',
+  },
+  deliveryStatus: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending',
+  },
+  isAvailable: {
+    type: Boolean,
+    default: true,
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
+  walletBalance: {
+    type: Number,
+    default: 0,
+  },
+  accessedCoupons: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' }],
+    default: [],
   },
   googleId: {
     type: String,

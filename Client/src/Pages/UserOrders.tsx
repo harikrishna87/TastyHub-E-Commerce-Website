@@ -10,15 +10,21 @@ import html2canvas from 'html2canvas';
 const { Title, Text } = Typography;
 
 interface OrderStatusTrackerProps {
-  currentStatus: 'Pending' | 'Shipped' | 'Delivered';
+  currentStatus: OrderDeliveryStatus;
 }
 
 const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }) => {
   const getStatusIndex = (status: string) => {
     switch (status) {
       case 'Pending': return 0;
-      case 'Shipped': return 1;
-      case 'Delivered': return 2;
+      case 'Accepted':
+      case 'Preparing':
+      case 'Pickup':
+      case 'Out for Delivery':
+      case 'Shipped':
+        return 1;
+      case 'Delivered':
+        return 2;
       default: return 0;
     }
   };
@@ -512,7 +518,7 @@ const UserOrders: React.FC = () => {
           boxShadow: '0 4px 16px rgba(183, 235, 143, 0.2)',
           background: 'white'
         }}
-        bodyStyle={{ padding: '24px' }}
+        styles={{ body: { padding: '24px' } }}
       >
         {orders.length === 0 ? (
           <div style={{ 

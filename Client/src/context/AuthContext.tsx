@@ -88,6 +88,28 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loadUserFromStorage();
   }, [loadUserFromStorage]);
 
+  // Sync profile details silently on mount to refresh stale data (e.g. uploaded avatars)
+  useEffect(() => {
+    const syncLatestProfile = async () => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken && isAuthenticated) {
+        try {
+          const res = await axios.get(`${backendUrl}/api/auth/getme`, {
+            headers: { Authorization: `Bearer ${storedToken}` },
+            withCredentials: true
+          });
+          if (res.data.success) {
+            setUser(res.data.user);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+          }
+        } catch (err) {
+          console.error('AuthContext: silent profile sync failed:', err);
+        }
+      }
+    };
+    syncLatestProfile();
+  }, [isAuthenticated, backendUrl]);
+
   const value = {
     isAuthenticated,
     user,

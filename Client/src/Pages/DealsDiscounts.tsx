@@ -1,495 +1,351 @@
-import { useState, useEffect } from 'react';
-import {
-  Card,
-  Breadcrumb,
-  Typography,
-  Row,
-  Col,
-  Space,
-  Alert,
-  Tag,
-  Spin,
-  Button,
-  Progress,
-  Statistic,
-  message
-} from 'antd';
-import {
-  HomeOutlined,
-  FireOutlined,
-  PercentageOutlined,
-  ShoppingCartOutlined,
-  TagOutlined,
-  TrophyOutlined,
-  ThunderboltOutlined,
-  CrownOutlined,
-  CopyOutlined
-} from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { Card } from 'primereact/card';
+import { Button } from 'primereact/button';
+import { Toast } from 'primereact/toast';
+import { Tag } from 'primereact/tag';
+import { AuthContext } from '../context/AuthContext';
 
-const { Title, Paragraph, Text } = Typography;
+interface Coupon {
+  _id: string;
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderAmount: number;
+  expiryDate: string;
+}
 
-const DealsDiscounts = () => {
-  const [loading, setLoading] = useState(true);
-  const [messageApi, contextHolder] = message.useMessage();
+interface Product {
+  _id: string;
+  title: string;
+  price: number;
+  image: string;
+  category: string;
+  discountPercentage?: number;
+  discountPrice?: number;
+}
+
+export default function DealsDiscounts() {
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [discountedProducts, setDiscountedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const toastRef = useRef<Toast>(null);
+  
+  const auth = useContext(AuthContext);
+  const navigate = useNavigate();
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  // Pre-configured backup coupons if the user is guest or announcements are empty
+  const defaultCoupons: Coupon[] = [
+    {
+      _id: 'default1',
+      code: 'FIRST20',
+      discountType: 'percentage',
+      discountValue: 20,
+      minOrderAmount: 500,
+      expiryDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString()
+    },
+    {
+      _id: 'default2',
+      code: 'WELCOME100',
+      discountType: 'fixed',
+      discountValue: 100,
+      minOrderAmount: 800,
+      expiryDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString()
+    },
+    {
+      _id: 'default3',
+      code: 'FEAST50',
+      discountType: 'fixed',
+      discountValue: 50,
+      minOrderAmount: 400,
+      expiryDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString()
+    }
+  ];
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // 1. Fetch active coupon announcements if authenticated
+      if (auth?.isAuthenticated) {
+        const token = auth.token || localStorage.getItem('token');
+        try {
+          const couponRes = await axios.get(`${backendUrl}/api/promo/coupons/announcements`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (couponRes.data.success) {
+            setCoupons(couponRes.data.announcements || []);
+          }
+        } catch (couponErr) {
+          console.warn('Failed to load active coupons:', couponErr);
+        }
+      }
+
+      // 2. Fetch all products to extract active catalog discounts
+      const productsRes = await axios.get(`${backendUrl}/api/products/getallproducts`);
+      if (productsRes.data.success) {
+        const allProducts: Product[] = productsRes.data.data || [];
+        // Filter products with active discounts
+        const itemsWithDiscount = allProducts.filter(p => p.discountPercentage && p.discountPercentage > 0);
+        setDiscountedProducts(itemsWithDiscount);
+      }
+    } catch (err) {
+      console.error('Failed to load deals page data:', err);
+      toastRef.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Failed to load dynamic discount data. Please refresh.',
+        life: 4000
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+    fetchData();
+  }, [auth?.isAuthenticated]);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  const shownotification = () => {
-    messageApi.info({
-      content: "This Feature will be added in UpComing Update",
-      duration: 3,
-      style: {
-        marginTop: '10vh',
-      },
+  const copyToClipboard = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toastRef.current?.show({
+      severity: 'success',
+      summary: 'Copied ✓',
+      detail: `Coupon code "${code}" copied to clipboard! Apply it at checkout.`,
+      life: 2500
     });
-  }
+  };
 
-  const navigate = useNavigate();
+  const handleShopNow = () => {
+    navigate('/menu-items');
+  };
 
-  const handlenavigatestore = () => {
-    navigate('/menu-items')
-  }
-
-  const flashDeals = [
-    {
-      id: 1,
-      name: 'Mega Pizza Combo',
-      originalPrice: 1299,
-      discountPrice: 799,
-      discount: 38,
-      timeLeft: Date.now() + 1000 * 60 * 60 * 2,
-      claimed: 59,
-      total: 100,
-      type: 'flash',
-      description: '2 Large Pizzas + 2 Fruit Juices + 1 Dessert'
-    },
-    {
-      id: 2,
-      name: 'Biryani Festival',
-      originalPrice: 899,
-      discountPrice: 599,
-      discount: 33,
-      timeLeft: Date.now() + 1000 * 60 * 60 * 4,
-      claimed: 104,
-      total: 150,
-      type: 'flash',
-      description: 'Premium Chicken Biryani with Raita & Pickle'
-    },
-    {
-      id: 3,
-      name: 'Mega IceCream Combo',
-      originalPrice: 1299,
-      discountPrice: 799,
-      discount: 38,
-      timeLeft: Date.now() + 1000 * 60 * 60 * 2,
-      claimed: 83,
-      total: 100,
-      type: 'flash',
-      description: '2 Large IceCreams + 1 Fruit Juices + 2 Desserts'
-    },
-    {
-      id: 4,
-      name: 'Veg Special',
-      originalPrice: 1299,
-      discountPrice: 799,
-      discount: 38,
-      timeLeft: Date.now() + 1000 * 60 * 60 * 2,
-      claimed: 75,
-      total: 100,
-      type: 'flash',
-      description: '1 Family Biryani + 1 Paneer Butter Masala + 1 Dessert + 1 IceCream'
-    }
-  ];
-
-  const couponCodes = [
-    {
-      code: 'FIRST20',
-      discount: 20,
-      minOrder: 500,
-      description: 'First Order Discount',
-      type: 'percentage',
-      validTill: '31 Dec 2025'
-    },
-    {
-      code: 'WELCOME50',
-      discount: 50,
-      minOrder: 1000,
-      description: 'Welcome Offer',
-      type: 'fixed',
-      validTill: '31 Jan 2026'
-    },
-    {
-      code: 'SAVE100',
-      discount: 100,
-      minOrder: 750,
-      description: 'Flat ₹100 Off',
-      type: 'fixed',
-      validTill: '30 Nov 2025'
-    },
-    {
-      code: 'FEAST25',
-      discount: 25,
-      minOrder: 1500,
-      description: 'Big Order Discount',
-      type: 'percentage',
-      validTill: '15 Dec 2025'
-    }
-  ];
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '75vh',
-        flexDirection: 'column',
-        backgroundColor: '#f5f5f5'
-      }}>
-        <Spin size="large" style={{ color: '#52c41a' }} />
-        <Paragraph style={{ marginTop: '16px', color: '#52c41a' }}>Loading Deals & Discounts...</Paragraph>
-      </div>
-    );
-  }
+  const activeCoupons = coupons.length > 0 ? coupons : defaultCoupons;
 
   return (
-    <div style={{ padding: '24px', backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-      {contextHolder}
-      <Row justify="center">
-        <Col xs={24} sm={24} md={22} lg={20} xl={18}>
-          <div
-            style={{
-              marginBottom: '24px',
-              borderRadius: '12px'
-            }}
-          >
-            <Breadcrumb
-              items={[
-                {
-                  title: (
-                    <Link to="/">
-                      <Space>
-                        <HomeOutlined />
-                        <span>Home</span>
-                      </Space>
-                    </Link>
-                  ),
-                },
-                {
-                  title: (
-                    <Space>
-                      <PercentageOutlined />
-                      <span>Deals & Discounts</span>
-                    </Space>
-                  ),
-                },
-              ]}
-            />
+    <div style={{
+      fontFamily: "'Inter', sans-serif",
+      color: '#1e293b',
+      background: '#f8fafc',
+      minHeight: '80vh',
+      padding: '2rem 1rem'
+    }}>
+      <Toast ref={toastRef} />
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* Breadcrumb */}
+        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', fontSize: '0.88rem', color: '#64748b', fontWeight: 600 }}>
+          <span style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>Home</span>
+          <span>/</span>
+          <span style={{ color: '#22c55e' }}>Deals & Discounts</span>
+        </div>
+
+        {/* Hero Section */}
+        <div style={{
+          background: 'linear-gradient(135deg, #fef08a 0%, #fde047 100%)',
+          borderRadius: '24px',
+          padding: '3rem 2rem',
+          textAlign: 'center',
+          marginBottom: '3rem',
+          border: '1px solid #fef08a',
+          boxShadow: '0 10px 30px rgba(234, 179, 8, 0.05)'
+        }}>
+          <span style={{
+            background: '#ca8a04',
+            color: '#ffffff',
+            padding: '0.4rem 1rem',
+            borderRadius: '50px',
+            fontSize: '0.8rem',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            display: 'inline-block',
+            marginBottom: '1rem'
+          }}>
+            🎉 Mega Offers Page
+          </span>
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#854d0e', margin: '0 0 1rem 0', letterSpacing: '-1px' }}>
+            Deals, Coupons & Catalog Discounts
+          </h1>
+          <p style={{ color: '#a16207', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto', lineHeight: 1.5, fontWeight: 500 }}>
+            Save big on your next meal! Check out active discount promo codes and dynamic catalog price cuts below.
+          </p>
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+            <i className="pi pi-spin pi-spinner" style={{ fontSize: '2.5rem', color: '#eab308' }} />
+            <p style={{ color: '#64748b', marginTop: '1rem', fontWeight: 600 }}>Fetching latest offers...</p>
           </div>
-
-          <div
-            style={{
-              borderRadius: '12px',
-              border: 'none',
-              overflow: 'hidden'
-            }}
-          >
-             <div
-              style={{
-                color: '#52c41a',
-                padding: '20px 0 30px 0',
-                textAlign: 'left'
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}
-              >
-                <PercentageOutlined style={{ fontSize: '40px' }} />
-                <Title level={1} style={{ margin: 0, fontSize: '36px' }}>
-                  Deals & Discounts
-                </Title>
-              </div>
-
-              <Paragraph style={{ fontSize: '16px', marginBottom: 0, marginTop: '8px', color: '#8c8c8c', marginLeft: '52px' }}>
-                Save big on your favorite meals with our amazing offers
-              </Paragraph>
-            </div>
-
-            <div style={{ padding: '0 8px' }}>
-              <Alert
-                message="Limited Time Offers!"
-                description="Don't miss out on these incredible deals. Save up to 50% on selected items. Hurry, offers are valid for a limited time only!"
-                type="warning"
-                icon={<FireOutlined />}
-                showIcon
-                style={{
-                  marginBottom: '32px',
-                  borderRadius: '16px',
-                  backgroundColor: '#fff7e6',
-                  border: '1px solid #ffd591'
-                }}
-              />
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <ThunderboltOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      Flash Deals
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '24px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Row gutter={[24, 24]}>
-                  {flashDeals.map((deal) => {
-                    const claimedPercentage = Math.round((deal.claimed / deal.total) * 100);
-                    const isSoldOut = claimedPercentage >= 100;
-                    
-                    return (
-                      <Col xs={24} md={12} key={deal.id}>
-                        <Card
-                          style={{
-                            borderRadius: '12px',
-                            border: `2px dashed ${isSoldOut ? '#d9d9d9' : '#52c41a'}`,
-                            background: isSoldOut 
-                              ? 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)'
-                              : 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)',
-                            opacity: isSoldOut ? 0.7 : 1
-                          }}
-                        >
-                          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Text strong style={{ fontSize: '18px' }}>{deal.name}</Text>
-                              {isSoldOut ? (
-                                <Tag color="red" style={{ fontSize: '12px' }}>
-                                  SOLD OUT
-                                </Tag>
-                              ) : (
-                                <Tag color="green" style={{ fontSize: '12px' }}>
-                                  <FireOutlined /> {deal.discount}% OFF
-                                </Tag>
-                              )}
-                            </div>
-
-                            <Text type="secondary">{deal.description}</Text>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Space>
-                                <Text strong style={{ fontSize: '20px', color: '#52c41a' }}>
-                                  ₹{deal.discountPrice}
-                                </Text>
-                                <Text delete type="secondary">₹{deal.originalPrice}</Text>
-                              </Space>
-                            </div>
-
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <Text style={{ fontSize: '14px' }}>Claimed: {deal.claimed}/{deal.total}</Text>
-                                <Text style={{ fontSize: '14px' }}>{claimedPercentage}%</Text>
-                              </div>
-                              <Progress
-                                percent={claimedPercentage}
-                                strokeColor={isSoldOut ? '#ff4d4f' : '#52c41a'}
-                                showInfo={false}
-                              />
-                            </div>
-
-                            {!isSoldOut && (
-                              <div style={{ textAlign: 'center' }}>
-                                <Text strong style={{ color: '#52c41a', fontSize: '14px' }}>Time Left:</Text>
-                                <div style={{ marginTop: '8px' }}>
-                                  <Statistic.Countdown
-                                    value={deal.timeLeft}
-                                    format="HH:mm:ss"
-                                    valueStyle={{ fontSize: '16px', color: '#52c41a' }}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            <Button
-                              type="primary"
-                              block
-                              size="large"
-                              disabled={isSoldOut}
-                              style={{
-                                backgroundColor: isSoldOut ? '#d9d9d9' : '#52c41a',
-                                borderColor: isSoldOut ? '#d9d9d9' : '#52c41a',
-                                borderRadius: '8px',
-                                cursor: isSoldOut ? 'not-allowed' : 'pointer'
-                              }}
-                              onClick={isSoldOut ? undefined : shownotification}
-                            >
-                              <Space>
-                                <ShoppingCartOutlined />
-                                {isSoldOut ? 'Sold Out' : 'Grab Deal Now'}
-                              </Space>
-                            </Button>
-                          </Space>
-                        </Card>
-                      </Col>
-                    );
-                  })}
-                </Row>
-              </Card>
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <TagOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      Coupon Codes
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '24px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Row gutter={[16, 16]}>
-                  {couponCodes.map((coupon, index) => (
-                    <Col xs={24} sm={12} key={index}>
-                      <Card
-                        size="small"
-                        style={{
-                          borderRadius: '8px',
-                          border: '2px dashed #52c41a',
-                          background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)'
-                        }}
-                      >
-                        <Row align="middle" justify="space-between">
-                          <Col flex="auto">
-                            <Space direction="vertical" size="small">
-                              <Space>
-                                <Text strong style={{ fontSize: '16px', color: '#52c41a' }}>
-                                  {coupon.code}
-                                </Text>
-                                <Tag color="green">
-                                  {coupon.type === 'percentage' ? `${coupon.discount}%` : `₹${coupon.discount}`} OFF
-                                </Tag>
-                              </Space>
-                              <Text style={{ fontSize: '14px' }}>{coupon.description}</Text>
-                              <Text type="secondary" style={{ fontSize: '12px' }}>
-                                Min order: ₹{coupon.minOrder} | Valid till: {coupon.validTill}
-                              </Text>
-                            </Space>
-                          </Col>
-                          <Col>
-                            <Button
-                              type="primary"
-                              size="small"
-                              style={{
-                                backgroundColor: '#52c41a',
-                                borderColor: '#52c41a'
-                              }}
-                              onClick={shownotification}
-                              icon={<CopyOutlined />}
-                            >
-                              Copy
-                            </Button>
-                          </Col>
-                        </Row>
-                      </Card>
-                    </Col>
-                  ))}
-                </Row>
-              </Card>
-
-              <Card
-                title={
-                  <Space size="middle">
-                    <CrownOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                    <Title level={3} style={{ margin: 0, color: '#52c41a' }}>
-                      Loyalty Rewards
-                    </Title>
-                  </Space>
-                }
-                style={{ marginBottom: '24px', borderRadius: '16px' }}
-                headStyle={{ backgroundColor: '#f6ffed', borderBottom: '1px solid #d9f7be' }}
-              >
-                <Row gutter={[24, 24]}>
-                  <Col xs={24} sm={8}>
-                    <Card style={{ textAlign: 'center', borderRadius: '16px', border: '2px dashed #52c41a', background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)'  }}>
-                      <Space direction="vertical" size="middle">
-                        <TrophyOutlined style={{ fontSize: '32px', color: '#fa8c16' }} />
-                        <Title level={4} style={{ color: '#fa8c16', margin: 0 }}>
-                          Bronze Member
-                        </Title>
-                        <Text>5% cashback on all orders</Text>
-                        <Text type="secondary">Spend ₹1000 to unlock</Text>
-                      </Space>
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Card style={{ textAlign: 'center', borderRadius: '16px', border: '2px dashed #52c41a', background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)'  }}>
-                      <Space direction="vertical" size="middle">
-                        <CrownOutlined style={{ fontSize: '32px', color: '#1890ff' }} />
-                        <Title level={4} style={{ color: '#1890ff', margin: 0 }}>
-                          Silver Member
-                        </Title>
-                        <Text>10% cashback + Free delivery</Text>
-                        <Text type="secondary">Spend ₹5000 to unlock</Text>
-                      </Space>
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={8}>
-                    <Card style={{ textAlign: 'center', borderRadius: '16px', border: '2px dashed #52c41a', background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)' }}>
-                      <Space direction="vertical" size="middle">
-                        <CrownOutlined style={{ fontSize: '32px', color: '#722ed1' }} />
-                        <Title level={4} style={{ color: '#722ed1', margin: 0 }}>
-                          Gold Member
-                        </Title>
-                        <Text>15% cashback + Priority support</Text>
-                        <Text type="secondary">Spend ₹10000 to unlock</Text>
-                      </Space>
-                    </Card>
-                  </Col>
-                </Row>
-              </Card>
-
-              <div style={{ textAlign: 'right', padding: '24px 0' }}>
-                <Space direction="vertical" size="large">
-                  <Button
-                    type="primary"
-                    size="large"
+        ) : (
+          <div>
+            {/* Active Coupon Codes Section */}
+            <div style={{ marginBottom: '4rem' }}>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '1.5rem', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🎟️ Active Coupon Codes
+              </h2>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '2rem'
+              }}>
+                {activeCoupons.map((coupon) => (
+                  <Card 
+                    key={coupon._id}
                     style={{
-                      backgroundColor: '#52c41a',
-                      borderColor: '#52c41a',
-                      borderRadius: '8px',
-                      padding: '0 40px',
-                      height: '48px',
-                      fontSize: '16px'
+                      borderRadius: '16px',
+                      border: '2px dashed #e2e8f0',
+                      background: '#ffffff',
+                      boxShadow: 'none',
+                      position: 'relative'
                     }}
-                    onClick={handlenavigatestore}
                   >
-                    <Space>
-                      <ShoppingCartOutlined />
-                      Start Shopping Now
-                    </Space>
-                  </Button>
-                  <Text type="secondary" style={{ fontSize: '14px' }}>
-                    New deals added every week. Stay tuned for more savings!
-                  </Text>
-                </Space>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <Tag 
+                        value={coupon.discountType === 'percentage' ? `${coupon.discountValue}% OFF` : `₹${coupon.discountValue} OFF`}
+                        severity="warning"
+                        style={{ fontSize: '0.8rem', fontWeight: 800, padding: '0.3rem 0.6rem', borderRadius: '6px' }}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                        Expires: {new Date(coupon.expiryDate).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#334155', margin: '0 0 0.5rem 0' }}>
+                      Min Order: ₹{coupon.minOrderAmount}
+                    </h3>
+                    <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                      {coupon.discountType === 'percentage' 
+                        ? `Save ${coupon.discountValue}% on orders worth ₹${coupon.minOrderAmount} and above.`
+                        : `Get flat ₹${coupon.discountValue} discount on your checkout worth ₹${coupon.minOrderAmount} and above.`}
+                    </p>
+
+                    <div style={{
+                      display: 'flex',
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.5rem 0.75rem'
+                    }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#0f172a', fontSize: '1.1rem' }}>
+                        {coupon.code}
+                      </span>
+                      <Button 
+                        icon="pi pi-copy" 
+                        className="p-button-rounded p-button-text p-button-sm"
+                        style={{ color: '#eab308' }}
+                        onClick={() => copyToClipboard(coupon.code)}
+                        tooltip="Copy Code"
+                      />
+                    </div>
+                  </Card>
+                ))}
               </div>
             </div>
+
+            {/* Catalog Discounts Section */}
+            <div>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '1.5rem', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🔥 Direct Catalog Price Cuts
+              </h2>
+
+              {discountedProducts.length === 0 ? (
+                <div style={{
+                  background: '#ffffff',
+                  borderRadius: '16px',
+                  padding: '3rem 2rem',
+                  textAlign: 'center',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <i className="pi pi-percentage" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#334155', margin: '0 0 0.25rem 0' }}>No Active Product Discounts</h3>
+                  <p style={{ color: '#64748b', maxWidth: '400px', margin: '0 auto', fontSize: '0.9rem' }}>
+                    All products are currently at standard competitive pricing. Stay tuned for dynamic weekend deals!
+                  </p>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                  gap: '2.5rem'
+                }}>
+                  {discountedProducts.map((prod) => (
+                    <Card
+                      key={prod._id}
+                      style={{
+                        borderRadius: '20px',
+                        border: '1px solid #e2e8f0',
+                        overflow: 'hidden',
+                        background: '#ffffff',
+                        boxShadow: 'none'
+                      }}
+                    >
+                      <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                        <img 
+                          src={prod.image} 
+                          alt={prod.title} 
+                          style={{
+                            width: '100%',
+                            height: '160px',
+                            objectFit: 'cover',
+                            borderRadius: '12px'
+                          }} 
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          backgroundColor: '#ef4444',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '6px'
+                        }}>
+                          {prod.discountPercentage}% OFF
+                        </div>
+                      </div>
+
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {prod.category}
+                      </span>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1e293b', margin: '0.25rem 0 0.75rem 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {prod.title}
+                      </h4>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                        <div>
+                          <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ef4444' }}>
+                            ₹{(prod.discountPrice ?? prod.price).toFixed(2)}
+                          </span>
+                          <span style={{ fontSize: '0.85rem', color: '#94a3b8', textDecoration: 'line-through', marginLeft: '0.5rem' }}>
+                            ₹{prod.price.toFixed(2)}
+                          </span>
+                        </div>
+                        <Button 
+                          label="Shop Now" 
+                          icon="pi pi-shopping-cart"
+                          className="p-button-sm p-button-outlined p-button-success" 
+                          style={{ borderRadius: '8px', fontWeight: 700 }}
+                          onClick={handleShopNow}
+                        />
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
-        </Col>
-      </Row>
+        )}
+      </div>
     </div>
   );
-};
-
-export default DealsDiscounts;
+}

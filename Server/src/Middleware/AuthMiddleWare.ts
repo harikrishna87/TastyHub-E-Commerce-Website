@@ -29,6 +29,11 @@ const protect = async (req: Request, res: Response, next: NextFunction): Promise
       return;
     }
 
+    if (req.user.isActive === false) {
+      res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+      return;
+    }
+
     next();
   } catch (error) {
     console.error(error);

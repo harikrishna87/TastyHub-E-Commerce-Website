@@ -462,7 +462,7 @@ const NewArrivals = () => {
                 width={800}
                 closeIcon={<CloseOutlined style={{ color: '#52c41a' }} />}
                 style={{ maxHeight: 'none', top: 50 }}
-                bodyStyle={{ maxHeight: 'none', overflow: 'visible' }}
+                styles={{ body: { maxHeight: 'none', overflow: 'visible' } }}
             >
                 {selectedProduct && !loadingProductDetails ? (
                     <div style={{ overflow: 'visible' }}>

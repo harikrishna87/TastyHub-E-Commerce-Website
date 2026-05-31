@@ -3,8 +3,9 @@ export interface IUser {
   name?: string;
   image?: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'delivery_executive';
   googleId?: string;
+  isAvailable?: boolean;
 }
 
 export interface AuthContextType {
@@ -43,7 +44,7 @@ export interface ICartItem {
   description?: string;
 }
 
-export type OrderDeliveryStatus = 'Pending' | 'Shipped' | 'Delivered';
+export type OrderDeliveryStatus = 'Pending' | 'Accepted' | 'Preparing' | 'Pickup' | 'Out for Delivery' | 'Delivered' | 'Shipped';
 
 export interface ShippingAddress {
   fullName?: string;
@@ -62,6 +63,7 @@ export interface IOrder {
     _id: string;
     name: string;
     email: string;
+    image?: string;
   };
   items: Array<{
     _id?: string;
@@ -77,6 +79,8 @@ export interface IOrder {
   createdAt: string;
   updatedAt?: string;
   shippingAddress?: ShippingAddress;
+  paymentMethod?: string;
+  paymentId?: string;
 }
 
 declare global {

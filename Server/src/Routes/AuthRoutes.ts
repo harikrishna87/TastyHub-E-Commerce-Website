@@ -19,6 +19,9 @@ import {
     getAllCustomers,
     deleteCustomerById,
     googleAuth,
+    getSettings,
+    updateSettings,
+    toggleUserActiveStatus,
 } from '../Controller/AuthController';
 import { protect } from '../Middleware/AuthMiddleWare';
 import multer from 'multer';
@@ -45,5 +48,8 @@ router.post('/verify-otp', verifyOTP as express.RequestHandler);
 router.post('/resend-otp', resendOTP as express.RequestHandler);
 router.get('/customers', protect as express.RequestHandler, getAllCustomers as express.RequestHandler);
 router.delete('/customer/:userId', protect as express.RequestHandler, deleteCustomerById as express.RequestHandler);
+router.patch('/users/:userId/toggle-status', protect as express.RequestHandler, toggleUserActiveStatus as express.RequestHandler);
+router.get('/settings', protect as express.RequestHandler, getSettings as express.RequestHandler);
+router.put('/settings', protect as express.RequestHandler, updateSettings as express.RequestHandler);
 
 export default router;

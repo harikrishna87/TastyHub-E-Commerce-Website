@@ -15,18 +15,23 @@ export interface IUser extends Document {
   name?: string;
   email: string;
   password?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'delivery_executive';
   image?: string;
   googleId?: string;
   shippingAddress?: IShippingAddress;
-  fcmTokens?:string[]; 
+  fcmTokens?: string[];
+  deliveryStatus?: 'Pending' | 'Approved' | 'Rejected';
+  isAvailable?: boolean;
+  isActive?: boolean;
+  walletBalance?: number;
+  accessedCoupons?: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (password: string) => Promise<boolean>;
   getJwtToken: () => string;
 }
 
-export type OrderDeliveryStatus = 'Pending' | 'Shipped' | 'Delivered';
+export type OrderDeliveryStatus = 'Pending' | 'Accepted' | 'Preparing' | 'Pickup' | 'Out for Delivery' | 'Delivered' | 'Shipped';
 
 export interface ICartItem {
   _id?: string;
@@ -61,6 +66,7 @@ export interface IOrder extends Document {
   shippingAddress?: IShippingAddress;
   paymentMethod?: string;
   paymentId?: string;
+  deliveryExecutive?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -70,6 +76,7 @@ export interface IOrderPopulated extends Omit<IOrder, 'user'> {
     _id: Types.ObjectId;
     name: string;
     email: string;
+    image?: string;
   };
 }
 
@@ -89,6 +96,53 @@ export interface IProduct {
   ingredients: string[];
   calories: number;
   ageRecommendation: string;
+}
+
+export interface ICoupon extends Document {
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrderAmount: number;
+  isAnnouncement: boolean;
+  expiryDate: Date;
+  isActive: boolean;
+}
+
+export interface IDiscount extends Document {
+  name: string;
+  targetType: 'product' | 'category';
+  targetValue: string;
+  discountPercentage: number;
+  isActive: boolean;
+}
+
+export interface IComboDeal extends Document {
+  name: string;
+  products: Types.ObjectId[];
+  comboPrice: number;
+  totalLimit: number;
+  timesAccessed: number;
+  accessedUsers: Types.ObjectId[];
+  endTime: Date;
+  isActive: boolean;
+}
+
+export interface IGiftCard extends Document {
+  code: string;
+  originalValue: number;
+  balance: number;
+  owner: Types.ObjectId;
+  recipientEmail?: string;
+  isActive: boolean;
+  expiryDate?: Date;
+}
+
+export interface ITransaction extends Document {
+  user: Types.ObjectId;
+  type: 'Credit' | 'Debit';
+  amount: number;
+  description: string;
+  createdAt: Date;
 }
 
 declare global {

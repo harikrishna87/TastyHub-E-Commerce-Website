@@ -28,7 +28,7 @@ const Auth: React.FC = () => {
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.09)',
               border: 'none'
             }}
-            bodyStyle={{ padding: '48px' }}
+            styles={{ body: { padding: '48px' } }}
           >
             <Title 
               level={2} 

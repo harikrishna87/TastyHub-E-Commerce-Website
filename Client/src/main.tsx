@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import 'primereact/resources/themes/lara-light-green/theme.css';
+import 'primereact/resources/primereact.min.css';
+import 'primeicons/primeicons.css';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import User from '../Models/Users';
 import Cart from '../Models/Cart_Items';
 import Order from '../Models/Orders';
@@ -9,6 +10,7 @@ import { Readable } from 'stream';
 import * as brevo from '@getbrevo/brevo';
 import AdminNotification from '../Models/AdminNotification';
 import { OAuth2Client } from 'google-auth-library';
+import SystemSettings from '../Models/SystemSettings';
 
 dotenv.config();
 
@@ -376,6 +378,10 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
     let user = await User.findOne({ email });
 
     if (user) {
+      if (user.isActive === false) {
+        res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+        return;
+      }
       const updates: any = {};
       if (!user.googleId) updates.googleId = googleId;
       if (picture) updates.image = picture;
@@ -523,6 +529,11 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
       return;
     }
 
+    if (user.isActive === false) {
+      res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+      return;
+    }
+
     if (!user.password) {
       res.status(401).json({ success: false, message: 'This account uses Google sign-in. Please login with Google.' });
       return;
@@ -540,7 +551,22 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
   }
 };
 
-const logout = (req: Request, res: Response, next: NextFunction): void => {
+const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    let token: string | undefined;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+    if (token && process.env.JWT_SECRET) {
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET);
+      await User.findByIdAndUpdate(decoded.id, { $set: { accessedCoupons: [] } });
+    }
+  } catch (error) {
+    console.error('Error clearing coupons during logout:', error);
+  }
+
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
@@ -568,6 +594,8 @@ const getMe = async (req: Request, res: Response, next: NextFunction): Promise<v
         role: user.role,
         image: user.image,
         shippingAddress: user.shippingAddress,
+        isAvailable: user.isAvailable,
+        deliveryStatus: user.deliveryStatus,
       },
     });
   } catch (error: any) {
@@ -649,9 +677,10 @@ const updateProfile = async (req: Request, res: Response, next: NextFunction): P
       return;
     }
 
-    const { shippingAddress } = req.body;
+    const { shippingAddress, isAvailable } = req.body;
     const updateData: any = {};
     if (shippingAddress) updateData.shippingAddress = shippingAddress;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
 
     const updatedUser = await User.findByIdAndUpdate(user._id, updateData, { new: true, runValidators: true });
 
@@ -1002,6 +1031,80 @@ const deleteCustomerById = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+const getSettings = async (req: Request, res: Response): Promise<void> => {
+  try {
+    let settings = await SystemSettings.findOne();
+    if (!settings) {
+      settings = await SystemSettings.create({});
+    }
+    res.status(200).json({ success: true, settings });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const updateSettings = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const adminUser = req.user;
+    if (!adminUser || adminUser.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+      return;
+    }
+    const { storeName, storeStatus, freeDeliveryMinAmount, flatDeliveryFee, supportEmail, supportPhone } = req.body;
+    let settings = await SystemSettings.findOne();
+    if (!settings) {
+      settings = new SystemSettings();
+    }
+    if (storeName !== undefined) settings.storeName = storeName;
+    if (storeStatus !== undefined) settings.storeStatus = storeStatus;
+    if (freeDeliveryMinAmount !== undefined) settings.freeDeliveryMinAmount = freeDeliveryMinAmount;
+    if (flatDeliveryFee !== undefined) settings.flatDeliveryFee = flatDeliveryFee;
+    if (supportEmail !== undefined) settings.supportEmail = supportEmail;
+    if (supportPhone !== undefined) settings.supportPhone = supportPhone;
+
+    await settings.save();
+    res.status(200).json({ success: true, message: 'Settings updated successfully', settings });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const toggleUserActiveStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const adminUser = req.user;
+
+    if (!adminUser || adminUser.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin privileges required.' });
+      return;
+    }
+
+    const { userId } = req.params;
+
+    if (!userId) {
+      res.status(400).json({ success: false, message: 'User ID is required' });
+      return;
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+
+    user.isActive = user.isActive === false ? true : false;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User account ${user.isActive ? 'activated' : 'deactivated'} successfully`,
+      user
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export {
   register,
   login,
@@ -1022,4 +1125,7 @@ export {
   getAllCustomers,
   deleteCustomerById,
   googleAuth,
+  getSettings,
+  updateSettings,
+  toggleUserActiveStatus,
 };

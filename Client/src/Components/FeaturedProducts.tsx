@@ -25,6 +25,8 @@ interface Product {
   ingredients?: string[];
   calories?: number;
   ageRecommendation?: string;
+  discountPercentage?: number;
+  discountPrice?: number;
 }
 
 interface FeaturedProductsProps {
@@ -135,12 +137,7 @@ const customStyles = `
 
 
 const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
-  featuredProducts = [],
-  categoryDiscounts = {},
-  calculateDiscountedPrice = (originalPrice: number, category: string) => {
-    const discount = categoryDiscounts[category] || 0;
-    return originalPrice * (1 - discount / 100);
-  }
+  featuredProducts = []
 }) => {
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -218,11 +215,11 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
               target.style.display = 'none';
             }}
           />
-          {categoryDiscounts[product.category] && (
+          {product.discountPercentage && product.discountPercentage > 0 ? (
             <div className="featured-discount-badge">
-              {categoryDiscounts[product.category]}% OFF
+              {product.discountPercentage}% OFF
             </div>
-          )}
+          ) : null}
         </div>
       }
     >
@@ -288,10 +285,10 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
           alignItems: 'center'
         }}>
           <div>
-            {categoryDiscounts[product.category] ? (
+            {product.discountPercentage && product.discountPercentage > 0 ? (
               <Space>
                 <Text strong style={{ color: '#52c41a' }}>
-                  ₹ {calculateDiscountedPrice(product.price, product.category).toFixed(2)}
+                  ₹ {(product.discountPrice ?? product.price).toFixed(2)}
                 </Text>
                 <Text delete type="secondary" style={{ fontSize: '12px' }}>
                   ₹ {product.price.toFixed(2)}

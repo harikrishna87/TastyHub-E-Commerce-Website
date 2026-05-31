@@ -107,9 +107,9 @@ const Footer: React.FC<FooterProps> = ({
       <LeafDecoration position="right" />
 
       <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0 15px',
+        width: '100%',
+        margin: 0,
+        padding: '0 30px',
         position: 'relative',
         zIndex: 1
       }}>
@@ -235,6 +235,18 @@ const Footer: React.FC<FooterProps> = ({
                 onClick={handleNavigation('/giftcards')}
               >
                 Gift Cards
+              </Link>
+              <Link
+                to="/combodeals"
+                style={{
+                  color: '#212529',
+                  textDecoration: 'none',
+                  padding: '4px 0',
+                  marginBottom: '4px'
+                }}
+                onClick={handleNavigation('/combodeals')}
+              >
+                Combo Deals
               </Link>
             </div>
           </Col>

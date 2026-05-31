@@ -1,0 +1,375 @@
+import { Request, Response } from 'express';
+import User from '../Models/Users';
+import Order from '../Models/Orders';
+import sendToken from '../Utils/jwt';
+import EmailService from '../Utils/EmailService';
+import AdminNotification from '../Models/AdminNotification';
+import { Types } from 'mongoose';
+
+// Register Delivery Executive
+export const deliveryRegister = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      res.status(400).json({ success: false, message: 'Please enter all fields' });
+      return;
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      res.status(400).json({ success: false, message: 'Account with this email already exists' });
+      return;
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: 'delivery_executive',
+      deliveryStatus: 'Pending',
+      isAvailable: true
+    });
+
+    // Notify Admin of new Delivery Executive
+    await AdminNotification.create({
+      type: 'new_user',
+      title: 'New Delivery Partner Registered',
+      message: `${name} has applied as a Delivery Executive and is waiting for approval!`,
+      userId: user._id,
+      userName: name,
+      userEmail: email,
+      isRead: false,
+    });
+
+    // Send registration pending email
+    await EmailService.sendDERegistrationPending(user);
+
+    res.status(201).json({
+      success: true,
+      message: 'Registration successful! Waiting for admin approval.',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        deliveryStatus: user.deliveryStatus
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Login Delivery Executive
+export const deliveryLogin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({ success: false, message: 'Please enter email and password' });
+      return;
+    }
+
+    const user = await User.findOne({ email }).select('+password');
+    if (!user || user.role !== 'delivery_executive') {
+      res.status(401).json({ success: false, message: 'Invalid credentials or you are not a delivery partner' });
+      return;
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return;
+    }
+
+    if (user.deliveryStatus === 'Rejected') {
+      res.status(403).json({
+        success: false,
+        message: 'Your application has been rejected by the administrator.'
+      });
+      return;
+    }
+
+    if (user.deliveryStatus === 'Pending') {
+      // Allow login but explicitly signal they are not approved yet
+      const token = user.getJwtToken();
+      res.status(200).json({
+        success: true,
+        approved: false,
+        message: 'Login successful, but waiting for admin approval to perform operations.',
+        token,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          deliveryStatus: user.deliveryStatus,
+        }
+      });
+      return;
+    }
+
+    // Fully approved, send standard auth response
+    sendToken(user, 200, res);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get Available Orders for delivery (Pending & No DE assigned)
+export const getAvailableOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'delivery_executive' || req.user?.deliveryStatus !== 'Approved') {
+      res.status(403).json({ success: false, message: 'Access denied. You must be an approved Delivery Partner.' });
+      return;
+    }
+
+    const orders = await Order.find({
+      deliveryStatus: 'Pending',
+      deliveryExecutive: null
+    }).populate('user', 'name email shippingAddress');
+
+    res.status(200).json({
+      success: true,
+      orders
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get Accepted Orders for currently logged-in DE
+export const getMyAcceptedOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'delivery_executive' || req.user?.deliveryStatus !== 'Approved') {
+      res.status(403).json({ success: false, message: 'Access denied. You must be an approved Delivery Partner.' });
+      return;
+    }
+
+    const orders = await Order.find({
+      deliveryExecutive: req.user._id
+    }).populate('user', 'name email shippingAddress');
+
+    res.status(200).json({
+      success: true,
+      orders
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Accept an Order
+export const acceptOrder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (req.user?.role !== 'delivery_executive' || req.user?.deliveryStatus !== 'Approved') {
+      res.status(403).json({ success: false, message: 'Access denied. You must be an approved Delivery Partner.' });
+      return;
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Invalid order ID' });
+      return;
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+
+    if (order.deliveryStatus !== 'Pending' || order.deliveryExecutive) {
+      res.status(400).json({ success: false, message: 'Order is already accepted or processed.' });
+      return;
+    }
+
+    order.deliveryExecutive = req.user._id as Types.ObjectId;
+    order.deliveryStatus = 'Accepted'; // Update status to Accepted
+    await order.save();
+
+    const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
+
+    // Send status update email to the customer
+    await EmailService.sendOrderStatusUpdate(populatedOrder, 'Accepted');
+
+    res.status(200).json({
+      success: true,
+      message: 'Order accepted successfully!',
+      order: populatedOrder
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Mark Order as Delivered
+export const deliverOrder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (req.user?.role !== 'delivery_executive' || req.user?.deliveryStatus !== 'Approved') {
+      res.status(403).json({ success: false, message: 'Access denied. You must be an approved Delivery Partner.' });
+      return;
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Invalid order ID' });
+      return;
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+
+    if (String(order.deliveryExecutive) !== String(req.user._id)) {
+      res.status(403).json({ success: false, message: 'You are not authorized to deliver this order' });
+      return;
+    }
+
+    if (order.deliveryStatus !== 'Shipped' && order.deliveryStatus !== 'Out for Delivery') {
+      res.status(400).json({ success: false, message: 'Order is not in shipped or out-for-delivery status.' });
+      return;
+    }
+
+    order.deliveryStatus = 'Delivered';
+    await order.save();
+
+    const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
+
+    // Send delivered email to customer
+    await EmailService.sendOrderStatusUpdate(populatedOrder, 'Delivered');
+
+    res.status(200).json({
+      success: true,
+      message: 'Order marked as Delivered successfully!',
+      order: populatedOrder
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Update Order Status sequentially (Accepted -> Preparing -> Pickup -> Out for Delivery -> Delivered)
+export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (req.user?.role !== 'delivery_executive' || req.user?.deliveryStatus !== 'Approved') {
+      res.status(403).json({ success: false, message: 'Access denied. You must be an approved Delivery Partner.' });
+      return;
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      res.status(400).json({ success: false, message: 'Invalid order ID' });
+      return;
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+
+    if (String(order.deliveryExecutive) !== String(req.user._id)) {
+      res.status(403).json({ success: false, message: 'You are not authorized to manage this order' });
+      return;
+    }
+
+    const validStatuses = ['Accepted', 'Preparing', 'Pickup', 'Out for Delivery', 'Delivered'];
+    if (!validStatuses.includes(status)) {
+      res.status(400).json({ success: false, message: `Invalid status: ${status}. Must be one of ${validStatuses.join(', ')}` });
+      return;
+    }
+
+    // COD check: If status is being set to Delivered and order is COD, executive must confirm cash collection
+    if (status === 'Delivered' && order.paymentMethod === 'cod') {
+      const { confirmCodCollected } = req.body;
+      if (!confirmCodCollected) {
+        res.status(400).json({
+          success: false,
+          codRequired: true,
+          message: 'Cash collection confirmation is required to deliver Cash on Delivery orders.'
+        });
+        return;
+      }
+    }
+
+    order.deliveryStatus = status;
+    await order.save();
+
+    const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
+
+    // Send status update email to customer
+    await EmailService.sendOrderStatusUpdate(populatedOrder, status);
+
+    res.status(200).json({
+      success: true,
+      message: `Order status updated to ${status} successfully!`,
+      order: populatedOrder
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Admin: Get All Delivery Executives
+export const adminGetDeliveryExecutives = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+      return;
+    }
+
+    const executives = await User.find({ role: 'delivery_executive' });
+    res.status(200).json({
+      success: true,
+      executives
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Admin: Approve / Reject Delivery Executive
+export const adminUpdateDEStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // Approved or Rejected
+
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+      return;
+    }
+
+    if (!['Approved', 'Rejected'].includes(status)) {
+      res.status(400).json({ success: false, message: 'Invalid status. Must be Approved or Rejected' });
+      return;
+    }
+
+    const executive = await User.findById(id);
+    if (!executive || executive.role !== 'delivery_executive') {
+      res.status(404).json({ success: false, message: 'Delivery Partner not found' });
+      return;
+    }
+
+    executive.deliveryStatus = status;
+    await executive.save();
+
+    // Send email notification to Delivery Partner
+    await EmailService.sendDEStatusUpdate(executive, status);
+
+    res.status(200).json({
+      success: true,
+      message: `Delivery Partner has been successfully ${status}!`,
+      executive
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

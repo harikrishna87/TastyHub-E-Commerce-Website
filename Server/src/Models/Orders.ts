@@ -37,8 +37,13 @@ const OrderSchema: Schema = new Schema<IOrder>({
   },
   deliveryStatus: {
     type: String,
-    enum: ['Pending', 'Shipped', 'Delivered'],
+    enum: ['Pending', 'Accepted', 'Preparing', 'Pickup', 'Out for Delivery', 'Delivered', 'Shipped'],
     default: 'Pending',
+  },
+  deliveryExecutive: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false,
   },
   shippingAddress: {
     type: ShippingAddressSchema,
@@ -46,7 +51,6 @@ const OrderSchema: Schema = new Schema<IOrder>({
   },
   paymentMethod: {
     type: String,
-    enum: ['cod', 'online'],
     default: 'cod',
   },
   paymentId: {

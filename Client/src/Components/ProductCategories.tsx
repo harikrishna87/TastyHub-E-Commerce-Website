@@ -81,10 +81,12 @@ const ProductCategories: React.FC<ProductCategoriesProps> = ({
                 position: 'relative',
                 overflow: 'hidden'
               }}
-              bodyStyle={{
-                padding: '0',
-                display: 'flex',
-                height: '150px'
+              styles={{
+                body: {
+                  padding: '0',
+                  display: 'flex',
+                  height: '150px'
+                }
               }}
               onClick={() => handleCategoryClick(category)}
             >

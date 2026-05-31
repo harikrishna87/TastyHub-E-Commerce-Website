@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Card, Typography, Row, Col, Spin, Space, Divider, Button } from 'antd';
-import { CheckCircleOutlined, TruckOutlined, GiftOutlined, HomeOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  TruckOutlined,
+  GiftOutlined,
+  HomeOutlined,
+  ClockCircleOutlined,
+  FireOutlined,
+  ShoppingOutlined,
+  CarOutlined
+} from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import confetti from 'canvas-confetti';
@@ -34,7 +43,25 @@ interface Order {
   shippingAddress: ShippingAddress;
   deliveryStatus: string;
   createdAt: string;
+  paymentMethod?: string;
 }
+
+const deliverySteps = [
+  { key: 'Pending', label: 'Placed', description: 'Order confirmed', icon: <ClockCircleOutlined /> },
+  { key: 'Preparing', label: 'Preparing', description: 'Kitchen is working', icon: <FireOutlined /> },
+  { key: 'Pickup', label: 'Picked Up', description: 'Rider picked it up', icon: <ShoppingOutlined /> },
+  { key: 'Out for Delivery', label: 'Out for Delivery', description: 'Heading to you', icon: <CarOutlined /> },
+  { key: 'Delivered', label: 'Delivered', description: 'Delivered successfully', icon: <GiftOutlined /> },
+];
+
+const getCurrentStepIndex = (status: string) => {
+  if (status === 'Accepted' || status === 'Pending') return 0;
+  if (status === 'Preparing') return 1;
+  if (status === 'Pickup') return 2;
+  if (status === 'Out for Delivery' || status === 'Shipped') return 3;
+  if (status === 'Delivered') return 4;
+  return 0;
+};
 
 const OrderSuccessPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -70,17 +97,10 @@ const OrderSuccessPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [navigate]);
 
-  const handlehomepage = () => {
-    navigate('/');
-  }
-
   const triggerConfetti = () => {
-    const duration = 3 * 1000;
+    const duration = 3000;
     const animationEnd = Date.now() + duration;
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1060 };
-
-    const randomInRange = (min: number, max: number) =>
-      Math.random() * (max - min) + min;
 
     const interval = window.setInterval(() => {
       const timeLeft = animationEnd - Date.now();
@@ -89,16 +109,8 @@ const OrderSuccessPage: React.FC = () => {
       }
 
       const particleCount = 50 * (timeLeft / duration);
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-      });
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-      });
+      confetti({ ...defaults, particleCount, origin: { x: 0.2, y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: 0.8, y: Math.random() - 0.2 } });
     }, 250);
   };
 
@@ -112,14 +124,14 @@ const OrderSuccessPage: React.FC = () => {
       const response = await fetch(`${backendUrl}/api/orders/${orderId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${auth.token}`,
+          Authorization: `Bearer ${auth.token}`,
           'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
 
       if (response.status === 401) {
-        if (auth?.logout) auth.logout();
+        auth.logout?.();
         navigate('/');
         return;
       }
@@ -135,19 +147,9 @@ const OrderSuccessPage: React.FC = () => {
     }
   };
 
-  const circumference = 2 * Math.PI * 30;
-  const progress = ((20 - countdown) / 20) * 100;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#f5f5f5'
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
         <Spin size="large" />
       </div>
     );
@@ -155,13 +157,7 @@ const OrderSuccessPage: React.FC = () => {
 
   if (!order) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#f5f5f5'
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
         <Card style={{ maxWidth: '500px', textAlign: 'center' }}>
           <Title level={3}>Order not found</Title>
           <Text>Redirecting to home page...</Text>
@@ -170,178 +166,59 @@ const OrderSuccessPage: React.FC = () => {
     );
   }
 
+  const currentIndex = getCurrentStepIndex(order.deliveryStatus);
+  const progressWidth = `${(currentIndex / (deliverySteps.length - 1)) * 100}%`;
+  const paymentMethodLabel =
+    order.paymentMethod === 'cod'
+      ? 'Cash on Delivery'
+      : order.paymentMethod === 'wallet'
+      ? 'Wallet'
+      : order.paymentMethod === 'gift_card'
+      ? 'Gift Card'
+      : 'Online Payment';
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
-      padding: '24px 16px',
-      position: 'relative'
-    }}>
-      <div style={{
-        position: 'fixed',
-        top: '75px',
-        right: '20px',
-        zIndex: 1000
-      }}>
-        <div style={{ position: 'relative', width: '60px', height: '60px' }}>
-          <svg width="60" height="60" style={{ transform: 'rotate(-90deg)' }}>
-            <circle
-              cx="30"
-              cy="30"
-              r="26"
-              fill="none"
-              stroke="#e8e8e8"
-              strokeWidth="4"
-            />
-            <circle
-              cx="30"
-              cy="30"
-              r="26"
-              fill="none"
-              stroke="#52c41a"
-              strokeWidth="4"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s linear' }}
-            />
-          </svg>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#52c41a'
-            }}>
-              {countdown}
-            </div>
-            <div style={{
-              fontSize: '12px',
-              color: '#666'
-            }}>
-              sec
-            </div>
-          </div>
-        </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', padding: '24px 16px', position: 'relative' }}>
+      <div style={{ position: 'fixed', top: '75px', right: '20px', zIndex: 1000, background: '#fff', borderRadius: '999px', padding: '10px 14px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+        <Text strong style={{ color: '#52c41a' }}>{countdown}s</Text>
       </div>
 
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto'
-      }}>
-        <Card
-          style={{
-            borderRadius: '16px',
-            border: '1px solid #b7eb8f',
-            marginBottom: '24px',
-            background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              top: -50,
-              right: -50,
-              width: '200px',
-              height: '200px',
-              borderRadius: '50%',
-              background: 'rgba(82, 196, 26, 0.1)',
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: -30,
-              left: -30,
-              width: '150px',
-              height: '150px',
-              borderRadius: '50%',
-              background: 'rgba(115, 209, 61, 0.08)',
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              right: '10%',
-              width: '100px',
-              height: '100px',
-              borderRadius: '50%',
-              background: 'rgba(149, 222, 100, 0.06)',
-              zIndex: 0,
-            }}
-          />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <CheckCircleOutlined style={{
-                fontSize: '64px',
-                color: '#52c41a',
-                marginBottom: '16px'
-              }} />
-              <Title level={2} style={{ color: '#52c41a', marginBottom: '8px' }}>
-                Order Placed Successfully!
-              </Title>
-              <Text style={{ fontSize: '16px', color: '#666' }}>
-                Thank you for your order. We'll send you a confirmation email shortly. Please check your Spam or Junk folder if you don't see the email.
-              </Text>
-            </div>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <Card style={{ borderRadius: '16px', border: '1px solid #b7eb8f', marginBottom: '24px', background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <CheckCircleOutlined style={{ fontSize: '64px', color: '#52c41a', marginBottom: '16px' }} />
+            <Title level={2} style={{ color: '#52c41a', marginBottom: '8px' }}>Order Placed Successfully!</Title>
+            <Text style={{ fontSize: '16px', color: '#666' }}>
+              Thank you for your order. We&apos;ll keep your delivery timeline updated in real time.
+            </Text>
+          </div>
 
-            <Divider style={{ borderColor: '#b7eb8f', margin: '32px 0' }} />
+          <Divider style={{ borderColor: '#b7eb8f', margin: '32px 0' }} />
 
-            <div style={{ marginTop: '24px' }}>
-              <Space style={{ marginBottom: '24px' }}>
-                <GiftOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-                <span style={{ fontSize: '18px', fontWeight: '500' }}>Order Summary</span>
-              </Space>
+          <div style={{ marginTop: '24px' }}>
+            <Space style={{ marginBottom: '24px' }}>
+              <GiftOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
+              <span style={{ fontSize: '18px', fontWeight: '500' }}>Order Summary</span>
+            </Space>
 
-              <Row gutter={[24, 24]}>
-                <Col xs={24} sm={12} md={6}>
-                  <div>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Order ID</Text>
-                    <Text strong style={{ fontSize: '14px' }}>{order._id}</Text>
-                  </div>
-                </Col>
-
-                <Col xs={24} sm={12} md={6}>
-                  <div>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Order Date</Text>
-                    <Text strong style={{ fontSize: '14px' }}>
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </Text>
-                  </div>
-                </Col>
-
-                <Col xs={24} sm={12} md={6}>
-                  <div>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Amount</Text>
-                    <Text strong style={{ fontSize: '24px', color: '#52c41a' }}>
-                      ₹{order.totalAmount.toFixed(2)}
-                    </Text>
-                  </div>
-                </Col>
-
-                <Col xs={24} sm={12} md={6}>
-                  <div>
-                    <Text type="secondary" style={{ display: 'block', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Method</Text>
-                    <Text strong style={{ fontSize: '14px' }}>Online Payment</Text>
-                  </div>
-                </Col>
-              </Row>
-            </div>
+            <Row gutter={[24, 24]}>
+              <Col xs={24} sm={12} md={6}>
+                <Text type="secondary" style={{ display: 'block', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase' }}>Order ID</Text>
+                <Text strong style={{ fontSize: '14px' }}>{order._id}</Text>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Text type="secondary" style={{ display: 'block', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase' }}>Order Date</Text>
+                <Text strong style={{ fontSize: '14px' }}>{new Date(order.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</Text>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Text type="secondary" style={{ display: 'block', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase' }}>Total Amount</Text>
+                <Text strong style={{ fontSize: '24px', color: '#52c41a' }}>₹{order.totalAmount.toFixed(2)}</Text>
+              </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Text type="secondary" style={{ display: 'block', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase' }}>Payment Method</Text>
+                <Text strong style={{ fontSize: '14px' }}>{paymentMethodLabel}</Text>
+              </Col>
+            </Row>
           </div>
         </Card>
 
@@ -352,289 +229,73 @@ const OrderSuccessPage: React.FC = () => {
               <span style={{ fontSize: '18px' }}>Delivery Status</span>
             </Space>
           }
-          style={{
-            borderRadius: '16px',
-            border: '1px solid #91d5ff',
-            marginBottom: '24px',
-            background: 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
+          style={{ borderRadius: '16px', border: '1px solid #91d5ff', marginBottom: '24px', background: 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: -60,
-              right: -60,
-              width: '220px',
-              height: '220px',
-              borderRadius: '50%',
-              background: 'rgba(24, 144, 255, 0.08)',
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: -40,
-              left: -40,
-              width: '180px',
-              height: '180px',
-              borderRadius: '50%',
-              background: 'rgba(145, 213, 255, 0.12)',
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              right: '15%',
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              background: 'rgba(105, 192, 255, 0.08)',
-              zIndex: 0,
-            }}
-          />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{
-              padding: '40px 20px',
-              backgroundColor: 'rgba(240, 249, 255, 0.6)',
-              borderRadius: '12px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                position: 'relative',
-                maxWidth: '600px',
-                margin: '0 auto'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  top: '25px',
-                  left: '25px',
-                  right: '25px',
-                  height: '4px',
-                  backgroundColor: '#e8e8e8',
-                  borderRadius: '2px',
-                  zIndex: 1
-                }}>
-                  <div style={{
-                    height: '100%',
-                    backgroundColor: '#52c41a',
-                    borderRadius: '2px',
-                    width: '0%',
-                    transition: 'width 0.3s ease'
-                  }} />
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  position: 'relative',
-                  zIndex: 2
-                }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '50%',
-                    backgroundColor: '#52c41a',
-                    border: '4px solid #52c41a',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '20px',
-                    boxShadow: '0 0 0 4px rgba(82, 196, 26, 0.2)'
-                  }}>
-                    <CheckCircleOutlined />
-                  </div>
-                  <span style={{
-                    marginTop: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#52c41a',
-                    textAlign: 'center',
-                    letterSpacing: '0.5px'
-                  }}>
-                    ORDERED
-                  </span>
-                  <span style={{
-                    marginTop: '4px',
-                    fontSize: '12px',
-                    color: '#666',
-                    textAlign: 'center'
-                  }}>
-                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </span>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  position: 'relative',
-                  zIndex: 2
-                }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '50%',
-                    backgroundColor: '#e8e8e8',
-                    border: '4px solid #e8e8e8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#999',
-                    fontSize: '20px'
-                  }}>
-                    <TruckOutlined />
-                  </div>
-                  <span style={{
-                    marginTop: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#999',
-                    textAlign: 'center',
-                    letterSpacing: '0.5px'
-                  }}>
-                    SHIPPED
-                  </span>
-                  <span style={{
-                    marginTop: '4px',
-                    fontSize: '12px',
-                    color: '#999',
-                    textAlign: 'center'
-                  }}>
-                    Pending
-                  </span>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  position: 'relative',
-                  zIndex: 2
-                }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '50%',
-                    backgroundColor: '#e8e8e8',
-                    border: '4px solid #e8e8e8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#999',
-                    fontSize: '20px'
-                  }}>
-                    <GiftOutlined />
-                  </div>
-                  <span style={{
-                    marginTop: '16px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#999',
-                    textAlign: 'center',
-                    letterSpacing: '0.5px'
-                  }}>
-                    DELIVERED
-                  </span>
-                  <span style={{
-                    marginTop: '4px',
-                    fontSize: '12px',
-                    color: '#999',
-                    textAlign: 'center'
-                  }}>
-                    Pending
-                  </span>
-                </div>
+          <div style={{ padding: '24px', backgroundColor: 'rgba(240, 249, 255, 0.7)', borderRadius: '12px' }}>
+            <div style={{ position: 'relative', margin: '0 auto', maxWidth: '900px' }}>
+              <div style={{ position: 'absolute', top: '28px', left: '40px', right: '40px', height: '4px', backgroundColor: '#dbeafe', borderRadius: '999px' }}>
+                <div style={{ height: '100%', width: progressWidth, backgroundColor: '#1890ff', borderRadius: '999px', transition: 'width 0.3s ease' }} />
               </div>
 
-              <div style={{
-                textAlign: 'center',
-                marginTop: '30px',
-                padding: '12px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                border: '1px solid #d9f7be'
-              }}>
-                <span style={{
-                  color: '#52c41a',
-                  fontWeight: '500',
-                  fontSize: '15px'
-                }}>
-                  Your order has been placed and is being processed
-                </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '16px' }}>
+                {deliverySteps.map((step, index) => {
+                  const isComplete = index <= currentIndex;
+                  const isCurrent = index === currentIndex;
+
+                  return (
+                    <div key={step.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+                      <div
+                        style={{
+                          width: '56px',
+                          height: '56px',
+                          borderRadius: '50%',
+                          backgroundColor: isComplete ? '#1890ff' : '#e5e7eb',
+                          border: `4px solid ${isComplete ? '#1890ff' : '#e5e7eb'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff',
+                          fontSize: '20px',
+                          boxShadow: isCurrent ? '0 0 0 6px rgba(24, 144, 255, 0.16)' : 'none'
+                        }}
+                      >
+                        {step.icon}
+                      </div>
+                      <span style={{ marginTop: '14px', fontSize: '13px', fontWeight: 700, color: isComplete ? '#0f172a' : '#94a3b8', textAlign: 'center' }}>{step.label}</span>
+                      <span style={{ marginTop: '4px', fontSize: '12px', color: isCurrent ? '#1890ff' : '#94a3b8', textAlign: 'center' }}>
+                        {index === 0 ? new Date(order.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : step.description}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '28px', padding: '14px', backgroundColor: '#ffffff', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
+              <Text strong style={{ color: '#1890ff', fontSize: '15px' }}>
+                Current status: {order.deliveryStatus === 'Shipped' ? 'Out for Delivery' : order.deliveryStatus}
+              </Text>
             </div>
           </div>
         </Card>
 
-        <Card
-          style={{
-            borderRadius: '16px',
-            border: '1px solid #ffd666',
-            textAlign: 'center',
-            background: 'linear-gradient(135deg, #fffbe6 0%, #ffffff 100%)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              top: -50,
-              right: -50,
-              width: '200px',
-              height: '200px',
-              borderRadius: '50%',
-              background: 'rgba(250, 219, 20, 0.1)',
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: -30,
-              left: -30,
-              width: '150px',
-              height: '150px',
-              borderRadius: '50%',
-              background: 'rgba(255, 214, 102, 0.12)',
-              zIndex: 0,
-            }}
-          />
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <Title level={4} style={{ color: '#d48806', marginBottom: '16px' }}>
-              Thank You for Your Order!
-            </Title>
-            <Text style={{ fontSize: '16px', color: '#666' }}>
-              Your order will be delivered soon. We appreciate your business!
+        <Card style={{ borderRadius: '16px' }}>
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Title level={4} style={{ margin: 0 }}>Delivery Address</Title>
+            <Text>{order.shippingAddress.fullName}</Text>
+            <Text>{order.shippingAddress.phone}</Text>
+            <Text>
+              {order.shippingAddress.addressLine1}
+              {order.shippingAddress.addressLine2 ? `, ${order.shippingAddress.addressLine2}` : ''}
+              , {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}
             </Text>
-          </div>
 
-          <Button
-            icon={<HomeOutlined />}
-            style={{
-              marginTop: "20px",
-              backgroundColor: "#ffd666",
-              borderColor: "#ffd666",
-              color: "#000",
-            }}
-            onClick={handlehomepage}
-          >
-            Back to HomePage
-          </Button>
+            <Divider style={{ margin: '12px 0' }} />
+
+            <Button type="primary" icon={<HomeOutlined />} onClick={() => navigate('/')} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>
+              Back to Home
+            </Button>
+          </Space>
         </Card>
       </div>
     </div>

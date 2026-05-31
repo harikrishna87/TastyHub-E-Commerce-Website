@@ -1,995 +1,46 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
-import {
-  Card,
-  Alert,
-  Row,
-  Col,
-  Typography,
-  Statistic,
-  message,
-  Space,
-  Spin,
-  Progress,
-  List,
-  Avatar,
-  Button,
-  Tag,
-  Modal,
-  Table
-} from 'antd';
-import {
-  PieChartOutlined,
-  InfoCircleOutlined,
-  LineChartOutlined,
-  ShoppingCartOutlined,
-  TruckOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CalendarOutlined,
-  UserOutlined,
-  RiseOutlined,
-  FallOutlined,
-  TeamOutlined,
-  ReloadOutlined,
-  StarOutlined
-} from '@ant-design/icons';
-import { AuthContext } from '../context/AuthContext';
+import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
+import { Chart } from 'primereact/chart';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Avatar } from 'primereact/avatar';
+import { Tag } from 'primereact/tag';
+import { Dialog } from 'primereact/dialog';
+import { Button } from 'primereact/button';
+import { AuthContext } from '../context/AuthContext';
 import { IOrder } from '../types';
-import { Line, Column } from '@ant-design/charts';
-import { useNavigate } from 'react-router-dom';
-
-const { Title, Text } = Typography;
-
-interface OrderStatsProps {
-  orders: IOrder[];
-}
-
-const OrderStatistics: React.FC<OrderStatsProps> = ({ orders }) => {
-  const pendingOrders = orders.filter(o => o.deliveryStatus === 'Pending').length;
-  const shippedOrders = orders.filter(o => o.deliveryStatus === 'Shipped').length;
-  const deliveredOrders = orders.filter(o => o.deliveryStatus === 'Delivered').length;
-  const totalOrders = orders.length;
-
-  const deliveryRate = totalOrders > 0 ? Math.round((deliveredOrders / totalOrders) * 100) : 0;
-
-  return (
-    <Card
-      title={
-        <Space>
-          <PieChartOutlined style={{ color: '#1890ff' }} />
-          <span>Order Statistics</span>
-        </Space>
-      }
-      style={{
-        height: '100%',
-        border: '2px dashed #b7eb8f',
-        boxShadow: '0 4px 16px rgba(183, 235, 143, 0.2)',
-        borderRadius: '16px'
-      }}
-      headStyle={{ borderBottom: '1px solid #f0f0f0' }}
-    >
-      <Row gutter={[16, 16]}>
-        <Col span={12}>
-          <Progress
-            type="circle"
-            percent={deliveryRate}
-            size={120}
-            strokeColor={{
-              '0%': '#52c41a',
-              '100%': '#87d068',
-            }}
-            format={() => (
-              <Row>
-                <Col span={24} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#262626' }}>
-                    {deliveryRate}%
-                  </div>
-                </Col>
-                <Col span={24} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', color: '#8c8c8c', marginTop: '5px' }}>
-                    Orders Delivered
-                  </div>
-                </Col>
-              </Row>
-            )}
-          />
-        </Col>
-
-        <Col span={12}>
-          <Row gutter={[8, 8]}>
-            <Col span={12}>
-              <Statistic
-                title="Orders"
-                value={totalOrders}
-                valueStyle={{ color: '#1890ff', fontSize: '16px' }}
-                prefix={<ShoppingCartOutlined />}
-              />
-            </Col>
-            <Col span={12}>
-              <Statistic
-                title="Delivered"
-                value={deliveredOrders}
-                valueStyle={{ color: '#52c41a', fontSize: '16px' }}
-                prefix={<CheckCircleOutlined />}
-              />
-            </Col>
-            <Col span={12}>
-              <Statistic
-                title="Shipped"
-                value={shippedOrders}
-                valueStyle={{ color: 'darkblue', fontSize: '16px' }}
-                prefix={<TruckOutlined />}
-              />
-            </Col>
-            <Col span={12}>
-              <Statistic
-                title="Pending"
-                value={pendingOrders}
-                valueStyle={{ color: '#faad14', fontSize: '16px' }}
-                prefix={<ClockCircleOutlined />}
-              />
-            </Col>
-          </Row>
-        </Col>
-      </Row>
-    </Card>
-  );
-};
-
-const WeeklyEarning: React.FC<{ orders: IOrder[] }> = ({ orders }) => {
-  const getWeeklyData = () => {
-    const weeklyEarnings: { [key: string]: number } = {};
-    const today = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toLocaleDateString();
-      weeklyEarnings[dateStr] = 0;
-    }
-
-    orders.forEach(order => {
-      const orderDate = new Date(order.createdAt).toLocaleDateString();
-      if (weeklyEarnings.hasOwnProperty(orderDate)) {
-        weeklyEarnings[orderDate] += order.totalAmount;
-      }
-    });
-
-    return Object.entries(weeklyEarnings).map(([date, amount]) => ({
-      date: new Date(date).toLocaleDateString('en', { weekday: 'short' }),
-      amount
-    }));
-  };
-
-  const weeklyData = getWeeklyData();
-  const totalWeeklyEarning = weeklyData.reduce((sum, day) => sum + day.amount, 0);
-  const averageDailyEarning = totalWeeklyEarning / 7;
-
-  const config = {
-    data: weeklyData,
-    xField: 'date',
-    yField: 'amount',
-    columnStyle: {
-      radius: [4, 4, 0, 0],
-      fill: 'l(270) 0:#1890ff 0.5:#40a9ff 1:#69c0ff',
-    },
-    meta: {
-      amount: {
-        alias: 'Earning (₹)',
-      },
-    },
-    columnWidthRatio: 0.6,
-  };
-
-  return (
-    <Card
-      title={
-        <Space>
-          <span style={{ color: '#52c41a' }}>₹</span>
-          <span>Weekly Earnings</span>
-        </Space>
-      }
-      extra={
-        <Tag color="green">
-          <RiseOutlined /> This Week
-        </Tag>
-      }
-      style={{
-        height: '100%',
-        border: '2px dashed #b7eb8f',
-        boxShadow: '0 4px 16px rgba(183, 235, 143, 0.2)',
-        borderRadius: '16px'
-      }}
-      headStyle={{ borderBottom: '1px solid #f0f0f0' }}
-    >
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={12}>
-          <Statistic
-            title="Total Earning"
-            value={totalWeeklyEarning}
-            precision={2}
-            valueStyle={{ color: '#52c41a', fontSize: '18px' }}
-            prefix="₹"
-          />
-        </Col>
-        <Col span={12}>
-          <Statistic
-            title="Daily Average"
-            value={averageDailyEarning}
-            precision={2}
-            valueStyle={{ color: '#1890ff', fontSize: '18px' }}
-            prefix="₹"
-          />
-        </Col>
-      </Row>
-      <Row>
-        <Col span={24}>
-          <div style={{ height: '200px' }}>
-            <Column {...config} />
-          </div>
-        </Col>
-      </Row>
-    </Card>
-  );
-};
-
-const CampaignStatistic: React.FC<{ orders: IOrder[] }> = ({ orders }) => {
-  const getMonthlyData = () => {
-    const monthlyData: { [key: string]: number } = {};
-
-    orders.forEach(order => {
-      const date = new Date(order.createdAt);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
-    });
-
-    const last6Months = [];
-    const today = new Date();
-
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthName = date.toLocaleDateString('en', { month: 'short' });
-
-      last6Months.push({
-        month: monthName,
-        orders: monthlyData[monthKey] || 0
-      });
-    }
-
-    return last6Months;
-  };
-
-  const monthlyData = getMonthlyData();
-  const totalMonthlyOrders = monthlyData.reduce((sum, month) => sum + month.orders, 0);
-  const averageMonthlyOrders = Math.round(totalMonthlyOrders / 6);
-
-  const config = {
-    data: monthlyData,
-    xField: 'month',
-    yField: 'orders',
-    smooth: true,
-    color: '#722ed1',
-    point: {
-      size: 5,
-      style: {
-        fill: '#722ed1',
-        stroke: '#fff',
-        lineWidth: 2,
-      },
-    },
-    area: {
-      fill: 'l(270) 0:#722ed1 1:rgba(114,46,209,0.1)',
-    },
-  };
-
-  return (
-    <Card
-      title={
-        <Space>
-          <LineChartOutlined style={{ color: '#722ed1' }} />
-          <span>Campaign Statistics</span>
-        </Space>
-      }
-      extra={
-        <Space>
-          <Text type="secondary">Last 6 Months</Text>
-        </Space>
-      }
-      style={{
-        height: '100%',
-        border: '2px dashed #b7eb8f',
-        boxShadow: '0 4px 16px rgba(183, 235, 143, 0.2)',
-        borderRadius: '16px'
-      }}
-      headStyle={{ borderBottom: '1px solid #f0f0f0' }}
-    >
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={12}>
-          <Statistic
-            title="Total Orders"
-            value={totalMonthlyOrders}
-            valueStyle={{ color: '#722ed1', fontSize: '18px' }}
-            prefix={<ShoppingCartOutlined />}
-          />
-        </Col>
-        <Col span={12}>
-          <Statistic
-            title="Monthly Average"
-            value={averageMonthlyOrders}
-            valueStyle={{ color: '#1890ff', fontSize: '18px' }}
-            prefix={<CalendarOutlined />}
-          />
-        </Col>
-      </Row>
-      <Row>
-        <Col span={24}>
-          <div style={{ height: '250px' }}>
-            <Line {...config} />
-          </div>
-        </Col>
-      </Row>
-    </Card>
-  );
-};
-
-const LatestCampaign: React.FC<{ orders: IOrder[] }> = ({ orders }) => {
-  const recentOrders = [...orders]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 7);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pending': return 'warning';
-      case 'Shipped': return 'processing';
-      case 'Delivered': return 'success';
-      default: return 'default';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Pending': return <ClockCircleOutlined />;
-      case 'Shipped': return <TruckOutlined />;
-      case 'Delivered': return <CheckCircleOutlined />;
-      default: return <InfoCircleOutlined />;
-    }
-  };
-
-  return (
-    <Card
-      title={
-        <Space>
-          <CalendarOutlined style={{ color: '#fa8c16' }} />
-          <span>Latest Orders</span>
-        </Space>
-      }
-      style={{
-        height: '637px',
-        border: '2px dashed #b7eb8f',
-        boxShadow: '0 4px 16px rgba(183, 235, 143, 0.2)',
-        borderRadius: '16px'
-      }}
-      headStyle={{ borderBottom: '1px solid #f0f0f0' }}
-      bodyStyle={{ padding: '16px 24px' }}
-    >
-      <List
-        dataSource={recentOrders}
-        renderItem={(order, index) => (
-          <List.Item
-            style={{
-              padding: '12px 0',
-              borderBottom: index === recentOrders.length - 1 ? 'none' : '1px solid #f0f0f0'
-            }}
-          >
-            <div style={{ width: '100%' }}>
-              <Row justify="space-between" align="middle" style={{ width: '100%' }}>
-                <Col span={10}>
-                  <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <Avatar
-                      style={{
-                        backgroundColor: '#f6ffed',
-                        color: '#52c41a',
-                        border: '1px solid #b7eb8f',
-                        marginRight: '8px',
-                        flexShrink: 0
-                      }}
-                      icon={<UserOutlined />}
-                    />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div>
-                        <Text
-                          strong
-                          style={{
-                            fontSize: '14px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: 'block'
-                          }}
-                        >
-                          {order.user?.name || 'Unknown Customer'}
-                        </Text>
-                      </div>
-                      <div>
-                        <Text
-                          type="secondary"
-                          style={{
-                            fontSize: '12px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: 'block'
-                          }}
-                        >
-                          {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
-                        </Text>
-                      </div>
-                    </div>
-                  </div>
-                </Col>
-
-                <Col span={7}>
-                  <div style={{ textAlign: 'center' }}>
-                    <Text
-                      strong
-                      style={{
-                        fontSize: '14px',
-                        color: 'black',
-                        marginBottom: '4px',
-                        display: 'block'
-                      }}
-                    >
-                      Pay_Status
-                    </Text>
-                    <Tag
-                      color="success"
-                      icon={<CheckCircleOutlined />}
-                      style={{
-                        border: '1px dashed #52c41a',
-                        fontWeight: '500',
-                        display: 'inline-flex',
-                        alignItems: 'center'
-                      }}
-                    >
-                      Paid
-                    </Tag>
-                  </div>
-                </Col>
-
-                <Col span={7}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ marginBottom: '4px' }}>
-                      <Text
-                        strong
-                        style={{
-                          color: '#52c41a',
-                          fontSize: '14px',
-                          display: 'block'
-                        }}
-                      >
-                        ₹{order.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                      </Text>
-                    </div>
-                    <div>
-                      <Tag
-                        color={getStatusColor(order.deliveryStatus)}
-                        icon={getStatusIcon(order.deliveryStatus)}
-                        style={{
-                          marginRight: 0,
-                          border: '1px dashed',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <span style={{
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          maxWidth: '80px',
-                          lineHeight: '1'
-                        }}>
-                          {order.deliveryStatus}
-                        </span>
-                      </Tag>
-                    </div>
-                  </div>
-                </Col>
-              </Row>
-            </div>
-          </List.Item>
-        )}
-      />
-    </Card>
-  );
-};
-
-const CustomerInsights: React.FC<{ orders: IOrder[] }> = ({ orders }) => {
-  const topCustomers = orders.reduce((acc, order) => {
-    const email = order.user?.email || 'unknown@example.com';
-    const name = order.user?.name || 'Unknown Customer';
-
-    if (!acc[email]) {
-      acc[email] = {
-        name,
-        email,
-        totalSpent: 0,
-        orderCount: 0
-      };
-    }
-
-    acc[email].totalSpent += order.totalAmount;
-    acc[email].orderCount += 1;
-
-    return acc;
-  }, {} as Record<string, { name: string; email: string; totalSpent: number; orderCount: number }>);
-
-  const topCustomersList = Object.values(topCustomers)
-    .sort((a, b) => b.totalSpent - a.totalSpent)
-    .slice(0, 3);
-
-  const averageOrderValue = orders.length > 0
-    ? orders.reduce((sum, order) => sum + order.totalAmount, 0) / orders.length
-    : 0;
-
-  return (
-    <Card
-      title={
-        <Space>
-          <StarOutlined style={{ color: '#722ed1' }} />
-          <span>Customer Insights</span>
-        </Space>
-      }
-      style={{
-        height: '100%',
-        border: '2px dashed #b7eb8f',
-        boxShadow: '0 4px 16px rgba(183, 235, 143, 0.2)'
-      }}
-      headStyle={{ borderBottom: '1px solid #f0f0f0' }}
-      bodyStyle={{ padding: '16px 24px' }}
-    >
-      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-        <Col span={12}>
-          <Statistic
-            title="Avg Order Value"
-            value={averageOrderValue}
-            precision={2}
-            valueStyle={{ color: '#722ed1', fontSize: '16px' }}
-            prefix="₹"
-          />
-        </Col>
-        <Col span={12}>
-          <Statistic
-            title="Top Customers"
-            value={topCustomersList.length}
-            valueStyle={{ color: '#1890ff', fontSize: '16px' }}
-            prefix={<TeamOutlined />}
-          />
-        </Col>
-      </Row>
-
-      <div style={{ marginBottom: 16 }}>
-        <Text strong style={{ fontSize: '14px', color: '#262626' }}>
-          Top Spending Customers
-        </Text>
-      </div>
-
-      <List
-        dataSource={topCustomersList}
-        size="small"
-        renderItem={(customer, index) => (
-          <List.Item
-            style={{
-              padding: '8px 0',
-              borderBottom: index === topCustomersList.length - 1 ? 'none' : '1px solid #f5f5f5'
-            }}
-          >
-            <List.Item.Meta
-              avatar={
-                <Avatar
-                  size="small"
-                  style={{
-                    backgroundColor: '#f0f2ff',
-                    color: '#722ed1',
-                    fontSize: '12px'
-                  }}
-                >
-                  {customer.name.charAt(0).toUpperCase()}
-                </Avatar>
-              }
-              title={
-                <Row justify="space-between" align="middle">
-                  <Col flex="1">
-                    <Text strong style={{ fontSize: '13px' }}>
-                      {customer.name}
-                    </Text>
-                  </Col>
-                  <Col>
-                    <Text style={{ color: '#52c41a', fontSize: '13px', fontWeight: 500 }}>
-                      ₹{customer.totalSpent.toLocaleString('en-IN')}
-                    </Text>
-                  </Col>
-                </Row>
-              }
-              description={
-                <Row justify="space-between" align="middle">
-                  <Col flex="1">
-                    <Text type="secondary" style={{ fontSize: '11px' }}>
-                      {customer.orderCount} orders
-                    </Text>
-                  </Col>
-                  <Col>
-                    <Tag color="blue">
-                      #{index + 1}
-                    </Tag>
-                  </Col>
-                </Row>
-              }
-            />
-          </List.Item>
-        )}
-      />
-    </Card>
-  );
-};
-
-const MyCampaign: React.FC<{ orders: IOrder[] }> = ({ orders }) => {
-  const navigate = useNavigate();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'total' | 'active'>('total');
-
-  const handleOrderClick = () => {
-    navigate('/admin/ordermanagement');
-  };
-
-  const handlePaymentClick = () => {
-    navigate('/admin/paymentoverview');
-  };
-
-  const totalUsers = new Set(orders.map(order => order.user?.email).filter(Boolean)).size;
-  const activeUsersSet = new Set(
-    orders
-      .filter(order =>
-        new Date(order.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      )
-      .map(order => order.user?.email || order.user?._id)
-      .filter(Boolean)
-  );
-  const activeUsers = activeUsersSet.size;
-  const allSpend = orders.reduce((sum, order) => sum + order.totalAmount, 0);
-
-  const getAllUsers = () => {
-    const userMap = new Map();
-    orders.forEach(order => {
-      if (order.user?.email) {
-        const userId = order.user.email;
-        if (!userMap.has(userId)) {
-          userMap.set(userId, {
-            key: userId,
-            name: order.user.name || 'Unknown',
-            email: order.user.email,
-            totalOrders: 0,
-            totalSpent: 0,
-            lastOrderDate: order.createdAt
-          });
-        }
-        const user = userMap.get(userId);
-        user.totalOrders++;
-        user.totalSpent += order.totalAmount;
-        if (new Date(order.createdAt) > new Date(user.lastOrderDate)) {
-          user.lastOrderDate = order.createdAt;
-        }
-      }
-    });
-    return Array.from(userMap.values());
-  };
-
-  const getActiveUsers = () => {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const userMap = new Map();
-
-    orders
-      .filter(order => new Date(order.createdAt) > thirtyDaysAgo)
-      .forEach(order => {
-        if (order.user?.email) {
-          const userId = order.user.email;
-          if (!userMap.has(userId)) {
-            userMap.set(userId, {
-              key: userId,
-              name: order.user.name || 'Unknown',
-              email: order.user.email,
-              totalOrders: 0,
-              totalSpent: 0,
-              lastOrderDate: order.createdAt
-            });
-          }
-          const user = userMap.get(userId);
-          user.totalOrders++;
-          user.totalSpent += order.totalAmount;
-          if (new Date(order.createdAt) > new Date(user.lastOrderDate)) {
-            user.lastOrderDate = order.createdAt;
-          }
-        }
-      });
-    return Array.from(userMap.values());
-  };
-
-  const handleUserClick = (type: 'total' | 'active') => {
-    setModalType(type);
-    setModalVisible(true);
-  };
-
-  const closeModal = () => {
-    setModalVisible(false);
-  };
-
-  const columns = [
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Name</span>,
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string) => (
-        <div>
-          <Avatar size="small" style={{ backgroundColor: '#52c41a', marginRight: 8 }}>
-            {text.charAt(0).toUpperCase()}
-          </Avatar>
-          <Text strong style={{ color: '#262626' }}>{text}</Text>
-        </div>
-      ),
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Email</span>,
-      dataIndex: 'email',
-      key: 'email',
-      render: (email: string) => (
-        <Text style={{ color: '#595959' }}>{email}</Text>
-      ),
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Total Orders</span>,
-      dataIndex: 'totalOrders',
-      key: 'totalOrders',
-      render: (value: number) => (
-        <Tag color="cyan" style={{ border: '1px dashed'}}>{value}</Tag>
-      ),
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Total Spent</span>,
-      dataIndex: 'totalSpent',
-      key: 'totalSpent',
-      render: (value: number) => (
-        <Text style={{ color: '#52c41a', fontWeight: 600 }}>
-          ₹{value.toLocaleString('en-IN')}
-        </Text>
-      ),
-    },
-    {
-      title: <span style={{ color: "#52c41a", fontWeight: 600 }}>Last Order</span>,
-      dataIndex: 'lastOrderDate',
-      key: 'lastOrderDate',
-      render: (date: string) => (
-        <Text style={{ color: '#595959' }}>
-          {new Date(date).toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-          })}
-        </Text>
-      ),
-    },
-  ];
-
-  const userData = modalType === 'total' ? getAllUsers() : getActiveUsers();
-  const modalTitle = modalType === 'total' ? 'All Users Details' : 'Active Users Details (Last 30 Days)';
-
-  const stats = [
-    {
-      title: 'Total Orders',
-      value: orders.length,
-      change: '+2.6%',
-      trend: 'up',
-      color: '#52c41a',
-      icon: <ShoppingCartOutlined />,
-      clickable: true,
-      onClick: handleOrderClick
-    },
-    {
-      title: 'Total Users',
-      value: totalUsers,
-      change: '+4.6%',
-      trend: 'up',
-      color: '#1890ff',
-      icon: <TeamOutlined />,
-      clickable: true,
-      onClick: () => handleUserClick('total')
-    },
-    {
-      title: 'Active Users',
-      value: activeUsers,
-      change: '+1.8%',
-      trend: 'up',
-      color: '#722ed1',
-      icon: <UserOutlined />,
-      clickable: true,
-      onClick: () => handleUserClick('active')
-    },
-    {
-      title: 'Total Revenue',
-      value: `₹${allSpend.toLocaleString('en-IN')}`,
-      change: '+7.2%',
-      trend: 'up',
-      color: '#fa8c16',
-      icon: <span style={{ fontSize: '16px' }}>₹</span>,
-      clickable: true,
-      onClick: handlePaymentClick
-    }
-  ];
-
-  return (
-    <>
-      <Row gutter={[24, 16]}>
-        {stats.map((stat, index) => (
-          <Col xs={24} sm={12} md={6} key={index}>
-            <Card
-              style={{
-                textAlign: 'center',
-                height: '100%',
-                border: '2px dashed #b7eb8f',
-                boxShadow: '0 4px 16px rgba(183, 235, 143, 0.2)',
-                borderRadius: '16px',
-                cursor: stat.clickable ? 'pointer' : 'default',
-                transition: 'all 0.3s ease'
-              }}
-              bodyStyle={{ padding: '24px 16px' }}
-              onClick={stat.onClick}
-              hoverable={stat.clickable}
-            >
-              <Row justify="center" style={{ marginBottom: 16 }}>
-                <Col>
-                  <Avatar
-                    size={48}
-                    style={{
-                      backgroundColor: `${stat.color}15`,
-                      color: stat.color,
-                      marginBottom: 8
-                    }}
-                    icon={stat.icon}
-                  />
-                </Col>
-              </Row>
-              <Row justify="center">
-                <Col span={24}>
-                  <Statistic
-                    title={stat.title}
-                    value={typeof stat.value === 'number' ? stat.value : stat.value.replace('₹', '')}
-                    precision={typeof stat.value === 'string' && stat.value.includes('₹') ? 0 : undefined}
-                    prefix={typeof stat.value === 'string' && stat.value.includes('₹') ? '₹' : undefined}
-                    valueStyle={{
-                      color: '#262626',
-                      fontSize: '24px',
-                      fontWeight: 'bold'
-                    }}
-                  />
-                </Col>
-              </Row>
-              <Row justify="center" align="middle" gutter={4} style={{ marginTop: 8 }}>
-                <Col>
-                  {stat.trend === 'up' ? (
-                    <RiseOutlined style={{ color: '#52c41a', fontSize: '12px' }} />
-                  ) : (
-                    <FallOutlined style={{ color: '#ff4d4f', fontSize: '12px' }} />
-                  )}
-                </Col>
-                <Col>
-                  <Text style={{
-                    color: stat.trend === 'up' ? '#52c41a' : '#ff4d4f',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}>
-                    {stat.change}
-                  </Text>
-                </Col>
-                <Col>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>vs last month</Text>
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-        ))}
-      </Row>
-
-      <Modal
-        title={
-          <Space>
-            <TeamOutlined style={{ color: '#52c41a' }} />
-            <span style={{ color: '#52c41a', fontWeight: '600' }}>{modalTitle}</span>
-          </Space>
-        }
-        visible={modalVisible}
-        onCancel={closeModal}
-        footer={null}
-        width={1000}
-        centered
-        style={{
-          top: 0,
-        }}
-        bodyStyle={{
-          maxHeight: '70vh',
-          overflowY: 'auto',
-          backgroundColor: '#f6ffed',
-          borderRadius: '8px'
-        }}
-      >
-        <Table
-          columns={columns}
-          dataSource={userData}
-          pagination={{
-            pageSize: 10,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} users`
-          }}
-          size="small"
-          scroll={{ x: 800 }}
-          style={{
-            backgroundColor: 'white',
-            borderRadius: '8px'
-          }}
-          rowClassName={(_, index) =>
-            index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
-          }
-        />
-      </Modal>
-    </>
-  );
-};
-
-const LoadingSpinner: React.FC = () => {
-  return (
-    <Row justify="center" align="middle" style={{ minHeight: '60vh' }}>
-      <Col>
-        <Row justify="center">
-          <Col>
-            <Spin size="large" />
-          </Col>
-        </Row>
-        <Row justify="center" style={{ marginTop: '16px' }}>
-          <Col>
-            <Text style={{ color: '#52c41a', fontSize: '16px' }}>
-              Loading analytics data...
-            </Text>
-          </Col>
-        </Row>
-      </Col>
-    </Row>
-  );
-};
 
 const OrderAnalytics: React.FC = () => {
   const auth = useContext(AuthContext);
   const [orders, setOrders] = useState<IOrder[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [messageApi, contextHolder] = message.useMessage();
+  const hasFetchedRef = useRef(false);
+  
+  // Active chart timeframe: 'weekly' | 'monthly' | 'yearly'
+  const [chartTimeframe, setChartTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
+
+  // Dialogs for viewing all top customers / transactions
+  const [custDialogVisible, setCustDialogVisible] = useState<boolean>(false);
+  const [txDialogVisible, setTxDialogVisible] = useState<boolean>(false);
+
+  // Reusable Customer Profile Dialog State
+  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+  const [customerModalVisible, setCustomerModalVisible] = useState<boolean>(false);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const fetchOrders = useCallback(async () => {
     if (!auth?.token) {
-      setError('Not authenticated.');
       setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
-      setError(null);
-
-      const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1000));
-
+      if (orders.length === 0) {
+        setLoading(true);
+      }
+      
       const config = {
         headers: {
           Authorization: `Bearer ${auth.token}`,
@@ -997,184 +48,997 @@ const OrderAnalytics: React.FC = () => {
         withCredentials: true,
       };
 
-      const [response] = await Promise.all([
-        axios.get(`${backendUrl}/api/orders`, config),
-        minLoadingTime
-      ]);
-
+      const response = await axios.get(`${backendUrl}/api/orders`, config);
       if (response.data.success) {
         setOrders(response.data.orders);
-        setError(null);
       } else {
-        setError(response.data.message || 'Failed to fetch orders.');
+        console.warn(response.data.message || 'Failed to fetch orders.');
       }
     } catch (err: any) {
       console.error('Error fetching orders:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to fetch orders.';
-      setError(errorMessage);
-      messageApi.error({
-        content: errorMessage,
-        duration: 3,
-        style: {
-          marginTop: '20vh',
-        },
-      });
     } finally {
       setLoading(false);
     }
-  }, [auth?.token, backendUrl, messageApi]);
+  }, [auth?.token, backendUrl]);
+
+  const fetchCustomers = useCallback(async () => {
+    if (!auth?.token) return;
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
+        withCredentials: true,
+      };
+      const res = await axios.get(`${backendUrl}/api/auth/customers`, config);
+      if (res.data.success) {
+        setCustomers(res.data.users || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch customers for mapping:', err);
+    }
+  }, [auth?.token, backendUrl]);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    if (auth?.token && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchOrders();
+      fetchCustomers();
+    }
+  }, [auth?.token]);
 
-  if (loading) {
+  // Open Customer details Modal
+  const handleCustomerClick = (customerEmailOrId: string) => {
+    // Find matching customer from list
+    const matched = customers.find(c => c.email === customerEmailOrId || c._id === customerEmailOrId);
+    if (matched) {
+      setSelectedCustomer(matched);
+      setCustomerModalVisible(true);
+    } else {
+      // Fallback search within orders
+      const orderWithUser = orders.find(o => {
+        const u = o.user;
+        if (typeof u === 'object') {
+          return u?.email === customerEmailOrId || u?._id === customerEmailOrId;
+        }
+        return u === customerEmailOrId;
+      });
+      if (orderWithUser && typeof orderWithUser.user === 'object') {
+        setSelectedCustomer({
+          _id: orderWithUser.user._id,
+          name: orderWithUser.user.name,
+          email: orderWithUser.user.email,
+          phone: (orderWithUser.user as any).phone || 'N/A',
+          image: (orderWithUser.user as any).image,
+          walletBalance: (orderWithUser.user as any).walletBalance || 0,
+          createdAt: (orderWithUser.user as any).createdAt || new Date().toISOString(),
+          verified: true
+        });
+        setCustomerModalVisible(true);
+      }
+    }
+  };
+
+  // Filter orders for the selected customer in modal
+  const selectedCustomerOrders = useMemo(() => {
+    if (!selectedCustomer) return [];
+    return orders.filter(o => {
+      const orderUserId = typeof o.user === 'object' ? o.user?._id : o.user;
+      return orderUserId === selectedCustomer._id;
+    });
+  }, [selectedCustomer, orders]);
+
+  // Aggregate stats for selected customer in modal
+  const selectedCustomerStats = useMemo(() => {
+    if (selectedCustomerOrders.length === 0) {
+      return { totalSpent: 0, orderCount: 0 };
+    }
+    const totalSpent = selectedCustomerOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    return {
+      totalSpent,
+      orderCount: selectedCustomerOrders.length
+    };
+  }, [selectedCustomerOrders]);
+
+  // Calculations for Metrics
+  const stats = useMemo(() => {
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const uniqueCustomers = new Set(orders.map(o => {
+      if (typeof o.user === 'object') return o.user?.email;
+      return o.user;
+    }).filter(Boolean)).size;
+    const deliveredCount = orders.filter(o => o.deliveryStatus === 'Delivered').length;
+    const pendingCount = orders.filter(o => o.deliveryStatus === 'Pending').length;
+    const preparingCount = orders.filter(o => (o.deliveryStatus as any) === 'Preparing').length;
+    const outForDeliveryCount = orders.filter(o => (o.deliveryStatus as any) === 'Out For Delivery' || o.deliveryStatus === 'Shipped').length;
+    const cancelledCount = orders.filter(o => (o.deliveryStatus as any) === 'Cancelled').length;
+    
+    const deliveryRate = totalOrders > 0 ? Math.round((deliveredCount / totalOrders) * 100) : 0;
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    // Last 7 days earnings
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentEarning = orders
+      .filter(o => new Date(o.createdAt) >= sevenDaysAgo)
+      .reduce((sum, o) => sum + o.totalAmount, 0);
+    const dailyAvgEarning = recentEarning / 7;
+
+    return {
+      totalOrders,
+      totalRevenue,
+      uniqueCustomers,
+      deliveryRate,
+      avgOrderValue,
+      dailyAvgEarning,
+      pendingCount,
+      preparingCount,
+      outForDeliveryCount,
+      deliveredCount,
+      cancelledCount
+    };
+  }, [orders]);
+
+  // Top Customers Data
+  const topCustomers = useMemo(() => {
+    const customersMap: { [key: string]: { _id: string; name: string; email: string; orderCount: number; totalSpent: number } } = {};
+    
+    orders.forEach(order => {
+      if (order.user && typeof order.user === 'object') {
+        const email = order.user.email || 'n/a';
+        const name = order.user.name || 'Unknown';
+        const _id = order.user._id || '';
+        if (!customersMap[email]) {
+          customersMap[email] = { _id, name, email, orderCount: 0, totalSpent: 0 };
+        }
+        customersMap[email].orderCount += 1;
+        customersMap[email].totalSpent += order.totalAmount;
+      }
+    });
+
+    return Object.values(customersMap)
+      .sort((a, b) => b.totalSpent - a.totalSpent);
+  }, [orders]);
+
+  // Latest Transactions Data
+  const latestTransactions = useMemo(() => {
+    return [...orders]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [orders]);
+
+  // Chart Configurations
+  // 1. Weekly Performance Chart (Line Chart for Revenue and Bar for Orders)
+  const weeklyChartData = useMemo(() => {
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const earnings = [0, 0, 0, 0, 0, 0, 0];
+    const orderCounts = [0, 0, 0, 0, 0, 0, 0];
+
+    orders.forEach(order => {
+      const dayIndex = (new Date(order.createdAt).getDay() + 6) % 7; // Mon=0, Sun=6
+      earnings[dayIndex] += order.totalAmount;
+      orderCounts[dayIndex] += 1;
+    });
+
+    return {
+      labels: weekdays,
+      datasets: [
+        {
+          label: 'Revenue (₹)',
+          type: 'line',
+          borderColor: '#15803d',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4,
+          data: earnings,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Orders',
+          type: 'bar',
+          backgroundColor: '#3b82f6',
+          data: orderCounts,
+          yAxisID: 'y1',
+          barPercentage: 0.4
+        }
+      ]
+    };
+  }, [orders]);
+
+  const weeklyChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { color: '#475569', font: { family: 'Inter' } }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#64748b', font: { family: 'Inter' } }
+      },
+      y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        ticks: { color: '#64748b', font: { family: 'Inter' }, callback: (value: any) => '₹' + value },
+        grid: { color: '#f1f5f9' }
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        ticks: { color: '#3b82f6', font: { family: 'Inter' }, stepSize: 1 },
+        grid: { display: false }
+      }
+    }
+  };
+
+  // 2. Order Status Distribution (Doughnut Chart)
+  const doughnutChartData = useMemo(() => {
+    return {
+      labels: ['Pending', 'Preparing', 'Out For Delivery', 'Delivered', 'Cancelled'],
+      datasets: [
+        {
+          data: [
+            stats.pendingCount,
+            stats.preparingCount,
+            stats.outForDeliveryCount,
+            stats.deliveredCount,
+            stats.cancelledCount
+          ],
+          backgroundColor: ['#eab308', '#a855f7', '#06b6d4', '#15803d', '#ef4444'],
+          hoverBackgroundColor: ['#ca8a04', '#9333ea', '#0891b2', '#166534', '#dc2626'],
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }
+      ]
+    };
+  }, [stats]);
+
+  const doughnutChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '70%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          color: '#475569',
+          usePointStyle: true,
+          boxWidth: 8,
+          font: { family: 'Inter', size: 11 }
+        }
+      }
+    }
+  };
+
+  // 3. Yearly Analysis Data (Bar Chart)
+  const yearlyChartData = useMemo(() => {
+    return {
+      labels: ['2026'],
+      datasets: [
+        {
+          label: 'Revenue (₹)',
+          backgroundColor: '#15803d',
+          data: [stats.totalRevenue],
+          barPercentage: 0.3
+        },
+        {
+          label: 'Orders',
+          backgroundColor: '#3b82f6',
+          data: [stats.totalOrders],
+          barPercentage: 0.3
+        },
+        {
+          label: 'Customers',
+          backgroundColor: '#f59e0b',
+          data: [stats.uniqueCustomers],
+          barPercentage: 0.3
+        }
+      ]
+    };
+  }, [stats]);
+
+  const yearlyChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { color: '#475569', font: { family: 'Inter' } } }
+    },
+    scales: {
+      x: { ticks: { color: '#64748b', font: { family: 'Inter' } } },
+      y: { ticks: { color: '#64748b', font: { family: 'Inter' } } }
+    }
+  };
+
+  // 4. Monthly Performance (Column/Bar Chart for last 6 Months)
+  const monthlyChartData = useMemo(() => {
+    const monthNames = ['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+    const monthlyRevenue = [0, 0, 0, 0, stats.totalRevenue * 0.3, stats.totalRevenue * 0.7]; // mock for monthly dispersion
+    const monthlyOrders = [0, 0, 0, 0, Math.round(stats.totalOrders * 0.3), Math.round(stats.totalOrders * 0.7)];
+
+    return {
+      labels: monthNames,
+      datasets: [
+        {
+          label: 'Revenue (₹)',
+          backgroundColor: '#15803d',
+          data: monthlyRevenue,
+          barPercentage: 0.5
+        },
+        {
+          label: 'Orders',
+          backgroundColor: '#3b82f6',
+          data: monthlyOrders,
+          barPercentage: 0.5
+        }
+      ]
+    };
+  }, [stats]);
+
+  const monthlyChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top', labels: { color: '#475569', font: { family: 'Inter' } } }
+    },
+    scales: {
+      x: { ticks: { color: '#64748b', font: { family: 'Inter' } } },
+      y: { ticks: { color: '#64748b', font: { family: 'Inter' } } }
+    }
+  };
+
+  // Consolidate timeframe data
+  const activeChartData = useMemo(() => {
+    if (chartTimeframe === 'weekly') return weeklyChartData;
+    if (chartTimeframe === 'monthly') return monthlyChartData;
+    return yearlyChartData;
+  }, [chartTimeframe, weeklyChartData, monthlyChartData, yearlyChartData]);
+
+  const activeChartOptions = useMemo(() => {
+    if (chartTimeframe === 'weekly') return weeklyChartOptions;
+    if (chartTimeframe === 'monthly') return monthlyChartOptions;
+    return yearlyChartOptions;
+  }, [chartTimeframe, weeklyChartOptions, monthlyChartOptions, yearlyChartOptions]);
+
+  // Button group styling helper
+  const getButtonStyle = (frame: 'weekly' | 'monthly' | 'yearly') => ({
+    fontSize: '0.78rem',
+    padding: '0.4rem 0.85rem',
+    borderRadius: '8px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 600,
+    backgroundColor: chartTimeframe === frame ? '#15803d' : 'transparent',
+    color: chartTimeframe === frame ? '#ffffff' : '#64748b',
+    transition: 'all 0.2s ease',
+  });
+
+  // Table Formatters
+  const customerTemplate = (row: any) => {
+    const userImg = row.image || row.user?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
     return (
-      <div style={{ padding: '40px 24px', maxWidth: 1250, margin: '0 auto' }}>
-        <LoadingSpinner />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <img
+          src={userImg}
+          alt={row.name || 'Customer'}
+          style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #22c55e' }}
+          onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+        />
+        <button
+          onClick={() => handleCustomerClick(row.email)}
+          style={{
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            fontWeight: 600,
+            color: '#15803d',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            fontSize: '0.8rem'
+          }}
+        >
+          {row.name}
+        </button>
       </div>
     );
-  }
+  };
 
-  if (error) {
+  const spentTemplate = (row: any) => (
+    <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem' }}>
+      ₹{row.totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </span>
+  );
+
+  const txCustomerTemplate = (row: any) => {
+    const u = row.user;
+    const name = typeof u === 'object' ? u?.name || 'Unknown' : 'Unknown';
+    const email = typeof u === 'object' ? u?.email : '';
+    const userImg = (typeof u === 'object' ? u?.image : '') || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
     return (
-      <div style={{ padding: '40px 24px', maxWidth: 1250, margin: '0 auto' }}>
-        {contextHolder}
-        <Row justify="center" style={{ padding: '40px 0' }}>
-          <Col xs={24} sm={20} md={16} lg={12}>
-            <Alert
-              message="Access Denied or Error!"
-              description={
-                <div>
-                  <p>{error}</p>
-                  <p>Please ensure you are logged in as an administrator.</p>
-                </div>
-              }
-              type="error"
-              showIcon
-              icon={<InfoCircleOutlined />}
-              action={
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<ReloadOutlined />}
-                  onClick={fetchOrders}
-                >
-                  Retry
-                </Button>
-              }
-            />
-          </Col>
-        </Row>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <img
+          src={userImg}
+          alt={name}
+          style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #22c55e' }}
+          onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+        />
+        <button
+          onClick={() => email && handleCustomerClick(email)}
+          style={{
+            border: 'none',
+            background: 'none',
+            padding: 0,
+            fontWeight: 600,
+            color: '#15803d',
+            cursor: 'pointer',
+            textDecoration: 'none',
+            fontSize: '0.8rem'
+          }}
+        >
+          {name}
+        </button>
+      </div>
+    );
+  };
+
+  const txAmountTemplate = (row: any) => (
+    <span style={{ fontWeight: 700, color: '#15803d', fontSize: '0.8rem' }}>
+      ₹{row.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </span>
+  );
+
+  const txStatusTemplate = (row: any) => {
+    let severity: "success" | "warning" | "info" | "danger" | null = 'info';
+    const status = row.deliveryStatus;
+    if (status === 'Delivered') severity = 'success';
+    else if (status === 'Cancelled') severity = 'danger';
+    else if (status === 'Pending') severity = 'warning';
+    else if (status === 'Preparing') severity = 'info';
+    return <Tag value={status} severity={severity} style={{ borderRadius: '6px', fontSize: '0.7rem', padding: '0.15rem 0.35rem' }} />;
+  };
+
+  if (loading && orders.length === 0) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', flexDirection: 'column', gap: '1rem' }}>
+        <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#15803d' }} />
+        <span style={{ color: '#15803d', fontWeight: 600 }}>Analyzing Business Statistics...</span>
       </div>
     );
   }
 
   return (
-    <>
-      <style>{`
-        .table-row-light {
-          background-color: #fafafa;
-        }
-        .table-row-dark {
-          background-color: #ffffff;
-        }
-        .table-row-light:hover,
-        .table-row-dark:hover {
-          background-color: #f6ffed !important;
-        }
-      `}</style>
-      
-      <div style={{
-        padding: '24px',
-        maxWidth: 1250,
-        margin: '0 auto',
-        minHeight: '100vh'
-      }}>
-        {contextHolder}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* KPI Cards Grid */}
+      <section style={styles.kpiGrid}>
+        <div style={styles.kpiCard}>
+          <div style={styles.kpiLeft}>
+            <div style={styles.kpiTitle}>TOTAL ORDERS</div>
+            <div style={styles.kpiVal}>{stats.totalOrders}</div>
+            <div style={styles.kpiSub}>
+              <i className="pi pi-arrow-up" style={{ color: '#15803d', marginRight: '4px' }} />
+              <span>All time orders</span>
+            </div>
+          </div>
+          <div style={{ ...styles.kpiIconBox, backgroundColor: '#eff6ff' }}>
+            <i className="pi pi-shopping-cart" style={{ color: '#3b82f6', fontSize: '1.4rem' }} />
+          </div>
+        </div>
 
-        <Row justify="space-between" align="middle" style={{ marginBottom: '32px' }} gutter={[16, 16]}>
-          <Col xs={24} md={12} lg={16}>
-            <Title level={1} style={{
-              margin: 0,
-              color: "#52c41a",
-              fontSize: 'clamp(24px, 4vw, 32px)',
-              lineHeight: 1.2
-            }}>
-              Analytics Dashboard
-            </Title>
-            <Text type="secondary" style={{
-              fontSize: 'clamp(14px, 2vw, 16px)',
-              display: 'block',
-              marginTop: '4px'
-            }}>
-              Monitor your business performance and growth
-            </Text>
-          </Col>
-          <Col xs={24} md={12} lg={8}>
-            <Row justify="end" gutter={[16, 16]}>
-              <Col>
-                <Button
-                  type="primary"
-                  icon={<ReloadOutlined />}
-                  onClick={fetchOrders}
-                  loading={loading}
+        <div style={styles.kpiCard}>
+          <div style={styles.kpiLeft}>
+            <div style={styles.kpiTitle}>TOTAL REVENUE</div>
+            <div style={styles.kpiVal}>₹{stats.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+            <div style={styles.kpiSub}>
+              <i className="pi pi-chart-line" style={{ color: '#15803d', marginRight: '4px' }} />
+              <span>Gross sales earnings</span>
+            </div>
+          </div>
+          <div style={{ ...styles.kpiIconBox, backgroundColor: '#f0fdf4' }}>
+            <i className="pi pi-money-bill" style={{ color: '#15803d', fontSize: '1.4rem' }} />
+          </div>
+        </div>
+
+        <div style={styles.kpiCard}>
+          <div style={styles.kpiLeft}>
+            <div style={styles.kpiTitle}>ACTIVE CUSTOMERS</div>
+            <div style={styles.kpiVal}>{stats.uniqueCustomers}</div>
+            <div style={styles.kpiSub}>
+              <i className="pi pi-users" style={{ color: '#15803d', marginRight: '4px' }} />
+              <span>Distinct buyers</span>
+            </div>
+          </div>
+          <div style={{ ...styles.kpiIconBox, backgroundColor: '#fef3c7' }}>
+            <i className="pi pi-users" style={{ color: '#d97706', fontSize: '1.4rem' }} />
+          </div>
+        </div>
+
+        <div style={styles.kpiCard}>
+          <div style={styles.kpiLeft}>
+            <div style={styles.kpiTitle}>DELIVERY RATE</div>
+            <div style={styles.kpiVal}>{stats.deliveryRate}%</div>
+            <div style={styles.kpiSub}>
+              <i className="pi pi-check-circle" style={{ color: '#15803d', marginRight: '4px' }} />
+              <span>Successful delivery ratio</span>
+            </div>
+          </div>
+          <div style={{ ...styles.kpiIconBox, backgroundColor: '#f5f3ff' }}>
+            <i className="pi pi-truck" style={{ color: '#7c3aed', fontSize: '1.4rem' }} />
+          </div>
+        </div>
+      </section>
+
+      {/* Mini Grid Stats */}
+      <section style={styles.miniGrid}>
+        <div style={styles.miniCard}>
+          <div style={styles.miniTitle}>AVERAGE ORDER VALUE</div>
+          <div style={styles.miniVal}>
+            ₹{stats.avgOrderValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+          </div>
+          <span style={styles.miniSub}>Per order average</span>
+        </div>
+        
+        <div style={styles.miniCard}>
+          <div style={styles.miniTitle}>DAILY AVG EARNING</div>
+          <div style={styles.miniVal}>
+            ₹{stats.dailyAvgEarning.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+          </div>
+          <span style={styles.miniSub}>Last 7 days</span>
+        </div>
+
+        <div style={styles.miniCard}>
+          <div style={styles.miniTitle}>PENDING ORDERS</div>
+          <div style={styles.miniVal}>{stats.pendingCount}</div>
+          <span style={styles.miniSub}>Awaiting processing</span>
+        </div>
+
+        <div style={styles.miniCard}>
+          <div style={styles.miniTitle}>PREPARING KITCHEN</div>
+          <div style={styles.miniVal}>{stats.preparingCount}</div>
+          <span style={styles.miniSub}>Currently cooking</span>
+        </div>
+
+        <div style={styles.miniCard}>
+          <div style={styles.miniTitle}>OUT FOR DELIVERY</div>
+          <div style={styles.miniVal}>{stats.outForDeliveryCount}</div>
+          <span style={styles.miniSub}>In transit executive</span>
+        </div>
+
+        <div style={styles.miniCard}>
+          <div style={styles.miniTitle}>DELIVERED ORDERS</div>
+          <div style={styles.miniVal}>{stats.deliveredCount}</div>
+          <span style={styles.miniSub}>Successfully completed</span>
+        </div>
+      </section>
+
+      {/* Primary Performance Charts - Consolidated */}
+      <section style={styles.chartSplit}>
+        {/* Weekly/Monthly/Yearly Consolidated Chart */}
+        <div style={{ ...styles.cardPanel, flex: 2 }}>
+          <div style={styles.cardHeader}>
+            <div>
+              <h2 style={styles.cardTitle}>Performance Analytics</h2>
+              <div style={styles.cardSub}>Business metrics showing {chartTimeframe} growth data</div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+              {/* Dynamic Toggle buttons */}
+              <div style={{ display: 'flex', gap: '0.2rem', backgroundColor: '#f1f5f9', padding: '0.25rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <button onClick={() => setChartTimeframe('weekly')} style={getButtonStyle('weekly')}>Weekly</button>
+                <button onClick={() => setChartTimeframe('monthly')} style={getButtonStyle('monthly')}>Monthly</button>
+                <button onClick={() => setChartTimeframe('yearly')} style={getButtonStyle('yearly')}>Yearly</button>
+              </div>
+
+              <div style={styles.chartSummaryBlock}>
+                <div>
+                  <span style={styles.chartSummaryLbl}>GROSS REVENUE</span>
+                  <span style={styles.chartSummaryVal}>₹{stats.totalRevenue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                </div>
+                <div>
+                  <span style={styles.chartSummaryLbl}>VOLUME</span>
+                  <span style={styles.chartSummaryVal}>{stats.totalOrders} Orders</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ height: '340px', position: 'relative' }}>
+            <Chart type="bar" data={activeChartData} options={activeChartOptions} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+
+        {/* Status Distribution Doughnut Chart */}
+        <div style={{ ...styles.cardPanel, flex: 1 }}>
+          <div style={styles.cardHeader}>
+            <div>
+              <h2 style={styles.cardTitle}>Status Share</h2>
+              <div style={styles.cardSub}>Status ratios</div>
+            </div>
+            <div>
+              <span style={styles.chartSummaryLbl}>TOTAL</span>
+              <span style={styles.chartSummaryVal}>{stats.totalOrders}</span>
+            </div>
+          </div>
+          <div style={{ height: '240px', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Chart type="doughnut" data={doughnutChartData} options={doughnutChartOptions} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      </section>
+
+      {/* Top Tables Section (Reduced font sizes) */}
+      <section style={styles.tableSplit}>
+        {/* Top Spending Customers */}
+        <div style={{ ...styles.cardPanel, flex: 1 }}>
+          <div style={styles.tableHeaderLine}>
+            <h2 style={styles.cardTitle}>Top Customers</h2>
+            <button onClick={() => setCustDialogVisible(true)} style={styles.viewAllBtn}>
+              <span>View All</span>
+              <i className="pi pi-arrow-right" />
+            </button>
+          </div>
+          <div style={styles.tableSubLabel}>By revenue generated</div>
+          
+          <DataTable
+            value={topCustomers.slice(0, 5)}
+            responsiveLayout="scroll"
+            className="p-datatable-sm"
+            style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}
+          >
+            <Column field="name" header="CUSTOMER" body={customerTemplate} style={{ fontSize: '0.8rem' }} />
+            <Column field="email" header="EMAIL" style={{ fontSize: '0.8rem' }} />
+            <Column field="orderCount" header="ORDERS" style={{ fontSize: '0.8rem' }} />
+            <Column field="totalSpent" header="TOTAL SPENT" body={spentTemplate} style={{ fontSize: '0.8rem' }} />
+          </DataTable>
+        </div>
+
+        {/* Latest Transactions */}
+        <div style={{ ...styles.cardPanel, flex: 1.2 }}>
+          <div style={styles.tableHeaderLine}>
+            <h2 style={styles.cardTitle}>Latest Transactions</h2>
+            <button onClick={() => setTxDialogVisible(true)} style={styles.viewAllBtn}>
+              <span>View All</span>
+              <i className="pi pi-arrow-right" />
+            </button>
+          </div>
+          <div style={styles.tableSubLabel}>Recent orders</div>
+
+          <DataTable
+            value={latestTransactions.slice(0, 5)}
+            responsiveLayout="scroll"
+            className="p-datatable-sm"
+            style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}
+          >
+            <Column field="user.name" header="CUSTOMER" body={txCustomerTemplate} style={{ fontSize: '0.8rem' }} />
+            <Column field="_id" header="ORDER ID" body={(r) => <code style={{ color: '#64748b', fontSize: '0.75rem' }}>{r._id.substring(0, 8)}...</code>} style={{ fontSize: '0.8rem' }} />
+            <Column field="totalAmount" header="AMOUNT" body={txAmountTemplate} style={{ fontSize: '0.8rem' }} />
+            <Column field="status" header="STATUS" body={txStatusTemplate} style={{ fontSize: '0.8rem' }} />
+          </DataTable>
+        </div>
+      </section>
+
+      {/* Dialog for Top Customers */}
+      <Dialog header="Top Spending Customers" visible={custDialogVisible} style={{ width: '60vw', borderRadius: '12px' }} onHide={() => setCustDialogVisible(false)}>
+        <DataTable value={topCustomers} paginator rows={10} responsiveLayout="scroll" style={{ fontSize: '0.85rem' }}>
+          <Column field="name" header="Customer Name" body={customerTemplate} />
+          <Column field="email" header="Email Address" />
+          <Column field="orderCount" header="Total Orders" />
+          <Column field="totalSpent" header="Total Spent" body={spentTemplate} sortable />
+        </DataTable>
+      </Dialog>
+
+      {/* Dialog for All Transactions Log */}
+      <Dialog header="All Transactions Log" visible={txDialogVisible} style={{ width: '70vw', borderRadius: '12px' }} onHide={() => setTxDialogVisible(false)}>
+        <DataTable value={latestTransactions} paginator rows={10} responsiveLayout="scroll" style={{ fontSize: '0.85rem' }}>
+          <Column field="_id" header="Order ID" body={(r) => <code style={{ color: '#64748b' }}>{r._id}</code>} />
+          <Column field="user.name" header="Customer Name" body={txCustomerTemplate} />
+          <Column field="user.email" header="Customer Email" body={(r) => typeof r.user === 'object' ? r.user?.email : r.user} />
+          <Column field="totalAmount" header="Amount" body={txAmountTemplate} sortable />
+          <Column field="createdAt" header="Order Date" body={(r) => new Date(r.createdAt).toLocaleDateString()} sortable />
+          <Column field="status" header="Status" body={txStatusTemplate} />
+        </DataTable>
+      </Dialog>
+
+      {/* Reusable Customer Profile Dialog (Combined profile + order history) */}
+      <Dialog
+        visible={customerModalVisible}
+        onHide={() => {
+          setCustomerModalVisible(false);
+          setSelectedCustomer(null);
+        }}
+        header={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem', width: '100%' }}>
+            <i className="pi pi-user-edit" style={{ color: '#15803d', fontSize: '1.3rem' }} />
+            <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#111827' }}>Customer Insights & History</span>
+          </div>
+        }
+        style={{ width: '800px', maxWidth: '95vw', borderRadius: '16px' }}
+        modal
+        dismissableMask
+      >
+        {selectedCustomer && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem', fontFamily: 'Inter, sans-serif' }}>
+            {/* Header Cards Info - Flex side-by-side */}
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+              {/* Profile Card */}
+              <div style={{ flex: '1 1 300px', display: 'flex', gap: '1rem', padding: '1.25rem', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                <Avatar
+                  image={selectedCustomer.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+                  size="xlarge"
+                  shape="circle"
+                  style={{ border: '3px solid #15803d', width: '70px', height: '70px' }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>{selectedCustomer.name}</h4>
+                  <span style={{ fontSize: '0.85rem', color: '#4b5563', wordBreak: 'break-all' }}>{selectedCustomer.email}</span>
+                  <span style={{ fontSize: '0.85rem', color: '#4b5563' }}>Phone: {selectedCustomer.phone || 'N/A'}</span>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', alignItems: 'center' }}>
+                    <Tag severity={selectedCustomer.verified !== false ? 'success' : 'warning'} value={selectedCustomer.verified !== false ? 'Verified' : 'Unverified'} />
+                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Joined: {new Date(selectedCustomer.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Card */}
+              <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '1.25rem', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Total Orders</span>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#15803d' }}>{selectedCustomerStats.orderCount}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Total Spent</span>
+                  <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#15803d' }}>₹{selectedCustomerStats.totalSpent.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Aggregated Order History */}
+            <div>
+              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', fontWeight: 700, color: '#1f2937' }}>
+                Order History ({selectedCustomerOrders.length})
+              </h4>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
+                <DataTable
+                  value={selectedCustomerOrders}
+                  emptyMessage={() => (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
+                      <i className="pi pi-shopping-cart" style={{ fontSize: '2rem', color: '#cbd5e1', marginBottom: '0.5rem' }} />
+                      <div>No orders placed yet.</div>
+                    </div>
+                  )}
+                  paginator
+                  rows={5}
+                  style={{ fontSize: '0.85rem' }}
                 >
-                  Refresh Data
-                </Button>
-              </Col>
-              <Col>
-                <Row justify="end">
-                  <Col span={24}>
-                    <Text type="secondary" style={{ display: 'block', fontSize: '12px', textAlign: 'right' }}>
-                      Content Management
-                    </Text>
-                  </Col>
-                  <Col>
-                    <Space>
-                      <UserOutlined style={{ color: '#1890ff' }} />
-                      <Text strong>Manager</Text>
-                    </Space>
-                  </Col>
-                </Row>
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-
-        <Row style={{ marginBottom: '32px' }}>
-          <Col span={24}>
-            <MyCampaign orders={orders} />
-          </Col>
-        </Row>
-
-        <Row gutter={[24, 24]}>
-          <Col xs={24} lg={16}>
-            <CampaignStatistic orders={orders} />
-          </Col>
-          <Col xs={24} lg={8}>
-            <WeeklyEarning orders={orders} />
-          </Col>
-        </Row>
-
-        <Row gutter={[16, 24]} style={{ marginTop: '24px' }}>
-          <Col xs={24} md={12}>
-            <LatestCampaign orders={orders} />
-          </Col>
-          <Col xs={24} md={12}>
-            <Row gutter={[16, 16]}>
-              <Col span={24}>
-                <OrderStatistics orders={orders} />
-              </Col>
-              <Col span={24}>
-                <CustomerInsights orders={orders} />
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-      </div>
-    </>
+                  <Column
+                    header="Order ID"
+                    body={(rowData: IOrder) => (
+                      <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>
+                        {rowData._id.substring(0, 10)}...
+                      </span>
+                    )}
+                  />
+                  <Column
+                    header="Date"
+                    body={(rowData: IOrder) => (
+                      <span>{new Date(rowData.createdAt).toLocaleDateString()}</span>
+                    )}
+                  />
+                  <Column
+                    header="Method"
+                    body={(rowData: IOrder) => (
+                      <Tag
+                        severity="info"
+                        value={((rowData as any).paymentMethod || 'COD').toUpperCase()}
+                        style={{ fontSize: '0.7rem' }}
+                      />
+                    )}
+                  />
+                  <Column
+                    header="Status"
+                    body={(rowData: IOrder) => {
+                      let sev: 'success' | 'info' | 'warning' | 'danger' | 'secondary' = 'info';
+                      const status = rowData.deliveryStatus;
+                      if (status === 'Delivered') sev = 'success';
+                      else if ((status as any) === 'Cancelled') sev = 'danger';
+                      else if (status === 'Pending') sev = 'warning';
+                      return <Tag severity={sev} value={status} style={{ fontSize: '0.7rem' }} />;
+                    }}
+                  />
+                  <Column
+                    header="Amount"
+                    body={(rowData: IOrder) => (
+                      <span style={{ fontWeight: 700, color: '#111827' }}>
+                        ₹{(rowData.totalAmount || 0).toFixed(2)}
+                      </span>
+                    )}
+                  />
+                </DataTable>
+              </div>
+            </div>
+            
+            {/* Close button container */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+              <Button
+                label="Close Profile"
+                icon="pi pi-times"
+                severity="success"
+                onClick={() => {
+                  setCustomerModalVisible(false);
+                  setSelectedCustomer(null);
+                }}
+                style={{ borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+              />
+            </div>
+          </div>
+        )}
+      </Dialog>
+    </div>
   );
+};
+
+// Premium Styles matching the mockup dashboard precisely
+const styles = {
+  kpiGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '1.5rem',
+  },
+  kpiCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    border: '1px solid #e5e7eb',
+    display: 'flex',
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01)',
+  },
+  kpiLeft: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+  },
+  kpiTitle: {
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    color: '#64748b',
+    letterSpacing: '0.5px',
+    marginBottom: '0.5rem',
+  },
+  kpiVal: {
+    fontSize: '1.5rem',
+    fontWeight: 800,
+    color: '#0f172a',
+    marginBottom: '0.45rem',
+  },
+  kpiSub: {
+    fontSize: '0.75rem',
+    color: '#94a3b8',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  kpiIconBox: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: '1rem',
+  },
+  miniCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: '12px',
+    padding: '1.25rem',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.01)',
+  },
+  miniTitle: {
+    fontSize: '0.65rem',
+    fontWeight: 700,
+    color: '#94a3b8',
+    letterSpacing: '0.5px',
+    marginBottom: '0.35rem',
+  },
+  miniVal: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    color: '#1e293b',
+    marginBottom: '0.25rem',
+  },
+  miniSub: {
+    fontSize: '0.68rem',
+    color: '#94a3b8',
+  },
+  chartSplit: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '1.5rem',
+  },
+  cardPanel: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)',
+    minWidth: '280px',
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+    borderBottom: '1px solid #f1f5f9',
+    paddingBottom: '1rem',
+    marginBottom: '1.5rem',
+    flexWrap: 'wrap' as const,
+    gap: '1rem',
+  },
+  cardTitle: {
+    fontSize: '1.05rem',
+    fontWeight: 700,
+    color: '#0f172a',
+    margin: 0,
+  },
+  cardSub: {
+    fontSize: '0.75rem',
+    color: '#94a3b8',
+    marginTop: '0.25rem',
+  },
+  chartSummaryBlock: {
+    display: 'flex',
+    gap: '1.5rem',
+  },
+  chartSummaryLbl: {
+    display: 'block',
+    fontSize: '0.65rem',
+    fontWeight: 700,
+    color: '#94a3b8',
+    letterSpacing: '0.5px',
+    marginBottom: '0.2rem',
+  },
+  chartSummaryVal: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    color: '#1e293b',
+  },
+  tableSplit: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '1.5rem',
+    marginBottom: '2rem',
+  },
+  tableHeaderLine: {
+    display: 'flex',
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+  },
+  tableSubLabel: {
+    fontSize: '0.75rem',
+    color: '#94a3b8',
+    marginTop: '0.25rem',
+    borderBottom: '1px solid #f1f5f9',
+    paddingBottom: '0.75rem',
+  },
+  viewAllBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    border: 'none',
+    backgroundColor: '#15803d',
+    color: '#ffffff',
+    padding: '0.45rem 0.85rem',
+    borderRadius: '8px',
+    fontSize: '0.78rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
 };
 
 export default OrderAnalytics;

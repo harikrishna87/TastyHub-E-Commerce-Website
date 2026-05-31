@@ -303,3 +303,383 @@ textarea::placeholder {
 body, body * {
   font-family: "Times New Roman", Times, serif !important;
 }
+
+/* Force PrimeIcons to use their correct icon font-family and override the global Times New Roman pseudo-element rule */
+.pi,
+.pi::before,
+.pi::after {
+  font-family: 'primeicons' !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  display: inline-block;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Premium Custom UI Dropdown Styles for SELECT & PrimeReact Dropdowns */
+select,
+.p-dropdown {
+  padding: 0.55rem 2.2rem 0.55rem 0.85rem !important;
+  border-radius: 10px !important;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff !important;
+  color: #334155;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' viewBox='0 0 24 24' stroke='%2322c55e' stroke-width='2.5'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 12px !important;
+  outline: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+select:hover:not(:disabled),
+.p-dropdown:hover:not(.p-disabled) {
+  border-color: #22c55e !important;
+}
+
+select:focus,
+.p-dropdown.p-focus,
+.p-dropdown:focus {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15) !important;
+}
+
+select:disabled,
+.p-dropdown.p-disabled {
+  background-color: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Remove default focus and hover outline styling on admin interactive elements */
+*:focus,
+*:focus-visible,
+.p-inputtext:focus,
+.p-inputtext:focus-visible,
+.p-button:focus,
+.p-button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Style internal elements of PrimeReact Dropdown for unified look */
+.p-dropdown .p-dropdown-label {
+  padding: 0 !important;
+  font-weight: 600 !important;
+  color: inherit !important;
+  background: transparent !important;
+}
+
+.p-dropdown .p-dropdown-trigger {
+  display: none !important; /* Hide PrimeReact's default trigger since we use our custom background-image SVG chevron */
+}
+
+/* Dropdown option items panel */
+.p-dropdown-panel {
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03) !important;
+  padding: 0.25rem !important;
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  padding: 0.5rem 0.85rem !important;
+  border-radius: 6px !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  transition: all 0.15s ease !important;
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover,
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+  background-color: rgba(34, 197, 94, 0.08) !important;
+  color: #22c55e !important;
+}
+
+/* Sidebar Logout Button Hover Micro-Transitions */
+.admin-logout-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.admin-logout-btn:hover {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+  padding-left: 1.25rem !important; /* smooth indent transition */
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.05) !important;
+}
+
+.admin-logout-btn:hover i {
+  color: #dc2626 !important;
+  transform: translateX(2px) !important;
+  transition: transform 0.3s ease !important;
+}
+
+/* Premium Notification Card Spacing & Hover Styles */
+.notification-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.notification-item:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04) !important;
+  border-color: #22c55e !important;
+}
+
+
+/* Glassmorphic Loader Backdrop (Replaces dark/black loading masks globally) */
+.p-datatable-loading-overlay,
+.p-component-overlay,
+.p-blockui-box,
+.p-blockui,
+.ant-spin-nested-loading > div > .ant-spin-blur::after {
+  background-color: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* Align icons and text in all buttons with a 4px gap */
+button,
+.p-button,
+.ant-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important; /* side by side with 3-5px gap */
+  vertical-align: middle !important;
+}
+
+.p-button .p-button-icon {
+  margin-right: 0 !important;
+  margin-left: 0 !important;
+}
+
+.p-button-label {
+  flex: none !important;
+}
+
+/* Premium Modals: 20px border radius, clear all-side borders, and hidden vertical scrolling */
+.p-dialog,
+.ant-modal-content {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  border: 1px solid #cbd5e1 !important; /* show all sides of borders */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.p-dialog .p-dialog-header,
+.ant-modal-header {
+  border-top-left-radius: 20px !important;
+  border-top-right-radius: 20px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.p-dialog .p-dialog-content,
+.ant-modal-body {
+  overflow-y: auto !important; /* Allow scroll */
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  border-bottom-left-radius: 20px !important;
+  border-bottom-right-radius: 20px !important;
+  padding: 1.5rem !important;
+}
+
+.p-dialog .p-dialog-content::-webkit-scrollbar,
+.ant-modal-body::-webkit-scrollbar {
+  display: none !important; /* Safari, Chrome, Opera */
+}
+
+.p-dialog .p-dialog-footer,
+.ant-modal-footer {
+  border-bottom-left-radius: 20px !important;
+  border-bottom-right-radius: 20px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  padding: 1rem 1.5rem !important;
+}
+
+/* ---------------------------------------------------- */
+/* CUSTOM STACKED-CARD 3D TOAST NOTIFICATIONS (STACKED DECK STYLE) */
+/* ---------------------------------------------------- */
+
+.p-toast {
+  opacity: 1 !important;
+  z-index: 9999 !important;
+}
+.p-toast-message {
+  border-radius: 14px !important;
+  margin-bottom: 1.25rem !important;
+  overflow: visible !important;
+  border: none !important;
+}
+.p-toast-message-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0.8rem 1rem !important;
+  width: 100% !important;
+  gap: 0.75rem !important;
+}
+.p-toast-message-text {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 0.15rem !important;
+  margin: 0 !important;
+}
+.p-toast-summary {
+  font-weight: 800 !important;
+  font-size: 0.88rem !important;
+}
+.p-toast-detail {
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  margin-top: 0.1rem !important;
+}
+.p-toast-icon-close {
+  background: transparent !important;
+  border: none !important;
+  margin-left: auto !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s !important;
+}
+.p-toast-icon-close:hover {
+  opacity: 0.7 !important;
+}
+.p-toast-message-icon {
+  font-size: 1.4rem !important;
+  margin-right: 0 !important;
+  align-self: center !important;
+}
+
+/* Success Card stack (Green base, blue and pink stacked layers) */
+.p-toast-message.p-toast-message-success {
+  background: #e6f7ed !important;
+  border: 1px solid #b7eb8f !important;
+  color: #1e4620 !important;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 6px 0 -2px #85a5ff, 
+    0 12px 0 -4px #ff9c6e !important;
+}
+.p-toast-message-success .p-toast-message-icon,
+.p-toast-message-success .p-toast-message-icon::before {
+  color: #22c55e !important;
+}
+.p-toast-message-success .p-toast-icon-close {
+  color: #1e4620 !important;
+}
+.p-toast-message-success .p-toast-detail {
+  color: #2b5c2d !important;
+}
+
+/* Info Card stack (Blue base, teal and purple stacked layers) */
+.p-toast-message.p-toast-message-info {
+  background: #e6f7ff !important;
+  border: 1px solid #91d5ff !important;
+  color: #0050b3 !important;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 6px 0 -2px #87e8de, 
+    0 12px 0 -4px #d3adf7 !important;
+}
+.p-toast-message-info .p-toast-message-icon,
+.p-toast-message-info .p-toast-message-icon::before {
+  color: #1890ff !important;
+}
+.p-toast-message-info .p-toast-icon-close {
+  color: #0050b3 !important;
+}
+.p-toast-message-info .p-toast-detail {
+  color: #003a8c !important;
+}
+
+/* Warning Card stack (Yellow base, orange and red stacked layers) */
+.p-toast-message.p-toast-message-warn {
+  background: #fffbe6 !important;
+  border: 1px solid #ffe58f !important;
+  color: #ad6800 !important;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 6px 0 -2px #ffd8bf, 
+    0 12px 0 -4px #ffbb96 !important;
+}
+.p-toast-message-warn .p-toast-message-icon,
+.p-toast-message-warn .p-toast-message-icon::before {
+  color: #faad14 !important;
+}
+.p-toast-message-warn .p-toast-icon-close {
+  color: #ad6800 !important;
+}
+.p-toast-message-warn .p-toast-detail {
+  color: #8c5000 !important;
+}
+
+/* Error Card stack (Red base, purple and pink stacked layers) */
+.p-toast-message.p-toast-message-error {
+  background: #fff1f0 !important;
+  border: 1px solid #ffa39e !important;
+  color: #a8071a !important;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 6px 0 -2px #d3adf7, 
+    0 12px 0 -4px #ffadd2 !important;
+}
+.p-toast-message-error .p-toast-message-icon,
+.p-toast-message-error .p-toast-message-icon::before {
+  color: #f5222d !important;
+}
+.p-toast-message-error .p-toast-icon-close {
+  color: #a8071a !important;
+}
+.p-toast-message-error .p-toast-detail {
+  color: #820014 !important;
+}
+
+/* Style and Position Ant Design Messages in Top-Right */
+.ant-message {
+  left: auto !important;
+  right: 24px !important;
+  top: 24px !important;
+  width: auto !important;
+  max-width: 420px !important;
+}
+.ant-message-notice {
+  text-align: right !important;
+}
+.ant-message-notice-content {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  padding: 10px 18px !important;
+  display: inline-block !important;
+  text-align: left !important;
+}
+.ant-message-custom-content {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  color: #000000 !important;
+}
+.ant-message-custom-content .anticon {
+  font-size: 1.1rem !important;
+}
+.ant-message-custom-content span {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+

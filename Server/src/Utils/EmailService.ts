@@ -379,6 +379,218 @@ class EmailService {
       throw new Error(`Email delivery failed: ${error.message}`);
     }
   }
+
+  async sendDERegistrationPending(deUser: any): Promise<void> {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: deUser.email, name: deUser.name }];
+    sendSmtpEmail.sender = {
+      email: process.env.BREVO_FROM_EMAIL || '',
+      name: process.env.BREVO_FROM_NAME || 'TastyHub'
+    };
+    sendSmtpEmail.subject = 'Delivery Partner Registration Pending Approval - TastyHub';
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8e8e8; }
+          .header { border-bottom: 2px solid #2d2d2d; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; font-weight: bold; }
+          .status { font-weight: bold; color: orange; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">TastyHub Delivery Partner</div>
+          <p>Hello ${deUser.name},</p>
+          <p>Thank you for registering as a Delivery Executive with TastyHub!</p>
+          <p>Your application is currently <span class="status">Waiting for Admin Approval</span>. Once our administrative team reviews and approves your account, you will be notified via email and can start accepting delivery orders.</p>
+          <p>We appreciate your patience.</p>
+          <p>Best regards,<br>TastyHub Team</p>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log(`✅ DE registration email sent to ${deUser.email}`);
+    } catch (error: any) {
+      console.error('Failed to send DE registration email:', error);
+    }
+  }
+
+  async sendDEStatusUpdate(deUser: any, status: string): Promise<void> {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: deUser.email, name: deUser.name }];
+    sendSmtpEmail.sender = {
+      email: process.env.BREVO_FROM_EMAIL || '',
+      name: process.env.BREVO_FROM_NAME || 'TastyHub'
+    };
+    sendSmtpEmail.subject = `Delivery Partner Status Update: ${status} - TastyHub`;
+    
+    const isApproved = status.toLowerCase() === 'approved';
+    const statusColor = isApproved ? 'green' : 'red';
+    
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8e8e8; }
+          .header { border-bottom: 2px solid #2d2d2d; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; font-weight: bold; }
+          .status { font-weight: bold; color: ${statusColor}; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">TastyHub Delivery Partner Update</div>
+          <p>Hello ${deUser.name},</p>
+          <p>Your Delivery Executive application status has been updated to: <span class="status">${status}</span>.</p>
+          ${isApproved 
+            ? `<p>Congratulations! You are now approved to deliver with TastyHub. You can log in and start receiving orders immediately.</p>` 
+            : `<p>We regret to inform you that your application has been rejected by the admin at this time.</p>`
+          }
+          <p>Best regards,<br>TastyHub Team</p>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log(`✅ DE status update email sent to ${deUser.email}`);
+    } catch (error: any) {
+      console.error('Failed to send DE status email:', error);
+    }
+  }
+
+  async sendGiftCardPurchase(buyer: any, giftCard: any): Promise<void> {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: giftCard.recipientEmail || buyer.email, name: 'Gift Card Recipient' }];
+    sendSmtpEmail.sender = {
+      email: process.env.BREVO_FROM_EMAIL || '',
+      name: process.env.BREVO_FROM_NAME || 'TastyHub'
+    };
+    sendSmtpEmail.subject = 'You Received a TastyHub Gift Card! 🎁';
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 25px; border: 2px dashed #2d2d2d; text-align: center; border-radius: 12px; background-color: #fafafa; }
+          .card-code { font-size: 28px; font-weight: bold; background: #eee; padding: 15px; border: 1px dashed #999; margin: 20px 0; letter-spacing: 2px; }
+          .value { font-size: 24px; color: #2d2d2d; font-weight: bold; margin-bottom: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h2>TastyHub Gift Card 🎁</h2>
+          <p>Hello,</p>
+          <p>You have received a TastyHub Gift Card purchased by <strong>${buyer.name}</strong> (${buyer.email})!</p>
+          <div class="value">Value: ₹${giftCard.originalValue.toFixed(2)}</div>
+          <p>Use the code below to redeem your gift card balance:</p>
+          <div class="card-code">${giftCard.code}</div>
+          <p>Redeem it under your profile to add this value to your TastyHub Wallet!</p>
+          <p>Enjoy your meals!<br>TastyHub Team</p>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log(`✅ Gift card email sent to ${giftCard.recipientEmail || buyer.email}`);
+    } catch (error: any) {
+      console.error('Failed to send Gift Card purchase email:', error);
+    }
+  }
+
+  async sendGiftCardRedeem(user: any, giftCard: any): Promise<void> {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: user.email, name: user.name }];
+    sendSmtpEmail.sender = {
+      email: process.env.BREVO_FROM_EMAIL || '',
+      name: process.env.BREVO_FROM_NAME || 'TastyHub'
+    };
+    sendSmtpEmail.subject = 'Gift Card Successfully Redeemed! 💳';
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8e8e8; }
+          .header { border-bottom: 2px solid #2d2d2d; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; font-weight: bold; text-align: center; }
+          .amount { font-size: 20px; font-weight: bold; color: green; text-align: center; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">TastyHub Wallet Update</div>
+          <p>Hello ${user.name},</p>
+          <p>You have successfully redeemed a Gift Card (Code: ${giftCard.code})!</p>
+          <div class="amount">+ ₹${giftCard.originalValue.toFixed(2)} added to your wallet</div>
+          <p>Your new wallet balance is: <strong>₹${(user.walletBalance || 0).toFixed(2)}</strong>.</p>
+          <p>You can use this balance to pay for any future orders on TastyHub.</p>
+          <p>Thank you for using TastyHub!</p>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log(`✅ Gift card redeem email sent to ${user.email}`);
+    } catch (error: any) {
+      console.error('Failed to send Gift Card redeem email:', error);
+    }
+  }
+
+  async sendComboDealPurchase(user: any, comboDeal: any): Promise<void> {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: user.email, name: user.name }];
+    sendSmtpEmail.sender = {
+      email: process.env.BREVO_FROM_EMAIL || '',
+      name: process.env.BREVO_FROM_NAME || 'TastyHub'
+    };
+    sendSmtpEmail.subject = `Combo Deal Claimed Successfully! 🍔🥤`;
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8e8e8; }
+          .header { border-bottom: 2px solid #2d2d2d; padding-bottom: 10px; margin-bottom: 20px; font-size: 24px; font-weight: bold; }
+          .deal-info { font-size: 18px; font-weight: bold; background: #f9f9f9; padding: 15px; border-left: 5px solid #2d2d2d; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">TastyHub Combo Deal Claimed</div>
+          <p>Hello ${user.name},</p>
+          <p>You have successfully claimed a special Combo Deal!</p>
+          <div class="deal-info">
+            Deal Name: ${comboDeal.name}<br>
+            Price Paid: ₹${comboDeal.comboPrice.toFixed(2)}
+          </div>
+          <p>Thank you for ordering with us. Your items are being prepared!</p>
+          <p>Best regards,<br>TastyHub Team</p>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log(`✅ Combo deal email sent to ${user.email}`);
+    } catch (error: any) {
+      console.error('Failed to send Combo Deal purchase email:', error);
+    }
+  }
 }
 
 export default new EmailService();

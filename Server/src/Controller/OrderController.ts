@@ -4,6 +4,10 @@ import Notification from '../Models/Notification';
 import Order from '../Models/Orders';
 import Cart from '../Models/Cart_Items';
 import User from '../Models/Users';
+import Coupon from '../Models/Coupon';
+import GiftCard from '../Models/GiftCard';
+import Transaction from '../Models/Transaction';
+import ComboDeal from '../Models/ComboDeal';
 import { OrderDeliveryStatus, IOrderPopulated, IOrder } from '../Types';
 import { Types } from 'mongoose';
 import EmailService from '../Utils/EmailService';
@@ -34,31 +38,148 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    const totalAmount = cart.items.reduce((sum, item) => sum + item.discount_price * item.quantity, 0);
+    const { couponCode, giftCardCode, useWallet = false, paymentMethod = 'cod', paymentId, comboId } = req.body;
+
+    let baseTotal = cart.items.reduce((sum, item) => sum + item.discount_price * item.quantity, 0);
+    let comboDealObj = null;
+
+    if (comboId) {
+      if (!Types.ObjectId.isValid(comboId)) {
+        return res.status(400).json({ success: false, message: 'Invalid Combo Deal ID' });
+      }
+      comboDealObj = await ComboDeal.findById(comboId);
+      if (!comboDealObj || !comboDealObj.isActive) {
+        return res.status(404).json({ success: false, message: 'Combo Deal not found or inactive' });
+      }
+      if (new Date() > comboDealObj.endTime) {
+        return res.status(400).json({ success: false, message: 'Combo Deal has expired' });
+      }
+      if (comboDealObj.timesAccessed >= comboDealObj.totalLimit) {
+        return res.status(400).json({ success: false, message: 'Combo Deal access limit reached' });
+      }
+      const alreadyClaimed = comboDealObj.accessedUsers.includes(userId as any);
+      if (alreadyClaimed) {
+        return res.status(400).json({ success: false, message: 'You have already claimed this Combo Deal' });
+      }
+
+      baseTotal = comboDealObj.comboPrice;
+    }
+
+    let finalAmount = baseTotal;
+    let appliedCouponDiscount = 0;
+    let appliedGiftCardDeduction = 0;
+    let reminderMessage = '';
+
+    // 1. Process Coupon Code
+    if (couponCode) {
+      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true, expiryDate: { $gt: new Date() } });
+      if (coupon) {
+        if (baseTotal >= coupon.minOrderAmount) {
+          if (coupon.discountType === 'percentage') {
+            appliedCouponDiscount = (baseTotal * coupon.discountValue) / 100;
+          } else {
+            appliedCouponDiscount = coupon.discountValue;
+          }
+          finalAmount = Math.max(0, finalAmount - appliedCouponDiscount);
+        }
+      }
+    }
+
+    // 2. Process Gift Card Code
+    if (giftCardCode) {
+      const giftCard = await GiftCard.findOne({ code: giftCardCode.toUpperCase(), isActive: true, expiryDate: { $gt: new Date() } });
+      if (giftCard && giftCard.balance > 0) {
+        if (giftCard.balance > finalAmount) {
+          appliedGiftCardDeduction = finalAmount;
+          giftCard.balance = Number((giftCard.balance - finalAmount).toFixed(2));
+          finalAmount = 0;
+        } else if (giftCard.balance === finalAmount) {
+          appliedGiftCardDeduction = finalAmount;
+          giftCard.balance = 0;
+          giftCard.isActive = false;
+          finalAmount = 0;
+          reminderMessage = 'Your Gift Card has been fully consumed!';
+        } else {
+          appliedGiftCardDeduction = giftCard.balance;
+          finalAmount = Number((finalAmount - giftCard.balance).toFixed(2));
+          giftCard.balance = 0;
+          giftCard.isActive = false;
+        }
+        await giftCard.save();
+      }
+    }
+
+    // 3. Process Wallet Balance Deduction
+    let appliedWalletDeduction = 0;
+    if (useWallet && finalAmount > 0) {
+      const walletBal = user.walletBalance || 0;
+      if (walletBal > 0) {
+        if (walletBal >= finalAmount) {
+          appliedWalletDeduction = finalAmount;
+          user.walletBalance = Number((walletBal - finalAmount).toFixed(2));
+          finalAmount = 0;
+        } else {
+          appliedWalletDeduction = walletBal;
+          finalAmount = Number((finalAmount - walletBal).toFixed(2));
+          user.walletBalance = 0;
+        }
+        await user.save();
+
+        // Record Transaction
+        await Transaction.create({
+          user: userId,
+          type: 'Debit',
+          amount: appliedWalletDeduction,
+          description: `Paid for Order using Wallet Balance`
+        });
+      }
+    }
+
+    // Determine exact payment method
+    let resolvedPaymentMethod = paymentMethod;
+    if (finalAmount === 0) {
+      if (appliedWalletDeduction > 0) {
+        resolvedPaymentMethod = 'wallet';
+      } else if (appliedGiftCardDeduction > 0) {
+        resolvedPaymentMethod = 'gift_card';
+      }
+    }
+
     const order = await Order.create({
       user: userId,
       items: cart.items,
-      totalAmount,
+      totalAmount: finalAmount,
       deliveryStatus: 'Pending',
       shippingAddress: shippingAddress,
-      paymentMethod: req.body.paymentMethod || 'cod',
-      paymentId: req.body.paymentId,
+      paymentMethod: resolvedPaymentMethod,
+      paymentId: paymentId || (resolvedPaymentMethod === 'gift_card' ? `GIFT-${Date.now()}` : (resolvedPaymentMethod === 'wallet' ? `WAL-${Date.now()}` : undefined)),
     });
+
+    if (comboDealObj) {
+      comboDealObj.timesAccessed += 1;
+      comboDealObj.accessedUsers.push(userId as any);
+      await comboDealObj.save();
+
+      await EmailService.sendComboDealPurchase(user, comboDealObj).catch((err: any) => {
+        console.error('Failed to send combo deal purchase email:', err);
+      });
+    }
 
     await AdminNotification.create({
       type: 'new_order',
       title: 'New Order Placed',
-      message: `${user.name} Placed an Order Worth ₹${totalAmount.toFixed(2)}`,
+      message: `${user.name} Placed an Order Worth ₹${finalAmount.toFixed(2)} (Coupon: -₹${appliedCouponDiscount.toFixed(2)}, GiftCard: -₹${appliedGiftCardDeduction.toFixed(2)}, Wallet: -₹${appliedWalletDeduction.toFixed(2)})`,
       userId: user._id,
       orderId: order._id,
       userName: user.name,
       userEmail: user.email,
-      orderAmount: totalAmount,
+      orderAmount: finalAmount,
       isRead: false,
     });
 
     cart.items = [];
     await cart.save();
+
 
     // ✅ UPDATED: Pass order object directly (Brevo migration)
     const orderWithUser = {
@@ -108,7 +229,11 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
 
     res.status(201).json({
       success: true,
-      message: 'Order placed successfully!',
+      message: reminderMessage || 'Order placed successfully!',
+      appliedCouponDiscount,
+      appliedGiftCardDeduction,
+      appliedWalletDeduction,
+      walletBalance: user.walletBalance,
       order,
     });
   } catch (error: any) {
@@ -120,7 +245,7 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
 const getAllOrders = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orders = await Order.find()
-      .populate('user', 'name email')
+      .populate('user', 'name email image')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -142,7 +267,7 @@ const getUserOrders = async (req: Request, res: Response, next: NextFunction) =>
     }
 
     const orders = await Order.find({ user: userId })
-      .populate('user', 'name email')
+      .populate('user', 'name email image')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -172,7 +297,7 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
     }
 
     const order = await Order.findById(id)
-      .populate('user', 'name email') as IOrderPopulated | null;
+      .populate('user', 'name email image') as IOrderPopulated | null;
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
@@ -322,7 +447,7 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
       console.log('⚠️ User not found for order');
     }
 
-    await order.populate('user', 'name email');
+    await order.populate('user', 'name email image');
 
     res.status(200).json({
       success: true,
