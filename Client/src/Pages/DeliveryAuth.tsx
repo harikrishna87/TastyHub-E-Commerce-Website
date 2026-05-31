@@ -4,8 +4,6 @@ import axios from 'axios';
 import { Card, Button, Input, Form, message, Checkbox } from 'antd';
 import { AuthContext } from '../context/AuthContext';
 
-
-
 const customStyles = `
   .auth-page-container {
     background-color: #f1f5f9;
