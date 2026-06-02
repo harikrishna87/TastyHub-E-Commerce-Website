@@ -1,42 +1,45 @@
-import React, { useContext } from 'react'
+import React, { useContext, useRef, useEffect } from 'react'
 import './App.css'
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom'
-import Home from "./Pages/Home"
-import Store from "./Pages/Store"
+import { Toast } from 'primereact/toast'
+import Home from "./Pages/Customer/Home"
+import Store from "./Pages/Customer/Store"
 import FoodNavbar from './Components/FoodNavbar'
-import Contact from './Pages/Contact'
+import Contact from './Pages/Customer/Contact'
 import FoodFooter from './Components/FoodFooter'
-import PrivacyPolicy from './Pages/PrivacyPolicy'
-import TermsOfService from './Pages/TermsOfService'
+import PrivacyPolicy from './Pages/Customer/PrivacyPolicy'
+import TermsOfService from './Pages/Customer/TermsOfService'
 import { AuthProvider, AuthContext } from './context/AuthContext'
 import AuthPage from './Pages/Auth'
 
 import ProtectedRoute from './Components/ProtectedRoute'
-import ProductsPage from './Pages/ProductsPage'
-import FAQ from './Pages/FAQ'
-import NewArrivals from './Pages/NewArrivals'
-import DealsDiscounts from './Pages/DealsDiscounts'
-import GiftCards from './Pages/GiftCards'
-import ShoppingInfo from './Pages/ShoppingInfo'
-import ReturnsExchanges from './Pages/ReturnsExchanges'
-import PaymentOverview from './Pages/PaymentOverview'
-import OrderManagement from './Pages/OrderManagement'
-import OrderAnalytics from './Pages/OrderAnalytics'
-import ProfilePage from './Pages/ProfilePage'
-import CheckoutPage from './Pages/CheckoutPage'
-import OrderSuccessPage from '././Pages/OrderSuccessPage'
-import GoogleCallback from '../src/Components/GoogleCallback'
+import ProductsPage from './Pages/Admin/ProductsPage'
+import FAQ from './Pages/Customer/FAQ'
+import NewArrivals from './Pages/Customer/NewArrivals'
+import DealsDiscounts from './Pages/Customer/DealsDiscounts'
+import GiftCards from './Pages/Customer/GiftCards'
+import ShoppingInfo from './Pages/Customer/ShoppingInfo'
+import ReturnsExchanges from './Pages/Customer/ReturnsExchanges'
+import PaymentOverview from './Pages/Admin/PaymentOverview'
+import OrderManagement from './Pages/Admin/OrderManagement'
+import OrderAnalytics from './Pages/Admin/OrderAnalytics'
+import ProfilePage from './Pages/Customer/ProfilePage'
+import CheckoutPage from './Pages/Customer/CheckoutPage'
+import OrderSuccessPage from './Pages/Customer/OrderSuccessPage'
+import GoogleCallback from './Components/GoogleCallback'
 import AdminLayout from './Components/AdminLayout'
-import DeliveryManagement from './Pages/DeliveryManagement'
-import CouponsManagement from './Pages/CouponsManagement'
-import ComboDealsManagement from './Pages/ComboDealsManagement'
-import GiftCardsManagement from './Pages/GiftCardsManagement'
-import CartPage from './Pages/CartPage'
-import CustomersManagement from './Pages/CustomersManagement'
-import DeliveryAuth from './Pages/DeliveryAuth'
-import DeliveryDashboard from './Pages/DeliveryDashboard'
-import DeliveryLandingPage from './Pages/DeliveryLandingPage'
-import ComboDeals from './Pages/ComboDeals'
+import DeliveryManagement from './Pages/Admin/DeliveryManagement'
+import CouponsManagement from './Pages/Admin/CouponsManagement'
+import RestaurantsManagement from './Pages/Admin/RestaurantsManagement'
+import ComboDealsManagement from './Pages/Admin/ComboDealsManagement'
+import GiftCardsManagement from './Pages/Admin/GiftCardsManagement'
+import CartPage from './Pages/Customer/CartPage'
+import CustomersManagement from './Pages/Admin/CustomersManagement'
+import DeliveryAuth from './Pages/Delivery/DeliveryAuth'
+import DeliveryDashboard from './Pages/Delivery/DeliveryDashboard'
+import DeliveryLandingPage from './Pages/Delivery/DeliveryLandingPage'
+import ComboDeals from './Pages/Customer/ComboDeals'
+import AdminAuth from './Pages/Admin/AdminAuth'
 
 const AppContent: React.FC = () => {
   const auth = useContext(AuthContext)
@@ -58,6 +61,7 @@ const AppContent: React.FC = () => {
           <Route path='/admin/customers' element={<CustomersManagement />} />
           <Route path='/admin/delivery' element={<DeliveryManagement />} />
           <Route path='/admin/coupons' element={<CouponsManagement />} />
+          <Route path='/admin/restaurants' element={<RestaurantsManagement />} />
           <Route path='/admin/combodeals' element={<ComboDealsManagement />} />
           <Route path='/admin/giftcards' element={<GiftCardsManagement />} />
           <Route path='/admin/profilepage' element={<ProfilePage />} />
@@ -111,6 +115,7 @@ const AppContent: React.FC = () => {
           <Route path='/delivery' element={<DeliveryLandingPage />} />
           <Route path='/deivery' element={<DeliveryLandingPage />} />
           <Route path='/delivery/auth' element={<DeliveryAuth />} />
+          <Route path='/admin/auth' element={<AdminAuth />} />
 
           <Route element={<ProtectedRoute allowedRoles={['delivery_executive']} />}>
             <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
@@ -118,15 +123,27 @@ const AppContent: React.FC = () => {
 
           <Route path="/admin/orderanalytics" element={<Navigate to="/" replace />} />
         </Routes>
+        {!isDeliveryRoute && <FoodFooter />}
       </div>
-      {!isDeliveryRoute && <FoodFooter />}
     </>
   )
 }
 
 function App() {
+  const globalToastRef = useRef<Toast>(null)
+
+  useEffect(() => {
+    (window as any).showToast = (severity: 'success' | 'info' | 'warn' | 'error', summary: string, detail: string) => {
+      globalToastRef.current?.show({ severity, summary, detail, life: 3500 })
+    }
+    return () => {
+      delete (window as any).showToast
+    }
+  }, [])
+
   return (
     <AuthProvider>
+      <Toast ref={globalToastRef} />
       <AppContent />
     </AuthProvider>
   )

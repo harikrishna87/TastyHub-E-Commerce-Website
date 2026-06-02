@@ -145,6 +145,18 @@ export interface ITransaction extends Document {
   createdAt: Date;
 }
 
+export interface IWithdrawalRequest extends Document {
+  deliveryExecutive: Types.ObjectId;
+  amount: number;
+  paymentDetails: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  requestDate: Date;
+  processedDate?: Date;
+  adminNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 declare global {
   namespace Express {
     interface Request {

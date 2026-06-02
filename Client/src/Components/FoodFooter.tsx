@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Form, Button, Input, message } from 'antd';
+import { Row, Col, Form, Button, Input } from 'antd';
 import {
   FacebookOutlined,
   InstagramOutlined,
@@ -69,7 +69,12 @@ const Footer: React.FC<FooterProps> = ({
 }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const [messageApi, contextHolder] = message.useMessage();
+  const messageApi = {
+    info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
+    success: (opts: any) => (window as any).showToast?.('success', 'Success', typeof opts === 'string' ? opts : opts.content || ''),
+    error: (opts: any) => (window as any).showToast?.('error', 'Error', typeof opts === 'string' ? opts : opts.content || ''),
+    warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
+  };
 
   const handleSubscribe = (values: { email: string }) => {
     if (values.email && values.email.includes('@')) {
@@ -414,7 +419,6 @@ const Footer: React.FC<FooterProps> = ({
           </Col>
         </Row>
       </div>
-      {contextHolder}
     </footer>
   );
 };

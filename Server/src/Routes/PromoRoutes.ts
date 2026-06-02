@@ -17,7 +17,8 @@ import {
   adminDeleteCoupon,
   adminGetDiscounts,
   adminDeleteDiscount,
-  getMyTransactions
+  getMyTransactions,
+  getActiveCoupons
 } from '../Controller/PromoController';
 import { protect, authorizeRoles } from '../Middleware/AuthMiddleWare';
 
@@ -37,6 +38,8 @@ promoRouter.post('/coupons', protect as express.RequestHandler, authorizeRoles('
 promoRouter.get('/coupons/announcements', protect as express.RequestHandler, getAnnouncements as express.RequestHandler);
 // User closes/acknowledges announcement
 promoRouter.post('/coupons/:id/access', protect as express.RequestHandler, accessAnnouncement as express.RequestHandler);
+// Public fetches active coupons
+promoRouter.get('/coupons/active', getActiveCoupons as express.RequestHandler);
 
 // --- DYNAMIC DISCOUNTS ---
 // Admin gets all discounts

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Layout, Menu, Button, Badge, Drawer, Typography, Space, Grid, message } from 'antd';
+import { Layout, Menu, Button, Badge, Drawer, Typography, Space, Grid } from 'antd';
 import {
   ShoppingCartOutlined,
   LogoutOutlined,
@@ -14,7 +14,6 @@ import {
 } from '@ant-design/icons';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import AuthModal from './AuthModal';
 import axios from 'axios';
 
 const { Header } = Layout;
@@ -56,9 +55,13 @@ const marqueeStyles = `
 const FoodNavbar: React.FC = () => {
   const [cartCount, setCartCount] = useState<number>(0);
   const [mobileMenuVisible, setMobileMenuVisible] = useState<boolean>(false);
-  const [messageApi, contextHolder] = message.useMessage();
-  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-  const [isLoginMode, setIsLoginMode] = useState<boolean>(true);
+  const messageApi = {
+    success: (opts: any) => (window as any).showToast?.('success', 'Success', typeof opts === 'string' ? opts : opts.content || ''),
+    error: (opts: any) => (window as any).showToast?.('error', 'Error', typeof opts === 'string' ? opts : opts.content || ''),
+    info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
+    warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
+  };
+  const contextHolder = null;
   const [announcements, setAnnouncements] = useState<any[]>([]);
 
   const auth = useContext(AuthContext);
@@ -78,10 +81,14 @@ const FoodNavbar: React.FC = () => {
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
+      const token = auth?.token || localStorage.getItem('token');
+      if (!token) {
+        setAnnouncements([]);
+        return;
+      }
       try {
-        const token = auth?.token || localStorage.getItem('token');
         const headers: any = {};
-        if (token) headers.Authorization = `Bearer ${token}`;
+        headers.Authorization = `Bearer ${token}`;
         const res = await axios.get(`${backendUrl}/api/promo/coupons/announcements`, {
           headers,
           withCredentials: true
@@ -211,8 +218,7 @@ const FoodNavbar: React.FC = () => {
 
   const handleCartClick = () => {
     if (!auth?.isAuthenticated) {
-      setShowAuthModal(true);
-      setIsLoginMode(true);
+      navigate('/auth');
       return;
     }
     navigate('/cart');
@@ -233,7 +239,7 @@ const FoodNavbar: React.FC = () => {
           { key: 'products', icon: <ProductOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/productspage'); }}>Products</span> },
           { key: 'ordermanagement', icon: <UnorderedListOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/ordermanagement'); }}>Order Management</span> },
           { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/profilepage'); }}>Profile</span> },
-          { key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }
+          ...(isMobile ? [{ key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }] : [])
         ];
       }
 
@@ -242,7 +248,7 @@ const FoodNavbar: React.FC = () => {
           { key: 'home', icon: <HomeOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
           { key: 'delivery_dashboard', icon: <DashboardOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/delivery/dashboard'); }}>Delivery Dashboard</span> },
           { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/profilepage'); }}>Profile</span> },
-          { key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }
+          ...(isMobile ? [{ key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }] : [])
         ];
       }
 
@@ -251,7 +257,7 @@ const FoodNavbar: React.FC = () => {
         { key: 'menu', icon: <MenuOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/menu-items'); }}>Menu</span> },
         { key: 'contact', icon: <ContactsOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/contact'); }}>Contact</span> },
         { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/profilepage'); }}>Profile</span> },
-        { key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }
+        ...(isMobile ? [{ key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }] : [])
       ];
     }
 
@@ -265,7 +271,7 @@ const FoodNavbar: React.FC = () => {
       items.push({
         key: 'login',
         icon: <LoginOutlined />,
-        label: <span onClick={() => { setMobileMenuVisible(false); setShowAuthModal(true); setIsLoginMode(true); }}>Login / Register</span>,
+        label: <span onClick={() => { setMobileMenuVisible(false); navigate('/auth'); }}>Login / Register</span>,
         style: { color: '#52c41a' }
       });
     }
@@ -345,10 +351,21 @@ const FoodNavbar: React.FC = () => {
               </Badge>
             )}
 
+            {auth?.isAuthenticated && (
+              <Button
+                type="text"
+                danger
+                icon={<LogoutOutlined style={{ fontSize: '20px' }} />}
+                onClick={handleLogoutClick}
+                title="Logout"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4d4f' }}
+              />
+            )}
+
             {isLargeScreen() && !auth?.isAuthenticated && (
               <Button
                 type="primary"
-                onClick={() => { setShowAuthModal(true); setIsLoginMode(true); }}
+                onClick={() => { navigate('/auth'); }}
                 style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', fontWeight: 700, borderRadius: '8px' }}
               >
                 Login / Register
@@ -378,12 +395,6 @@ const FoodNavbar: React.FC = () => {
       </Drawer>
 
       {contextHolder}
-      <AuthModal
-        show={showAuthModal}
-        onHide={() => setShowAuthModal(false)}
-        isLoginMode={isLoginMode}
-        onToggleMode={() => setIsLoginMode(prev => !prev)}
-      />
 
       <style>{`
         .ant-menu-horizontal {

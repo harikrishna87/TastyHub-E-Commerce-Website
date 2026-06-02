@@ -8,7 +8,11 @@ import {
   deliverOrder,
   updateOrderStatus,
   adminGetDeliveryExecutives,
-  adminUpdateDEStatus
+  adminUpdateDEStatus,
+  requestWithdrawal,
+  getMyWithdrawals,
+  adminGetWithdrawalRequests,
+  adminUpdateWithdrawalStatus
 } from '../Controller/DeliveryController';
 import { protect, authorizeRoles } from '../Middleware/AuthMiddleWare';
 
@@ -24,9 +28,13 @@ deliveryRouter.get('/orders/my-accepted', protect as express.RequestHandler, get
 deliveryRouter.patch('/orders/:id/accept', protect as express.RequestHandler, acceptOrder as express.RequestHandler);
 deliveryRouter.patch('/orders/:id/deliver', protect as express.RequestHandler, deliverOrder as express.RequestHandler);
 deliveryRouter.patch('/orders/:id/status', protect as express.RequestHandler, updateOrderStatus as express.RequestHandler);
+deliveryRouter.post('/withdraw', protect as express.RequestHandler, requestWithdrawal as express.RequestHandler);
+deliveryRouter.get('/withdrawals', protect as express.RequestHandler, getMyWithdrawals as express.RequestHandler);
 
 // Admin-only management routes
 deliveryRouter.get('/admin/executives', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, adminGetDeliveryExecutives as express.RequestHandler);
 deliveryRouter.patch('/admin/executives/:id/status', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, adminUpdateDEStatus as express.RequestHandler);
+deliveryRouter.get('/admin/withdrawals', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, adminGetWithdrawalRequests as express.RequestHandler);
+deliveryRouter.patch('/admin/withdrawals/:id/status', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, adminUpdateWithdrawalStatus as express.RequestHandler);
 
 export default deliveryRouter;

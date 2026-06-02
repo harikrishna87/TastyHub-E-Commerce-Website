@@ -518,6 +518,7 @@ button,
 .p-toast {
   opacity: 1 !important;
   z-index: 9999 !important;
+  right: 10px !important;
 }
 .p-toast-message {
   border-radius: 14px !important;
@@ -570,10 +571,7 @@ button,
   background: #e6f7ed !important;
   border: 1px solid #b7eb8f !important;
   color: #1e4620 !important;
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.04),
-    0 6px 0 -2px #85a5ff, 
-    0 12px 0 -4px #ff9c6e !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
 }
 .p-toast-message-success .p-toast-message-icon,
 .p-toast-message-success .p-toast-message-icon::before {
@@ -591,10 +589,7 @@ button,
   background: #e6f7ff !important;
   border: 1px solid #91d5ff !important;
   color: #0050b3 !important;
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.04),
-    0 6px 0 -2px #87e8de, 
-    0 12px 0 -4px #d3adf7 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
 }
 .p-toast-message-info .p-toast-message-icon,
 .p-toast-message-info .p-toast-message-icon::before {
@@ -612,10 +607,7 @@ button,
   background: #fffbe6 !important;
   border: 1px solid #ffe58f !important;
   color: #ad6800 !important;
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.04),
-    0 6px 0 -2px #ffd8bf, 
-    0 12px 0 -4px #ffbb96 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
 }
 .p-toast-message-warn .p-toast-message-icon,
 .p-toast-message-warn .p-toast-message-icon::before {
@@ -633,10 +625,7 @@ button,
   background: #fff1f0 !important;
   border: 1px solid #ffa39e !important;
   color: #a8071a !important;
-  box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.04),
-    0 6px 0 -2px #d3adf7, 
-    0 12px 0 -4px #ffadd2 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
 }
 .p-toast-message-error .p-toast-message-icon,
 .p-toast-message-error .p-toast-message-icon::before {
@@ -652,7 +641,7 @@ button,
 /* Style and Position Ant Design Messages in Top-Right */
 .ant-message {
   left: auto !important;
-  right: 24px !important;
+  right: 10px !important;
   top: 24px !important;
   width: auto !important;
   max-width: 420px !important;

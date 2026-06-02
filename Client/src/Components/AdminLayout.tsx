@@ -158,6 +158,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { label: 'Customers', icon: 'pi pi-users', path: '/admin/customers' },
     { label: 'Delivery Executives', icon: 'pi pi-truck', path: '/admin/delivery' },
     { label: 'Coupons & Discounts', icon: 'pi pi-tags', path: '/admin/coupons' },
+    { label: 'Restaurants & Offers', icon: 'pi pi-shop', path: '/admin/restaurants' },
     { label: 'Combo Deals', icon: 'pi pi-briefcase', path: '/admin/combodeals' },
     { label: 'Gift Cards', icon: 'pi pi-gift', path: '/admin/giftcards' },
     { label: 'Profile', icon: 'pi pi-user', path: '/admin/profilepage' },
@@ -172,6 +173,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <div style={styles.layoutContainer}>
+      <style>{`
+        .admin-sidebar-nav::-webkit-scrollbar {
+          display: none !important;
+        }
+        .admin-sidebar-nav {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+      `}</style>
       {/* Sidebar Panel */}
       <aside style={styles.sidebar}>
         <div style={styles.logoSection}>
@@ -179,7 +189,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <span style={styles.logoText}>TastyHub</span>
         </div>
         
-        <nav style={styles.navSection}>
+        <nav style={styles.navSection} className="admin-sidebar-nav">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path || (item.path === '/admin/home' && location.pathname === '/admin/orderanalytics');
             return (

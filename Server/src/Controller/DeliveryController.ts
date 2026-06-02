@@ -5,6 +5,7 @@ import sendToken from '../Utils/jwt';
 import EmailService from '../Utils/EmailService';
 import AdminNotification from '../Models/AdminNotification';
 import { Types } from 'mongoose';
+import WithdrawalRequest from '../Models/WithdrawalRequest';
 
 // Register Delivery Executive
 export const deliveryRegister = async (req: Request, res: Response): Promise<void> => {
@@ -239,6 +240,13 @@ export const deliverOrder = async (req: Request, res: Response): Promise<void> =
     order.deliveryStatus = 'Delivered';
     await order.save();
 
+    // Credit Delivery Executive's wallet Balance by ₹30 commission
+    const executive = await User.findById(req.user._id);
+    if (executive) {
+      executive.walletBalance = (executive.walletBalance || 0) + 30;
+      await executive.save();
+    }
+
     const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
 
     // Send delivered email to customer
@@ -297,6 +305,15 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
           message: 'Cash collection confirmation is required to deliver Cash on Delivery orders.'
         });
         return;
+      }
+    }
+
+    if (status === 'Delivered') {
+      // Credit Delivery Executive's wallet Balance by ₹30 commission
+      const executive = await User.findById(req.user._id);
+      if (executive) {
+        executive.walletBalance = (executive.walletBalance || 0) + 30;
+        await executive.save();
       }
     }
 
@@ -368,6 +385,154 @@ export const adminUpdateDEStatus = async (req: Request, res: Response): Promise<
       success: true,
       message: `Delivery Partner has been successfully ${status}!`,
       executive
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Request a withdrawal for delivery partner
+// @route   POST /api/delivery/withdraw
+// @access  Private/Delivery Executive
+export const requestWithdrawal = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { amount, paymentDetails } = req.body;
+
+    if (req.user?.role !== 'delivery_executive' || req.user?.deliveryStatus !== 'Approved') {
+      res.status(403).json({ success: false, message: 'Access denied. Only approved partners can request withdrawals.' });
+      return;
+    }
+
+    if (!amount || amount < 50 || !paymentDetails) {
+      res.status(400).json({ success: false, message: 'Please provide withdrawal amount (minimum ₹50) and payment/UPI coordinates.' });
+      return;
+    }
+
+    const executive = await User.findById(req.user._id);
+    if (!executive) {
+      res.status(404).json({ success: false, message: 'Delivery partner profile not found.' });
+      return;
+    }
+
+    const balance = executive.walletBalance || 0;
+    if (balance < amount) {
+      res.status(400).json({ success: false, message: `Insufficient earnings balance. Available balance: ₹${balance.toFixed(2)}` });
+      return;
+    }
+
+    // Deduct amount from balance immediately (holding state)
+    executive.walletBalance = balance - amount;
+    await executive.save();
+
+    const request = await WithdrawalRequest.create({
+      deliveryExecutive: req.user._id as Types.ObjectId,
+      amount,
+      paymentDetails,
+      status: 'Pending',
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Withdrawal request submitted successfully!',
+      request,
+      walletBalance: executive.walletBalance
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get executive's own withdrawal history
+// @route   GET /api/delivery/withdrawals
+// @access  Private/Delivery Executive
+export const getMyWithdrawals = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'delivery_executive' || req.user?.deliveryStatus !== 'Approved') {
+      res.status(403).json({ success: false, message: 'Access denied.' });
+      return;
+    }
+
+    const requests = await WithdrawalRequest.find({ deliveryExecutive: req.user._id }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      requests
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Admin: Get all withdrawal requests
+// @route   GET /api/delivery/admin/withdrawals
+// @access  Private/Admin
+export const adminGetWithdrawalRequests = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+      return;
+    }
+
+    const requests = await WithdrawalRequest.find({})
+      .populate('deliveryExecutive', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      requests
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Admin: Approve / Reject withdrawal request
+// @route   PATCH /api/delivery/admin/withdrawals/:id/status
+// @access  Private/Admin
+export const adminUpdateWithdrawalStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes } = req.body; // Approved or Rejected
+
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+      return;
+    }
+
+    if (!['Approved', 'Rejected'].includes(status)) {
+      res.status(400).json({ success: false, message: 'Invalid status. Must be Approved or Rejected' });
+      return;
+    }
+
+    const request = await WithdrawalRequest.findById(id);
+    if (!request) {
+      res.status(404).json({ success: false, message: 'Withdrawal request not found' });
+      return;
+    }
+
+    if (request.status !== 'Pending') {
+      res.status(400).json({ success: false, message: `Request has already been processed and is currently: ${request.status}` });
+      return;
+    }
+
+    request.status = status;
+    request.adminNotes = adminNotes || '';
+    request.processedDate = new Date();
+    await request.save();
+
+    // If Rejected, refund the amount back to delivery executive's wallet balance
+    if (status === 'Rejected') {
+      const executive = await User.findById(request.deliveryExecutive);
+      if (executive) {
+        executive.walletBalance = (executive.walletBalance || 0) + request.amount;
+        await executive.save();
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Withdrawal request successfully ${status}!`,
+      request
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

@@ -6,7 +6,6 @@ import {
   Typography,
   Space,
   Image,
-  message,
   Rate
 } from 'antd';
 import { ShoppingCartOutlined, InfoCircleOutlined } from '@ant-design/icons';
@@ -139,7 +138,13 @@ const customStyles = `
 const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
   featuredProducts = []
 }) => {
-  const [messageApi, contextHolder] = message.useMessage();
+  const messageApi = {
+    success: (opts: any) => (window as any).showToast?.('success', 'Success', typeof opts === 'string' ? opts : opts.content || ''),
+    error: (opts: any) => (window as any).showToast?.('error', 'Error', typeof opts === 'string' ? opts : opts.content || ''),
+    info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
+    warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
+  };
+  const contextHolder = null;
 
   React.useEffect(() => {
     const styleElement = document.createElement('style');
@@ -193,7 +198,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
         marginRight: '8px',
         border: 'none',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        height: '400px',
+        height: '475px',
         flexShrink: 0
       }}
       cover={
@@ -203,16 +208,16 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
             alt={product.name}
             style={{
               width: "302px",
-              height: "200px",
+              height: "275px",
               borderRadius: "12px 12px 0px 0px",
               objectFit: "cover"
             }}
             preview={false}
-            fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+            fallback="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.onerror = null;
-              target.style.display = 'none';
+              target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
             }}
           />
           {product.discountPercentage && product.discountPercentage > 0 ? (

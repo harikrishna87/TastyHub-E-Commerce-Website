@@ -498,6 +498,23 @@ export const getCouponByCode = async (req: Request, res: Response): Promise<void
   }
 };
 
+// Fetch active coupons publicly
+export const getActiveCoupons = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const activeCoupons = await Coupon.find({
+      isActive: true,
+      expiryDate: { $gt: new Date() }
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      coupons: activeCoupons
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Admin fetches all coupons
 export const adminGetCoupons = async (req: Request, res: Response): Promise<void> => {
   try {

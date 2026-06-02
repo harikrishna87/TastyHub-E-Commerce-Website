@@ -1,9 +1,9 @@
 import React, { useState, useContext } from 'react';
-import { Row, Col, Card, Button, Alert, Tag, Pagination, Typography, Spin, message, Rate, Modal, Image, Space } from 'antd';
+import { Row, Col, Card, Button, Alert, Tag, Pagination, Typography, Rate, Modal, Image, Space } from 'antd';
 import { SearchOutlined, ShoppingCartOutlined, CloseOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import AuthModal from "../Components/AuthModal";
+import { useNavigate } from 'react-router-dom';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -107,11 +107,17 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
   productsPerPage
 }) => {
   const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({});
-  const [messageApi, contextHolder] = message.useMessage();
+  const messageApi = {
+    success: (opts: any) => (window as any).showToast?.('success', 'Success', typeof opts === 'string' ? opts : opts.content || ''),
+    error: (opts: any) => (window as any).showToast?.('error', 'Error', typeof opts === 'string' ? opts : opts.content || ''),
+    info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
+    warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
+  };
+  const contextHolder = null;
   const auth = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-  const [isLoginMode, setIsLoginMode] = useState<boolean>(true);
+
   const [showProductModal, setShowProductModal] = useState<boolean>(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [loadingProductDetails, setLoadingProductDetails] = useState<boolean>(false);
@@ -132,8 +138,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
 
   const addToCart = async (product: Product) => {
     if (!auth?.isAuthenticated) {
-      setShowAuthModal(true);
-      setIsLoginMode(true);
+      navigate('/auth');
       return;
     }
 
@@ -175,8 +180,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
           auth?.logout?.();
-          setShowAuthModal(true);
-          setIsLoginMode(true);
+          navigate('/auth');
           messageApi.error({
             content: "Session expired. Please login again.",
             duration: 3,
@@ -311,7 +315,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
                         src={product.image}
                         alt={product.name}
                         style={{
-                          height: '180px',
+                          height: '215px',
                           width: '100%',
                           objectFit: 'cover',
                           borderTopLeftRadius: '12px',
@@ -320,7 +324,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.onerror = null;
-                          target.style.display = 'none';
+                          target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
                         }}
                       />
                       {product.discountPercentage && product.discountPercentage > 0 ? (
@@ -426,7 +430,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
                         }}
                       >
                         {addingToCart[product._id] ? (
-                          <Spin size="small" />
+                          <i className="pi pi-spin pi-spinner" style={{ fontSize: '1rem', color: '#ffffff' }} />
                         ) : (
                           <>
                             <ShoppingCartOutlined style={{ marginRight: 4 }} />
@@ -600,7 +604,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
                         }}
                       >
                         {addingToCart[selectedProduct._id] ? (
-                          <Spin size="small" />
+                          <i className="pi pi-spin pi-spinner" style={{ fontSize: '1rem', color: '#ffffff' }} />
                         ) : (
                           <>
                             <ShoppingCartOutlined style={{ marginRight: '8px' }} />
@@ -678,18 +682,11 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '50px' }}>
-            <Spin size="large" />
+            <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#22c55e' }} />
             <Paragraph style={{ marginTop: '16px', color: '#52c41a' }}>Loading product details...</Paragraph>
           </div>
         )}
       </Modal>
-
-      <AuthModal
-        show={showAuthModal}
-        onHide={() => setShowAuthModal(false)}
-        isLoginMode={isLoginMode}
-        onToggleMode={() => setIsLoginMode(prev => !prev)}
-      />
     </div>
   );
 };

@@ -2,8 +2,7 @@ import { useEffect, useContext, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Spin, Typography } from 'antd';
-import { LoadingOutlined } from '@ant-design/icons';
+import { Typography } from 'antd';
 
 const { Text } = Typography;
 
@@ -78,8 +77,8 @@ const GoogleCallback = () => {
         <Text type="danger" style={{ fontSize: '16px' }}>{error}</Text>
       ) : (
         <>
-          <Spin indicator={<LoadingOutlined style={{ fontSize: 40, color: '#52c41a' }} spin />} />
-          <Text style={{ fontSize: '16px', color: '#8c8c8c' }}>Signing you in with Google...</Text>
+          <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#22c55e' }} />
+          <Text style={{ fontSize: '16px', color: '#22c55e', fontWeight: 600 }}>Signing you in with Google...</Text>
         </>
       )}
     </div>

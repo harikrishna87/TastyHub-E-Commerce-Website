@@ -10,6 +10,8 @@ import notify_router from "./Routes/NotificationRoutes"
 import adminNotificationRoutes from './Routes/AdminNotification';
 import deliveryRouter from "./Routes/DeliveryRoutes";
 import promoRouter from "./Routes/PromoRoutes";
+import restaurantRouter from "./Routes/RestaurantRoutes";
+import offerRouter from "./Routes/OfferBannerRoutes";
 import {sendScheduledDealsNotifications} from "./Controller/NotificationController"
 import cron from "node-cron"
 import cors from "cors";
@@ -180,6 +182,8 @@ app.use("/api/notifications", notify_router);
 app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use("/api/delivery", deliveryRouter);
 app.use("/api/promo", promoRouter);
+app.use("/api/restaurants", restaurantRouter);
+app.use("/api/offers", offerRouter);
 
 
 const PORT = process.env.PORT || 3000;

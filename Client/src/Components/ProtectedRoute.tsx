@@ -1,14 +1,16 @@
 import React, { useContext } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Spin, message } from 'antd';
+
 
 interface ProtectedRouteProps {
   allowedRoles?: ('user' | 'admin' | 'delivery_executive')[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const [messageApi, contextHolder] = message.useMessage();
+  const messageApi = {
+    error: (opts: any) => (window as any).showToast?.('error', 'Access Denied', typeof opts === 'string' ? opts : opts.content || ''),
+  };
   const auth = useContext(AuthContext);
 
   if (!auth) {
@@ -25,12 +27,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
           justifyContent: 'center',
           alignItems: 'center',
           height: '80vh',
-          gap: '12px'
+          flexDirection: 'column',
+          gap: '1rem'
         }}
       >
-        <Spin size="large" />
-        <span style={{ color: '#52c41a', fontSize: '16px' }}>Loading user data...</span>
-        {contextHolder}
+        <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#22c55e' }} />
+        <span style={{ color: '#22c55e', fontWeight: 600 }}>Loading user data...</span>
       </div>
     );
   }
