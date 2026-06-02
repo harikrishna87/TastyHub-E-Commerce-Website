@@ -1,24 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Layout, Menu, Button, Badge, Drawer, Typography, Space, Grid } from 'antd';
-import {
-  ShoppingCartOutlined,
-  LogoutOutlined,
-  LoginOutlined,
-  DashboardOutlined,
-  UnorderedListOutlined,
-  MenuOutlined,
-  HomeOutlined,
-  ContactsOutlined,
-  ProductOutlined,
-  UserOutlined
-} from '@ant-design/icons';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Sidebar } from 'primereact/sidebar';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
-
-const { Header } = Layout;
-const { Title } = Typography;
-const { useBreakpoint } = Grid;
 
 const marqueeStyles = `
   @keyframes marqueeScroller {
@@ -50,24 +34,19 @@ const marqueeStyles = `
   .announcement-text-scroller:hover {
     animation-play-state: paused;
   }
+  .nav-item-btn:hover {
+    color: #52c41a !important;
+  }
 `;
 
 const FoodNavbar: React.FC = () => {
   const [cartCount, setCartCount] = useState<number>(0);
   const [mobileMenuVisible, setMobileMenuVisible] = useState<boolean>(false);
-  const messageApi = {
-    success: (opts: any) => (window as any).showToast?.('success', 'Success', typeof opts === 'string' ? opts : opts.content || ''),
-    error: (opts: any) => (window as any).showToast?.('error', 'Error', typeof opts === 'string' ? opts : opts.content || ''),
-    info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
-    warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
-  };
-  const contextHolder = null;
   const [announcements, setAnnouncements] = useState<any[]>([]);
 
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
-  const screens = useBreakpoint();
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
@@ -159,7 +138,6 @@ const FoodNavbar: React.FC = () => {
 
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
-
     if (auth?.isAuthenticated && auth?.token) {
       fetchCartCount();
       pollingInterval = setInterval(fetchCartCount, 10000);
@@ -193,26 +171,13 @@ const FoodNavbar: React.FC = () => {
           'Content-Type': 'application/json',
         }
       });
-
       auth?.logout?.();
       setCartCount(0);
       setMobileMenuVisible(false);
-
-      messageApi.success({
-        content: 'User Logged Out successfully',
-        duration: 3,
-        style: { marginTop: '10vh' },
-      });
-
       setTimeout(() => navigate('/'), 800);
     } catch (err) {
       console.error('Error logging out:', err);
       auth?.logout?.();
-      messageApi.error({
-        content: 'Logout failed. Please try again.',
-        duration: 3,
-        style: { marginTop: '10vh' },
-      });
     }
   };
 
@@ -235,42 +200,42 @@ const FoodNavbar: React.FC = () => {
     if (auth?.isAuthenticated) {
       if (isAdmin) {
         return [
-          { key: 'orderanalytics', icon: <DashboardOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/orderanalytics'); }}>Order Analytics</span> },
-          { key: 'products', icon: <ProductOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/productspage'); }}>Products</span> },
-          { key: 'ordermanagement', icon: <UnorderedListOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/ordermanagement'); }}>Order Management</span> },
-          { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/profilepage'); }}>Profile</span> },
-          ...(isMobile ? [{ key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }] : [])
+          { key: 'orderanalytics', icon: <i className="pi pi-chart-bar" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/orderanalytics'); }}>Order Analytics</span> },
+          { key: 'products', icon: <i className="pi pi-box" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/productspage'); }}>Products</span> },
+          { key: 'ordermanagement', icon: <i className="pi pi-list" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/ordermanagement'); }}>Order Management</span> },
+          { key: 'profile', icon: <i className="pi pi-user" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/admin/profilepage'); }}>Profile</span> },
+          ...(isMobile ? [{ key: 'logout', icon: <i className="pi pi-sign-out" style={{ fontSize: '18px', color: '#ff4d4f' }} />, label: <span onClick={handleLogoutClick} style={{ color: '#ff4d4f' }}>Logout</span> }] : [])
         ];
       }
 
       if (auth?.user?.role === 'delivery_executive') {
         return [
-          { key: 'home', icon: <HomeOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
-          { key: 'delivery_dashboard', icon: <DashboardOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/delivery/home'); }}>Delivery Dashboard</span> },
-          { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/profilepage'); }}>Profile</span> },
-          ...(isMobile ? [{ key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }] : [])
+          { key: 'home', icon: <i className="pi pi-home" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
+          { key: 'delivery_dashboard', icon: <i className="pi pi-th-large" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/delivery/home'); }}>Delivery Dashboard</span> },
+          { key: 'profile', icon: <i className="pi pi-user" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/profilepage'); }}>Profile</span> },
+          ...(isMobile ? [{ key: 'logout', icon: <i className="pi pi-sign-out" style={{ fontSize: '18px', color: '#ff4d4f' }} />, label: <span onClick={handleLogoutClick} style={{ color: '#ff4d4f' }}>Logout</span> }] : [])
         ];
       }
 
       return [
-        { key: 'home', icon: <HomeOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
-        { key: 'menu', icon: <MenuOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/menu-items'); }}>Menu</span> },
-        { key: 'contact', icon: <ContactsOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/contact'); }}>Contact</span> },
-        { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/profilepage'); }}>Profile</span> },
-        ...(isMobile ? [{ key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }] : [])
+        { key: 'home', icon: <i className="pi pi-home" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
+        { key: 'menu', icon: <i className="pi pi-list" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/menu-items'); }}>Menu</span> },
+        { key: 'contact', icon: <i className="pi pi-envelope" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/contact'); }}>Contact</span> },
+        { key: 'profile', icon: <i className="pi pi-user" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/profilepage'); }}>Profile</span> },
+        ...(isMobile ? [{ key: 'logout', icon: <i className="pi pi-sign-out" style={{ fontSize: '18px', color: '#ff4d4f' }} />, label: <span onClick={handleLogoutClick} style={{ color: '#ff4d4f' }}>Logout</span> }] : [])
       ];
     }
 
     const items: any[] = [
-      { key: 'home', icon: <HomeOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
-      { key: 'menu', icon: <MenuOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/menu-items'); }}>Menu</span> },
-      { key: 'contact', icon: <ContactsOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/contact'); }}>Contact</span> },
+      { key: 'home', icon: <i className="pi pi-home" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
+      { key: 'menu', icon: <i className="pi pi-list" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/menu-items'); }}>Menu</span> },
+      { key: 'contact', icon: <i className="pi pi-envelope" style={{ fontSize: '18px' }} />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/contact'); }}>Contact</span> },
     ];
 
     if (isMobile) {
       items.push({
         key: 'login',
-        icon: <LoginOutlined />,
+        icon: <i className="pi pi-sign-in" style={{ fontSize: '18px', color: '#52c41a' }} />,
         label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/auth'); }}>Login / Register</span>,
         style: { color: '#52c41a' }
       });
@@ -295,17 +260,14 @@ const FoodNavbar: React.FC = () => {
         </div>
       )}
 
-      <Header
+      <header
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 1000,
           width: '100%',
           background: '#fff',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-          padding: 0,
-          height: 'auto',
-          lineHeight: 'normal'
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
         }}
       >
         <div
@@ -314,125 +276,182 @@ const FoodNavbar: React.FC = () => {
             justifyContent: 'space-between',
             alignItems: 'center',
             width: '100%',
-            padding: screens.xs ? '10px 16px' : '10px 30px'
+            padding: window.innerWidth < 576 ? '10px 16px' : '10px 30px',
+            boxSizing: 'border-box'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <img
               src="/logo.png"
               alt="Logo"
-              style={{ height: screens.xs ? '32px' : '40px', width: 'auto', objectFit: 'contain' }}
+              style={{ height: window.innerWidth < 576 ? '32px' : '40px', width: 'auto', objectFit: 'contain' }}
             />
-            <Title level={3} style={{ margin: 0, color: '#52c41a', fontWeight: 'bold', fontSize: screens.xs ? '20px' : '28px' }}>
+            <h3 style={{ margin: 0, color: '#52c41a', fontWeight: 'bold', fontSize: window.innerWidth < 576 ? '20px' : '28px' }}>
               <NavLink to="/" style={{ color: '#52c41a', textDecoration: 'none' }}>
                 TastyHub
               </NavLink>
-            </Title>
+            </h3>
           </div>
 
           {isLargeScreen() && (
-            <Menu
-              mode="horizontal"
-              selectedKeys={[activeKey]}
-              style={{ border: 'none', background: 'transparent', flex: 1, justifyContent: 'center' }}
-              items={getMenuItems(false)}
-            />
+            <div style={{ display: 'flex', gap: '24px', flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              {getMenuItems(false).map((item) => (
+                <button
+                  key={item.key}
+                  onClick={item.label.props.onClick}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '18px',
+                    fontWeight: activeKey === item.key ? '700' : '600',
+                    color: activeKey === item.key ? '#52c41a' : '#1f2937',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'color 0.2s',
+                    padding: '8px 12px'
+                  }}
+                  className="nav-item-btn"
+                >
+                  {item.icon}
+                  {item.label.props.children}
+                </button>
+              ))}
+            </div>
           )}
 
-          <Space size="middle">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {!isAdmin && (
-              <Badge count={cartCount} size="small">
-                <Button
-                  type="text"
-                  icon={<ShoppingCartOutlined style={{ fontSize: '24px' }} />}
+              <div style={{ position: 'relative', display: 'inline-flex' }}>
+                <button
                   onClick={handleCartClick}
-                  size="large"
-                />
-              </Badge>
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#1f2937'
+                  }}
+                  title="Cart"
+                >
+                  <i className="pi pi-shopping-cart" style={{ fontSize: '24px' }} />
+                </button>
+                {cartCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '0px',
+                      right: '0px',
+                      transform: 'translate(20%, -20%)',
+                      backgroundColor: '#ff4d4f',
+                      color: 'white',
+                      borderRadius: '50%',
+                      padding: '2px 6px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      lineHeight: 1,
+                      minWidth: '18px',
+                      textAlign: 'center',
+                      boxShadow: '0 0 0 2px #fff'
+                    }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
+              </div>
             )}
 
             {auth?.isAuthenticated && (
-              <Button
-                type="text"
-                danger
-                icon={<LogoutOutlined style={{ fontSize: '20px' }} />}
+              <button
                 onClick={handleLogoutClick}
                 title="Logout"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4d4f' }}
-              />
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ff4d4f',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px'
+                }}
+              >
+                <i className="pi pi-sign-out" style={{ fontSize: '20px' }} />
+              </button>
             )}
 
             {isLargeScreen() && !auth?.isAuthenticated && (
-              <Button
-                type="primary"
+              <button
                 onClick={() => { navigate('/user/auth'); }}
-                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', fontWeight: 700, borderRadius: '8px' }}
+                style={{
+                  backgroundColor: '#52c41a',
+                  borderColor: '#52c41a',
+                  border: '1px solid #52c41a',
+                  color: 'white',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
               >
                 Login / Register
-              </Button>
+              </button>
             )}
 
             {!isLargeScreen() && (
-              <Button
-                type="text"
-                icon={<MenuOutlined style={{ fontSize: '20px' }} />}
+              <button
                 onClick={() => setMobileMenuVisible(true)}
-                size="large"
-              />
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <i className="pi pi-bars" style={{ fontSize: '24px', color: '#1f2937' }} />
+              </button>
             )}
-          </Space>
+          </div>
         </div>
-      </Header>
+      </header>
 
-      <Drawer
-        title="Menu"
-        placement="right"
-        onClose={() => setMobileMenuVisible(false)}
-        open={mobileMenuVisible}
-        width={screens.xs ? '80%' : 300}
+      <Sidebar
+        visible={mobileMenuVisible}
+        onHide={() => setMobileMenuVisible(false)}
+        position="right"
+        style={{ width: window.innerWidth < 576 ? '80%' : '300px', fontFamily: 'Inter, sans-serif' }}
       >
-        <Menu mode="vertical" selectedKeys={[activeKey]} style={{ border: 'none' }} items={getMenuItems(true)} />
-      </Drawer>
-
-      {contextHolder}
-
-      <style>{`
-        .ant-menu-horizontal {
-          border-bottom: none !important;
-        }
-        .ant-menu-horizontal > .ant-menu-item {
-          font-size: 18px !important;
-          font-weight: 600;
-          border-bottom: none !important;
-        }
-        .ant-menu-horizontal > .ant-menu-item:hover,
-        .ant-menu-horizontal .ant-menu-item-active {
-          background-color: transparent !important;
-          border-bottom: none !important;
-        }
-        .ant-menu-horizontal > .ant-menu-item::after,
-        .ant-menu-horizontal .ant-menu-item-active::after {
-          display: none !important;
-        }
-        .ant-menu-horizontal > .ant-menu-item-selected {
-          background-color: transparent !important;
-          color: #52c41a !important;
-          font-weight: 700 !important;
-          border-bottom: none !important;
-        }
-        .ant-menu-horizontal > .ant-menu-item-selected::after {
-          display: none !important;
-        }
-        .ant-menu-vertical > .ant-menu-item {
-          font-size: 18px !important;
-          font-weight: 600;
-        }
-        .ant-menu-vertical > .ant-menu-item-selected {
-          background-color: transparent !important;
-          color: #52c41a !important;
-          font-weight: 700 !important;
-        }
-      `}</style>
+        <h3 style={{ margin: '0 0 20px 0', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px', color: '#52c41a', fontWeight: 'bold' }}>Menu</h3>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {getMenuItems(true).map((item) => (
+            <li
+              key={item.key}
+              style={{
+                padding: '16px',
+                borderBottom: '1px solid #f3f4f6',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}
+              onClick={item.label.props.onClick}
+            >
+              {item.icon}
+              <span style={{ fontSize: '16px', fontWeight: 600, color: activeKey === item.key ? '#52c41a' : '#1f2937' }}>
+                {item.label.props.children}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Sidebar>
     </>
   );
 };

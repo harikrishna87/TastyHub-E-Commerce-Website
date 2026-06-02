@@ -1105,6 +1105,31 @@ const toggleUserActiveStatus = async (req: Request, res: Response, next: NextFun
   }
 };
 
+const guestLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const guestEmail = 'guest_customer@tastyhub.com';
+    let user = await User.findOne({ email: guestEmail });
+    if (!user) {
+      user = await User.create({
+        name: 'Guest Customer',
+        email: guestEmail,
+        password: 'GuestPassword123!',
+        role: 'user',
+        isActive: true,
+        walletBalance: 1000
+      });
+    } else {
+      if ((user.walletBalance ?? 0) < 100) {
+        user.walletBalance = 1000;
+        await user.save();
+      }
+    }
+    sendToken(user, 200, res);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export {
   register,
   login,
@@ -1128,4 +1153,5 @@ export {
   getSettings,
   updateSettings,
   toggleUserActiveStatus,
+  guestLogin,
 };

@@ -43,12 +43,60 @@ const bubbleCategories = [
   { name: 'Juices', value: 'Fruit Juice', image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=150&auto=format&fit=crop&q=80' }
 ];
 
+const defaultBanners: OfferBanner[] = [
+  {
+    _id: 'default-biryani',
+    title: 'Royal Biryani Feast',
+    subtitle: 'Experience the rich, authentic flavors of slow-cooked gourmet biryanis.',
+    image: '/biryani_banner.png',
+    linkCategory: 'NonVeg',
+    discountText: 'ROYALBIRYANI',
+    isActive: true
+  },
+  {
+    _id: 'default-burger',
+    title: 'Gourmet Craft Burgers',
+    subtitle: 'Juicy hand-pressed patties, toasted brioche buns, and house-made sauces.',
+    image: '/burgers_banner.png',
+    linkCategory: 'Burgers',
+    discountText: 'BURGERCRUSH',
+    isActive: true
+  },
+  {
+    _id: 'default-pizza',
+    title: 'Woodfired Artisanal Pizzas',
+    subtitle: 'Hand-stretched dough baked to perfection in traditional stone ovens.',
+    image: '/pizzas_banner.png',
+    linkCategory: 'Pizzas',
+    discountText: 'PIZZALOVE',
+    isActive: true
+  },
+  {
+    _id: 'default-desserts',
+    title: 'Sweet Tooth Delights',
+    subtitle: 'Indulge in premium molten cakes, artisanal gelatos, and traditional sweets.',
+    image: '/desserts_banner.png',
+    linkCategory: 'Desserts',
+    discountText: 'SWEETCAKE',
+    isActive: true
+  },
+  {
+    _id: 'default-veg',
+    title: 'Fresh Garden Harvest',
+    subtitle: 'Nutrient-dense, organic green bowls and pure vegetarian specialties.',
+    image: '/veg_banner.png',
+    linkCategory: 'Veg',
+    discountText: 'HEALTHYVEG',
+    isActive: true
+  }
+];
+
 export default function Homepage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [banners, setBanners] = useState<OfferBanner[]>([]);
+  const [banners, setBanners] = useState<OfferBanner[]>(defaultBanners);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -117,7 +165,9 @@ export default function Homepage() {
         // Process Promotional Banners under Admin Control
         if (bannerRes.data.success) {
           const activeBanners = (bannerRes.data.data || []).filter((b: OfferBanner) => b.isActive);
-          setBanners(activeBanners);
+          setBanners(activeBanners.length > 0 ? activeBanners : defaultBanners);
+        } else {
+          setBanners(defaultBanners);
         }
 
         setLoading(false);

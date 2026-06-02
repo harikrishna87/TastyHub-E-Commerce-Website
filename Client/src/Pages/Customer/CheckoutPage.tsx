@@ -352,7 +352,7 @@ const CheckoutPage: React.FC = () => {
     triggerConfetti();
 
     showToast('success', 'Order Confirmed', successMessage);
-    setTimeout(() => navigate('/'), 2200);
+    setTimeout(() => navigate(`/user/ordersuccess/${orderId}`), 2200);
   };
 
   const createOrder = async (paymentMethod: string, paymentId?: string) => {

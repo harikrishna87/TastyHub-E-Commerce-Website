@@ -205,7 +205,7 @@ const NewArrivals = () => {
                     }
                 }
                 .product-card .p-card-body {
-                    padding: 12px !important;
+                    padding: 0px !important;
                 }
                 .product-card .p-card-content {
                     padding: 0 !important;
@@ -256,7 +256,7 @@ const NewArrivals = () => {
                                     src={product.image}
                                     alt={product.name || product.title}
                                     style={{
-                                        height: '215px',
+                                        height: '200px',
                                         width: '100%',
                                         objectFit: 'cover',
                                         borderTopLeftRadius: '12px',
@@ -309,7 +309,7 @@ const NewArrivals = () => {
                                 }}
                             >
 
-                                <div style={{ display: 'flex', flexDirection: 'column', padding: '0px', flexGrow: 1 }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', padding: '17px 13px', flexGrow: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <Tag 
                                             value={product.category} 
@@ -424,7 +424,7 @@ const NewArrivals = () => {
                 }
                 visible={showProductModal}
                 onHide={() => setShowProductModal(false)}
-                style={{ width: '90vw', maxWidth: '750px' }}
+                style={{ width: '900px', maxWidth: '95vw' }}
                 breakpoints={{ '960px': '75vw', '641px': '95vw' }}
                 draggable={false}
                 resizable={false}

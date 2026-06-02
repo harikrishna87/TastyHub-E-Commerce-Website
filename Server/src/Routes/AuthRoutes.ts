@@ -22,6 +22,7 @@ import {
     getSettings,
     updateSettings,
     toggleUserActiveStatus,
+    guestLogin,
 } from '../Controller/AuthController';
 import { protect } from '../Middleware/AuthMiddleWare';
 import multer from 'multer';
@@ -31,6 +32,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/register', register as express.RequestHandler);
 router.post('/login', login as express.RequestHandler);
+router.post('/guest-login', guestLogin as express.RequestHandler);
 router.post('/logout', logout as express.RequestHandler);
 router.post('/google', googleAuth as express.RequestHandler);
 router.get('/getme', protect as express.RequestHandler, getMe as express.RequestHandler);

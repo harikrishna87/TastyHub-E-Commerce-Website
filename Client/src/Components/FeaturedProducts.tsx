@@ -1,16 +1,8 @@
 import React, { JSX } from 'react';
-import {
-  Card,
-  Button,
-  Tag,
-  Typography,
-  Space,
-  Image,
-  Rate
-} from 'antd';
-import { ShoppingCartOutlined, InfoCircleOutlined } from '@ant-design/icons';
-
-const { Title, Text, Paragraph } = Typography;
+import { Card } from 'primereact/card';
+import { Button } from 'primereact/button';
+import { Tag } from 'primereact/tag';
+import { Rating } from 'primereact/rating';
 
 interface Product {
   _id: string;
@@ -49,7 +41,7 @@ const customStyles = `
   overflow: hidden;
   position: relative;
   width: 100%;
-  height: 450px;
+  height: 470px;
 }
 
 .marquee-content {
@@ -62,10 +54,31 @@ const customStyles = `
   animation-play-state: paused;
 }
 
+.featured-product-card {
+  transition: all 0.3s ease;
+  overflow: hidden;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+}
+
 .featured-product-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 20px rgba(25, 135, 84, 0.1) !important;
-  transition: all 0.3s ease;
+}
+
+.featured-product-card .p-card-body {
+  padding: 0px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-grow: 1 !important;
+}
+
+.featured-product-card .p-card-content {
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-grow: 1 !important;
+  justify-content: space-between !important;
 }
 
 .featured-discount-badge {
@@ -79,6 +92,7 @@ const customStyles = `
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 10% 50%);
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   font-size: 12px;
+  z-index: 2;
 }
 
 .featured-category-badge {
@@ -107,7 +121,7 @@ const customStyles = `
   text-decoration: none;
 }
 
-.featured-know-more-btn .anticon {
+.featured-know-more-btn i {
   font-size: 12px;
   display: flex;
   align-items: center;
@@ -117,23 +131,7 @@ const customStyles = `
   display: flex;
   align-items: center;
 }
-
-.featured-product-details-modal .ant-modal-header {
-  border-bottom: 1px solid #f0f0f0;
-  padding: 16px 24px;
-}
-
-.featured-product-details-modal .ant-modal-body {
-  padding: 24px;
-}
-
-.featured-product-details-modal .ant-descriptions-item-label {
-  font-weight: 600;
-  color: #52c41a;
-}
 `;
-
-
 
 const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
   featuredProducts = []
@@ -144,7 +142,6 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
     info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
     warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
   };
-  const contextHolder = null;
 
   React.useEffect(() => {
     const styleElement = document.createElement('style');
@@ -186,157 +183,170 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
     });
   };
 
-  const CustomCard = ({ product, index }: { product: Product; index: number }) => (
-    <Card
-      key={`${product._id}-${index}`}
-      className="mx-2 shadow-sm featured-product-card"
-      style={{
-        minWidth: '300px',
-        maxWidth: '300px',
-        borderRadius: '12px',
-        marginLeft: '8px',
-        marginRight: '8px',
-        border: 'none',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        height: '475px',
-        flexShrink: 0
-      }}
-      cover={
-        <div style={{ position: 'relative' }}>
-          <Image
-            src={product.image}
-            alt={product.name}
-            style={{
-              width: "302px",
-              height: "275px",
-              borderRadius: "12px 12px 0px 0px",
-              objectFit: "cover"
-            }}
-            preview={false}
-            fallback="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.onerror = null;
-              target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
-            }}
-          />
-          {product.discountPercentage && product.discountPercentage > 0 ? (
-            <div className="featured-discount-badge">
-              {product.discountPercentage}% OFF
-            </div>
-          ) : null}
-        </div>
-      }
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <Tag
-            color="cyan"
-            style={{
-              fontSize: '12px',
-              padding: '2px 8px',
-              border: '1px dashed'
-            }}
-          >
-            {product.category}
-          </Tag>
-          <button 
-            className="featured-know-more-btn" 
-            onClick={() => handleKnowMore()}
-            style={{fontSize: '14px'}}
-          >
-            <InfoCircleOutlined />
-            <span>Know More</span>
-          </button>
-        </div>
+  const CustomCard = ({ product, index }: { product: Product; index: number }) => {
+    const ratingValue = typeof product.rating === 'object' ? product.rating.rate : (product.rating || 0);
+    const ratingCount = typeof product.rating === 'object' ? product.rating.count : 0;
 
-        <Title level={5} style={{ margin: '0 0 8px 0' }} ellipsis>
-          {product.name || product.title || 'Unnamed Product'}
-        </Title>
-
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-          <Rate
-            disabled
-            allowHalf
-            value={typeof product.rating === 'object' ? product.rating.rate : (product.rating || 0)}
-            style={{ fontSize: '14px' }}
-          />
-          <Text type="secondary" style={{ marginLeft: '8px', fontSize: '12px' }}>
-            ({typeof product.rating === 'object' ? 
-              `${product.rating.rate.toFixed(1)} - ${product.rating.count}` : 
-              (product.rating || 0).toFixed(1)
-            })
-          </Text>
-        </div>
-
-        <Paragraph
-          type="secondary"
+    const cardHeader = (
+      <div style={{ position: 'relative', height: '225px', width: '300px', overflow: 'hidden' }}>
+        <img
+          src={product.image}
+          alt={product.name || product.title}
           style={{
-            fontSize: '12px',
-            marginBottom: '16px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            display: 'block',
+            width: "100%",
+            height: "100%",
+            borderRadius: "12px 12px 0px 0px",
+            objectFit: "cover"
           }}
-        >
-          {truncateDescription(product.description)}
-        </Paragraph>
-
-        <div style={{
-          marginTop: 'auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            {product.discountPercentage && product.discountPercentage > 0 ? (
-              <Space>
-                <Text strong style={{ color: '#52c41a' }}>
-                  ₹ {(product.discountPrice ?? product.price).toFixed(2)}
-                </Text>
-                <Text delete type="secondary" style={{ fontSize: '12px' }}>
-                  ₹ {product.price.toFixed(2)}
-                </Text>
-              </Space>
-            ) : (
-              <Text strong style={{ color: '#52c41a' }}>
-                ₹ {product.price.toFixed(2)}
-              </Text>
-            )}
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.onerror = null;
+            target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
+          }}
+        />
+        {product.discountPercentage && product.discountPercentage > 0 ? (
+          <div className="featured-discount-badge">
+            {product.discountPercentage}% OFF
           </div>
-          <Button
-            type="primary"
-            size="small"
-            onClick={() => addToCart()}
-            style={{
-              backgroundColor: '#52c41a',
-              borderColor: '#52c41a',
-              minWidth: 110,
-              height: 25,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <ShoppingCartOutlined style={{ marginRight: 4 }} />
-            Add to Cart
-          </Button>
-        </div>
+        ) : null}
       </div>
-    </Card>
-  );
+    );
+
+    return (
+      <Card
+        key={`${product._id}-${index}`}
+        className="mx-2 shadow-sm featured-product-card"
+        header={cardHeader}
+        style={{
+          minWidth: '300px',
+          maxWidth: '300px',
+          borderRadius: '12px',
+          marginLeft: '8px',
+          marginRight: '8px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+          height: '450px',
+          flexShrink: 0,
+          backgroundColor: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', padding: '17px 13px', flexGrow: 1, height: '100%' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <Tag
+                value={product.category}
+                severity="info"
+                style={{
+                  fontSize: '11px',
+                  border: '1px dashed #3b82f6',
+                  background: 'transparent',
+                  color: '#1d4ed8',
+                  fontWeight: 600,
+                  borderRadius: '6px'
+                }}
+              />
+              <button
+                className="featured-know-more-btn"
+                onClick={() => handleKnowMore()}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: '#22c55e',
+                  padding: 0,
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <i className="pi pi-info-circle" />
+                <span>Know More</span>
+              </button>
+            </div>
+
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 700, color: '#1f2937', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {product.name || product.title || 'Unnamed Product'}
+            </h3>
+
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', gap: '6px' }}>
+              <Rating
+                disabled
+                cancel={false}
+                value={Math.round(ratingValue)}
+                stars={5}
+                style={{ fontSize: '13px', color: '#f59e0b' }}
+              />
+              <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>
+                ({ratingValue.toFixed(1)} {ratingCount > 0 ? `- ${ratingCount}` : ''})
+              </span>
+            </div>
+
+            <p style={{
+              fontSize: '12px',
+              color: '#6b7280',
+              marginBottom: '16px',
+              lineHeight: '1.4',
+              height: '34px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              margin: '0 0 16px 0'
+            }}>
+              {truncateDescription(product.description)}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+            <div>
+              {product.discountPercentage && product.discountPercentage > 0 ? (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 'bold', color: '#52c41a', fontSize: '15px' }}>
+                    ₹ {(product.discountPrice ?? product.price).toFixed(2)}
+                  </span>
+                  <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '12px' }}>
+                    ₹ {product.price.toFixed(2)}
+                  </span>
+                </div>
+              ) : (
+                <span style={{ fontWeight: 'bold', color: '#52c41a', fontSize: '15px' }}>
+                  ₹ {product.price.toFixed(2)}
+                </span>
+              )}
+            </div>
+            <Button
+              onClick={() => addToCart()}
+              label="Add to Cart"
+              icon="pi pi-shopping-cart"
+              className="p-button-success p-button-sm"
+              style={{
+                borderRadius: '8px',
+                fontWeight: 700,
+                minWidth: '110px',
+                height: '32px',
+                padding: '0 8px'
+              }}
+            />
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   const duplicatedProducts = [...featuredProducts, ...featuredProducts];
 
   return (
     <>
-      {contextHolder}
       <div style={{ marginBottom: '2.5rem' }}>
         <div style={{ marginBottom: '1.5rem' }}>
-          <Title level={2} className="section-title" style={{ margin: 0 }}>
+          <h2 className="section-title" style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }}>
             Featured Products
-          </Title>
+          </h2>
         </div>
 
         <div className="marquee-container">

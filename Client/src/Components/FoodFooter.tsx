@@ -1,15 +1,4 @@
-import React from 'react';
-import { Row, Col, Form, Button, Input } from 'antd';
-import {
-  FacebookOutlined,
-  InstagramOutlined,
-  TwitterOutlined,
-  PinterestOutlined,
-  YoutubeOutlined,
-  EnvironmentOutlined,
-  PhoneOutlined,
-  MailOutlined
-} from '@ant-design/icons';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 interface FooterProps {
@@ -63,12 +52,42 @@ const LeafDecoration: React.FC<{ position: 'left' | 'right' }> = ({ position }) 
   );
 };
 
+const PinterestIcon = () => (
+  <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.4 7.63 11.16-.1-.95-.2-2.4.04-3.43.22-.93 1.4-5.93 1.4-5.93s-.36-.72-.36-1.77c0-1.66.96-2.9 2.18-2.9 1.02 0 1.52.77 1.52 1.7 0 1.03-.66 2.57-1 4a1.72 1.72 0 001.67 2.1c2 0 3.54-2.1 3.54-5.14 0-2.68-1.93-4.56-4.68-4.56-3.2 0-5.07 2.4-5.07 4.87 0 .97.37 2 1 2.4l.3.73c-.08.35-.2.83-.26 1.08-.1.4-.3.48-.68.3-2.54-1.18-4.13-4.9-4.13-7.92 0-6.45 4.68-12.38 13.5-12.38 7.1 0 12.6 5.06 12.6 11.8 0 7.05-4.45 12.72-10.63 12.72-2.08 0-4.03-1.08-4.7-2.36l-1.28 4.88c-.46 1.77-1.7 4-2.54 5.35A12 12 0 1012 0z"/>
+  </svg>
+);
+
+const customFooterStyles = `
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 10fr 3fr 3fr 8fr;
+  }
+}
+.footer-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 768px) {
+  .footer-bottom-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+`;
+
 const Footer: React.FC<FooterProps> = ({
   companyName = "TastyHub",
   companyLogo = "/logo.png"
 }) => {
-  const [form] = Form.useForm();
+  const [email, setEmail] = useState('');
   const navigate = useNavigate();
+  
   const messageApi = {
     info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
     success: (opts: any) => (window as any).showToast?.('success', 'Success', typeof opts === 'string' ? opts : opts.content || ''),
@@ -76,15 +95,26 @@ const Footer: React.FC<FooterProps> = ({
     warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
   };
 
-  const handleSubscribe = (values: { email: string }) => {
-    if (values.email && values.email.includes('@')) {
+  React.useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = customFooterStyles;
+    document.head.appendChild(styleElement);
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
+  const handleSubscribeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email && email.includes('@')) {
       messageApi.info({
-          content: "This feature is under development. Please check back later.",
-          duration: 3,
-          style: {
-            marginTop: '10vh',
-          },
-        });
+        content: "This feature is under development. Please check back later.",
+        duration: 3,
+        style: {
+          marginTop: '10vh',
+        },
+      });
+      setEmail('');
     }
   };
 
@@ -117,8 +147,8 @@ const Footer: React.FC<FooterProps> = ({
         position: 'relative',
         zIndex: 1
       }}>
-        <Row gutter={[24, 24]} style={{ marginBottom: '32px' }}>
-          <Col xs={24} md={10}>
+        <div className="footer-grid" style={{ marginBottom: '32px' }}>
+          <div>
             <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center' }}>
               <img
                 src={companyLogo}
@@ -149,7 +179,7 @@ const Footer: React.FC<FooterProps> = ({
                   aria-label="Facebook"
                   onClick={(e) => e.preventDefault()}
                 >
-                  <FacebookOutlined />
+                  <i className="pi pi-facebook" />
                 </Link>
                 <Link
                   to="#"
@@ -157,7 +187,7 @@ const Footer: React.FC<FooterProps> = ({
                   aria-label="Instagram"
                   onClick={(e) => e.preventDefault()}
                 >
-                  <InstagramOutlined />
+                  <i className="pi pi-instagram" />
                 </Link>
                 <Link
                   to="#"
@@ -165,7 +195,7 @@ const Footer: React.FC<FooterProps> = ({
                   aria-label="Twitter"
                   onClick={(e) => e.preventDefault()}
                 >
-                  <TwitterOutlined />
+                  <i className="pi pi-twitter" />
                 </Link>
                 <Link
                   to="#"
@@ -173,7 +203,7 @@ const Footer: React.FC<FooterProps> = ({
                   aria-label="Pinterest"
                   onClick={(e) => e.preventDefault()}
                 >
-                  <PinterestOutlined />
+                  <PinterestIcon />
                 </Link>
                 <Link
                   to="#"
@@ -181,13 +211,13 @@ const Footer: React.FC<FooterProps> = ({
                   aria-label="YouTube"
                   onClick={(e) => e.preventDefault()}
                 >
-                  <YoutubeOutlined />
+                  <i className="pi pi-youtube" />
                 </Link>
               </div>
             </div>
-          </Col>
+          </div>
 
-          <Col xs={12} md={3}>
+          <div>
             <h5 style={{ marginBottom: '24px', color: '#52c41a', fontSize: '18px', fontWeight: 500 }}>
               Shop
             </h5>
@@ -253,9 +283,9 @@ const Footer: React.FC<FooterProps> = ({
                 Combo Deals
               </Link>
             </div>
-          </Col>
+          </div>
 
-          <Col xs={12} md={3}>
+          <div>
             <h5 style={{ marginBottom: '24px', color: '#52c41a', fontSize: '18px', fontWeight: 500 }}>
               Support
             </h5>
@@ -309,9 +339,9 @@ const Footer: React.FC<FooterProps> = ({
                 Returns & Exchanges
               </Link>
             </div>
-          </Col>
+          </div>
 
-          <Col xs={24} md={8}>
+          <div>
             <h5 style={{ marginBottom: '24px', color: '#52c41a', fontSize: '18px', fontWeight: 500 }}>
               Stay Updated
             </h5>
@@ -319,67 +349,73 @@ const Footer: React.FC<FooterProps> = ({
               Subscribe to our newsletter for exclusive offers and updates on new products.
             </p>
 
-            <Form
-              form={form}
-              onFinish={handleSubscribe}
+            <form
+              onSubmit={handleSubscribeSubmit}
               style={{ marginBottom: '24px' }}
             >
               <div style={{ display: 'flex', marginBottom: '24px' }}>
-                <Form.Item
-                  name="email"
-                  rules={[
-                    { required: true, message: 'Please enter your email' },
-                    { type: 'email', message: 'Please enter a valid email' }
-                  ]}
-                  style={{ flex: 1, marginRight: '8px', marginBottom: 0 }}
-                >
-                  <Input
-                    placeholder="Your email address"
-                    style={{
-                      borderColor: '#28a745',
-                      borderRadius: '6px 0 0 6px'
-                    }}
-                  />
-                </Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Your email address"
+                  required
+                  style={{
+                    flex: 1,
+                    marginRight: '8px',
+                    borderColor: '#28a745',
+                    borderRadius: '6px 0 0 6px',
+                    border: '1px solid #28a745',
+                    padding: '8px 12px',
+                    outline: 'none',
+                    fontSize: '14px',
+                    color: '#212529'
+                  }}
+                />
+                <button
+                  type="submit"
                   style={{
                     backgroundColor: '#28a745',
                     borderColor: '#28a745',
-                    borderRadius: '0 6px 6px 0'
+                    border: '1px solid #28a745',
+                    borderRadius: '0 6px 6px 0',
+                    color: 'white',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '14px'
                   }}
                 >
                   Subscribe
-                </Button>
+                </button>
               </div>
-            </Form>
+            </form>
             <div style={{ marginTop: '32px' }}>
               <h5 style={{ marginBottom: '24px', color: '#52c41a', fontSize: '18px', fontWeight: 500 }}>
                 Contact Info
               </h5>
               <address style={{ marginBottom: 0, color: '#212529', fontStyle: 'normal' }}>
-                <div style={{ marginBottom: '16px' }}>
-                  <EnvironmentOutlined style={{ marginRight: '8px', color: '#52c41a' }} />
+                <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center' }}>
+                  <i className="pi pi-map-marker" style={{ marginRight: '8px', color: '#52c41a' }} />
                   1-23 Gourmet Street, Nellore
                 </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <PhoneOutlined style={{ marginRight: '8px', color: '#52c41a' }} />
+                <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center' }}>
+                  <i className="pi pi-phone" style={{ marginRight: '8px', color: '#52c41a' }} />
                   (+91) 99887 76655
                 </div>
-                <div>
-                  <MailOutlined style={{ marginRight: '8px', color: '#52c41a' }} />
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <i className="pi pi-envelope" style={{ marginRight: '8px', color: '#52c41a' }} />
                   support@TastyHub.com
                 </div>
               </address>
             </div>
-          </Col>
-        </Row>
+          </div>
+        </div>
 
         <hr style={{ borderColor: '#52c41a', margin: '32px 0' }} />
 
-        <Row>
-          <Col xs={24} md={12} style={{ marginBottom: '24px' }}>
+        <div className="footer-bottom-grid">
+          <div style={{ marginBottom: '24px' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
               <Link
                 to="/user/privacy"
@@ -405,9 +441,9 @@ const Footer: React.FC<FooterProps> = ({
                 Terms of Service
               </Link>
             </div>
-          </Col>
+          </div>
 
-          <Col xs={24} md={12} style={{ textAlign: 'right' }}>
+          <div style={{ textAlign: 'right' }}>
             <p style={{
               marginBottom: 0,
               color: '#6c757d',
@@ -415,8 +451,8 @@ const Footer: React.FC<FooterProps> = ({
             }}>
               &copy; {currentYear} {companyName}. All rights reserved.
             </p>
-          </Col>
-        </Row>
+          </div>
+        </div>
       </div>
     </footer>
   );

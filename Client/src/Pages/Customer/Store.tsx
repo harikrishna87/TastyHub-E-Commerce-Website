@@ -1,40 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    Row,
-    Col,
-    Card,
-    Input,
-    Button,
-    Pagination,
-    Select,
-    InputNumber,
-    Space,
-    Rate,
-    Empty,
-    Typography,
-    Tag,
-    Layout,
-    Modal,
-    Image,
-    Badge
-} from 'antd';
-import {
-    SearchOutlined,
-    FilterOutlined,
-    ShoppingCartOutlined,
-    InfoCircleOutlined,
-    CloseOutlined,
-    GiftOutlined,
-    ThunderboltOutlined
-} from '@ant-design/icons';
+import { Dialog } from 'primereact/dialog';
+import { Card } from 'primereact/card';
+import { Button } from 'primereact/button';
+import { Tag } from 'primereact/tag';
+import { Rating } from 'primereact/rating';
+import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
+import { InputText } from 'primereact/inputtext';
 import axios from 'axios';
-import 'antd/dist/reset.css';
 import { AuthContext } from '../../context/AuthContext';
-
-const { Content } = Layout;
-const { Title, Text, Paragraph } = Typography;
-const { Option } = Select;
 
 interface Product {
     _id: string;
@@ -61,24 +36,38 @@ interface FilterOptions {
     minRating: number;
 }
 
-const SkeletonPulse = ({ height = '20px', width = '100%', className = '', style = {} }) => (
-    <div
-        className={`skeleton-pulse ${className}`}
-        style={{
-            height,
-            width,
-            backgroundColor: '#e8f5e8',
-            borderRadius: '6px',
-            ...style
-        }}
-    />
-);
+// const SkeletonPulse = ({ height = '20px', width = '100%', className = '', style = {} }) => (
+//     <div
+//         className={`skeleton-pulse \${className}`}
+//         style={{
+//             height,
+//             width,
+//             backgroundColor: '#e8f5e8',
+//             borderRadius: '6px',
+//             ...style
+//         }}
+//     />
+// );
 
-const customStyles = `
+const customStoreStyles = `
+.product-card {
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.product-card .p-card-body {
+    padding: 0px !important;
+}
+.product-card .p-card-content {
+    padding: 0 !important;
+}
 .product-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(25, 135, 84, 0.1) !important;
-    transition: all 0.3s ease;
 }
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
@@ -91,10 +80,6 @@ const customStyles = `
 @keyframes shimmer {
     0% { background-position: -200% center; }
     100% { background-position: 200% center; }
-}
-.ant-card-cover img {
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
 }
 .store-wrapper {
     position: relative;
@@ -134,6 +119,7 @@ const customStyles = `
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 10% 50%);
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     font-size: 12px;
+    z-index: 2;
 }
 .category-badge {
     position: absolute;
@@ -153,21 +139,52 @@ const customStyles = `
     margin-bottom: 32px;
     position: relative;
 }
-.search-section {
+.search-section-row {
+    display: flex;
+    gap: 16px;
     margin-bottom: 24px;
+    flex-wrap: wrap;
 }
-.ant-pagination-item-active {
-    border-color: #52c41a !important;
-    background-color: #52c41a !important;
+.search-input-col {
+    flex: 1;
+    min-width: 280px;
 }
-.ant-pagination-item-active a {
-    color: white !important;
+.search-buttons-col {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
 }
-.ant-pagination-item:hover {
-    border-color: #52c41a !important;
+.filter-grid-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
 }
-.ant-pagination-item:hover a {
-    color: #52c41a !important;
+@media (min-width: 768px) {
+    .filter-grid-layout {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+.store-products-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+@media (min-width: 576px) {
+    .store-products-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: 992px) {
+    .store-products-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+@media (min-width: 1200px) {
+    .store-products-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 .know-more-btn {
     border: none;
@@ -187,7 +204,7 @@ const customStyles = `
     color: #389e0d;
     text-decoration: none;
 }
-.know-more-btn .anticon {
+.know-more-btn i {
     font-size: 12px;
     display: flex;
     align-items: center;
@@ -195,33 +212,6 @@ const customStyles = `
 .know-more-btn span {
     display: flex;
     align-items: center;
-}
-.product-details-modal .ant-modal-header {
-    border-bottom: 1px solid #f0f0f0;
-    padding: 16px 24px;
-}
-.product-details-modal .ant-modal-body {
-    padding: 24px;
-}
-.product-details-modal .ant-descriptions-item-label {
-    font-weight: 600;
-    color: #52c41a;
-}
-.modal-loading-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    min-height: 200px;
-}
-.modal-loading-spinner {
-    margin-bottom: 16px;
-}
-.modal-loading-text {
-    color: #52c41a;
-    font-size: 16px;
-    text-align: center;
 }
 .combo-deals-btn {
     animation: pulse-glow 2s infinite;
@@ -231,6 +221,9 @@ const customStyles = `
     transition: all 0.3s ease;
     border-radius: 14px !important;
     overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 .combo-card:hover {
     transform: translateY(-4px);
@@ -239,14 +232,44 @@ const customStyles = `
 .combo-modal-scroll::-webkit-scrollbar {
     display: none;
 }
+.combo-grid-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+@media (min-width: 768px) {
+    .combo-grid-layout {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 @media (max-width: 768px) {
     .store-container {
         padding: 20px 16px;
     }
-    .ant-card {
-        width: 301px;
-        margin: 0 auto;
+}
+.details-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+@media (min-width: 768px) {
+    .details-grid {
+        grid-template-columns: 5fr 7fr;
     }
+}
+.details-desc-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.details-desc-label {
+    width: 140px;
+    font-weight: 600;
+    color: #166534;
+}
+.details-desc-value {
+    flex: 1;
 }
 `;
 
@@ -279,7 +302,6 @@ const Store: React.FC = () => {
         info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
         warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
     };
-    const contextHolder = null;
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [showProductModal, setShowProductModal] = useState<boolean>(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -319,13 +341,11 @@ const Store: React.FC = () => {
                 'Content-Type': 'application/json'
             };
 
-            // 1. Clear the cart
             await axios.delete(`${backendUrl}/api/cart/clear_cart`, {
                 headers,
                 withCredentials: true
             });
 
-            // 2. Sequentially add each product of that combo deal to the cart
             const combo = combos.find(c => c._id === comboId);
             if (combo && combo.products) {
                 for (const p of combo.products) {
@@ -355,14 +375,12 @@ const Store: React.FC = () => {
                 }
             }
 
-            // 3. Claim the combo
             const res = await axios.post(`${backendUrl}/api/promo/combos/${comboId}/access`, {}, {
                 headers,
                 withCredentials: true
             });
 
             if (res.data.success) {
-                // 4. Update the global cart count
                 if ((window as any).updateCartCount) {
                     (window as any).updateCartCount();
                 }
@@ -375,7 +393,6 @@ const Store: React.FC = () => {
 
                 setShowComboModal(false);
 
-                // 5. Navigate to checkout
                 setTimeout(() => {
                     navigate(`/user/checkout?comboId=${comboId}`);
                 }, 1000);
@@ -395,11 +412,9 @@ const Store: React.FC = () => {
         fetchCombos();
     }, []);
 
-
-
     useEffect(() => {
         const styleElement = document.createElement('style');
-        styleElement.innerHTML = customStyles;
+        styleElement.innerHTML = customStoreStyles;
         document.head.appendChild(styleElement);
 
         return () => {
@@ -461,7 +476,7 @@ const Store: React.FC = () => {
 
     const handleFilterChange = (name: string, value: any) => {
         if (name === 'minPrice' || name === 'maxPrice' || name === 'minRating') {
-            const numValue = value === null || value === undefined ? 0 : parseFloat(value);
+            const numValue = value === null || value === undefined || value === '' ? 0 : parseFloat(value);
             setFilters(prev => ({
                 ...prev,
                 [name]: numValue
@@ -601,682 +616,795 @@ const Store: React.FC = () => {
         setModalLoading(false);
     };
 
+    // const renderStars = (ratingValue: number) => {
+    //     const stars = [];
+    //     const floor = Math.floor(ratingValue);
+    //     const hasHalf = ratingValue % 1 !== 0;
+    //     for (let i = 1; i <= 5; i++) {
+    //         if (i <= floor) {
+    //             stars.push(<i key={i} className="pi pi-star-fill" style={{ color: '#facc15', fontSize: '13px', marginRight: '2px' }} />);
+    //         } else if (i === floor + 1 && hasHalf) {
+    //             stars.push(<i key={i} className="pi pi-star-fill" style={{ color: '#facc15', fontSize: '13px', marginRight: '2px', opacity: 0.7 }} />);
+    //         } else {
+    //             stars.push(<i key={i} className="pi pi-star" style={{ color: '#d1d5db', fontSize: '13px', marginRight: '2px' }} />);
+    //         }
+    //     }
+    //     return <div style={{ display: 'flex', alignItems: 'center' }}>{stars}</div>;
+    // };
+
     if (loading) {
         return (
-            <Layout style={{ minHeight: '100vh', backgroundColor: 'transparent', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ minHeight: '100vh', backgroundColor: 'transparent', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
                 <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#22c55e' }} />
                 <span style={{ color: '#22c55e', fontWeight: 600 }}>Loading your Store Page...</span>
-            </Layout>
+            </div>
         );
     }
 
+    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+    const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
     return (
-        <Layout style={{ minHeight: '100vh', backgroundColor: 'transparent' }}>
-            <Content>
-                <div className="store-wrapper">
-                    <div className="decoration-left-bottom" style={{ display: window.innerWidth > 768 ? 'block' : 'none' }}>
-                        <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3.61,5.51a15.2,15.2,0,0,1,12.7-1.21c4,1.72,6.3,5.66,8.38,9.47,4.33,7.94,8.64,16,15.73,21.37s17.48,7.35,25.25,2.57c3.8-2.34,6.6-6.07,9-10s4.36-8,7-11.53c10-13.78,32.33-14.35,47.68-5.77,7.56,4.22,14.33,10.86,17.35,19.18s1.79,18.61-5,24c-5.38,4.25-13.12,4.78-19.78,2.66s-12.45-6.59-17.53-11.46C87.86,31.17,71.53,16.84,51.22,13.15c-5.35-1,10.8-1.15,16.22-1.68A92.7,92.7,0,0,1,3.61,5.51Z" transform="translate(6.5 55)" fill="#52c41a" />
-                            <path d="M134.89,8.5c6.54,5.11,9.42,14.15,7.46,22.28S133.9,44,126.23,47.52C118.47,51.1,109.52,52.32,101,53.5C79.36,56.59,57.52,59.67,35.81,54.47s-43.54-22.77-44.76-44.71C-10.16-12.32,14.5-28.59,39.5-28c11.75.27,23.43,4.58,30.45,14,8.33,11.18,8.21,27.6,18.61,36.83,7.51,6.67,18.9,7.17,28.16,3.59a31.84,31.84,0,0,0,18.17-17.88" transform="translate(6.5 55)" fill="#52c41a" />
-                            <path d="M98,111.39a134.3,134.3,0,0,0-19.42-47C70.79,52.58,58.77,43.81,45.25,39.5C27.51,33.8,7.49,37.75-7.5,45.12" transform="translate(6.5 55)" stroke="#52c41a" strokeMiterlimit="10" strokeWidth="2" />
-                        </svg>
-                    </div>
+        <div style={{ minHeight: '100vh', backgroundColor: 'transparent' }}>
+            <div className="store-wrapper">
+                <div className="decoration-left-bottom" style={{ display: window.innerWidth > 768 ? 'block' : 'none' }}>
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3.61,5.51a15.2,15.2,0,0,1,12.7-1.21c4,1.72,6.3,5.66,8.38,9.47,4.33,7.94,8.64,16,15.73,21.37s17.48,7.35,25.25,2.57c3.8-2.34,6.6-6.07,9-10s4.36-8,7-11.53c10-13.78,32.33-14.35,47.68-5.77,7.56,4.22,14.33,10.86,17.35,19.18s1.79,18.61-5,24c-5.38,4.25-13.12,4.78-19.78,2.66s-12.45-6.59-17.53-11.46C87.86,31.17,71.53,16.84,51.22,13.15c-5.35-1,10.8-1.15,16.22-1.68A92.7,92.7,0,0,1,3.61,5.51Z" transform="translate(6.5 55)" fill="#52c41a" />
+                        <path d="M134.89,8.5c6.54,5.11,9.42,14.15,7.46,22.28S133.9,44,126.23,47.52C118.47,51.1,109.52,52.32,101,53.5C79.36,56.59,57.52,59.67,35.81,54.47s-43.54-22.77-44.76-44.71C-10.16-12.32,14.5-28.59,39.5-28c11.75.27,23.43,4.58,30.45,14,8.33,11.18,8.21,27.6,18.61,36.83,7.51,6.67,18.9,7.17,28.16,3.59a31.84,31.84,0,0,0,18.17-17.88" transform="translate(6.5 55)" fill="#52c41a" />
+                        <path d="M98,111.39a134.3,134.3,0,0,0-19.42-47C70.79,52.58,58.77,43.81,45.25,39.5C27.51,33.8,7.49,37.75-7.5,45.12" transform="translate(6.5 55)" stroke="#52c41a" strokeMiterlimit="10" strokeWidth="2" />
+                    </svg>
+                </div>
 
-                    <div className="decoration-right-bottom" style={{ display: window.innerWidth > 768 ? 'block' : 'none' }}>
-                        <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M196.39,5.51a15.2,15.2,0,0,0-12.7-1.21c-4,1.72-6.3,5.66-8.38,9.47-4.33,7.94-8.64,16-15.73,21.37s-17.48,7.35-25.25,2.57c-3.8-2.34-6.6-6.07-9-10s-4.36-8-7-11.53c-10-13.78-32.33-14.35-47.68-5.77-7.56,4.22-14.33,10.86-17.35,19.18s-1.79,18.61,5,24c5.38,4.25,13.12,4.78,19.78,2.66s12.45-6.59,17.53-11.46c15.51-14.65,31.84-29,52.15-32.67,5.35-1,10.8-1.15,16.22-1.68A92.7,92.7,0,0,0,196.39,5.51Z" transform="translate(-6.5 55)" fill="#52c41a" />
-                            <path d="M65.11,8.5C58.57,13.61,55.69,22.65,57.65,30.78S66.1,44,73.77,47.52C81.53,51.1,90.48,52.32,99,53.5c21.64,3.09,43.48,6.17,65.19,1s43.54-22.77,44.76-44.71C210.16-12.32,185.5-28.59,160.5-28c-11.75.27-23.43,4.58-30.45,14-8.33,11.18-8.21,27.6-18.61,36.83-7.51,6.67-18.9,7.17-28.16,3.59A31.84,31.84,0,0,1,65.11,8.5" transform="translate(-6.5 55)" fill="#52c41a" />
-                            <path d="M102,111.39a134.3,134.3,0,0,1,19.42-47c7.79-11.81,19.81-20.58,33.33-24.89,17.74-5.7,37.76-1.75,52.75,5.62" transform="translate(-6.5 55)" stroke="#52c41a" strokeMiterlimit="10" strokeWidth="2" />
-                        </svg>
-                    </div>
+                <div className="decoration-right-bottom" style={{ display: window.innerWidth > 768 ? 'block' : 'none' }}>
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M196.39,5.51a15.2,15.2,0,0,0-12.7-1.21c-4,1.72-6.3,5.66-8.38,9.47-4.33,7.94-8.64,16-15.73,21.37s-17.48,7.35-25.25,2.57c-3.8-2.34-6.6-6.07-9-10s-4.36-8-7-11.53c-10-13.78-32.33-14.35-47.68-5.77-7.56,4.22-14.33,10.86-17.35,19.18s-1.79,18.61,5,24c5.38,4.25,13.12,4.78,19.78,2.66s12.45-6.59,17.53-11.46c15.51-14.65,31.84-29,52.15-32.67,5.35-1,10.8-1.15,16.22-1.68A92.7,92.7,0,0,0,196.39,5.51Z" transform="translate(-6.5 55)" fill="#52c41a" />
+                        <path d="M65.11,8.5C58.57,13.61,55.69,22.65,57.65,30.78S66.1,44,73.77,47.52C81.53,51.1,90.48,52.32,99,53.5c21.64,3.09,43.48,6.17,65.19,1s43.54-22.77,44.76-44.71C210.16-12.32,185.5-28.59,160.5-28c-11.75.27-23.43,4.58-30.45,14-8.33,11.18-8.21,27.6-18.61,36.83-7.51,6.67-18.9,7.17-28.16,3.59A31.84,31.84,0,0,1,65.11,8.5" transform="translate(-6.5 55)" fill="#52c41a" />
+                        <path d="M102,111.39a134.3,134.3,0,0,1,19.42-47c7.79-11.81,19.81-20.58,33.33-24.89,17.74-5.7,37.76-1.75,52.75,5.62" transform="translate(-6.5 55)" stroke="#52c41a" strokeMiterlimit="10" strokeWidth="2" />
+                    </svg>
+                </div>
 
-                    <div className="store-container">
-                        <Row gutter={[16, 16]} className="search-section">
-                            <Col md={12} xs={24}>
-                                <Input.Search
-                                    placeholder="Search products..."
-                                    value={searchTerm}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                    style={{ borderColor: '#52c41a' }}
-                                    enterButton={
-                                        <Button type="primary" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>
-                                            <SearchOutlined />
-                                        </Button>
-                                    }
-                                />
-                            </Col>
-                            <Col md={12} xs={24}>
-                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                                    {combos.length > 0 && (
-                                        <Badge count={combos.length} color="#16a34a" offset={[-4, 4]}>
-                                            <Button
-                                                className="combo-deals-btn"
-                                                type="primary"
-                                                onClick={() => setShowComboModal(true)}
-                                                style={{
-                                                    background: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
-                                                    borderColor: '#16a34a',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '6px',
-                                                    fontWeight: 700,
-                                                    height: '36px',
-                                                    paddingInline: '16px'
-                                                }}
-                                                icon={<GiftOutlined />}
-                                            >
-                                                Combo Deals
-                                            </Button>
-                                        </Badge>
-                                    )}
-                                    <Button
-                                        type="default"
+                <div className="store-container">
+                    <div className="search-section-row">
+                        <div className="search-input-col">
+                            <div style={{ position: 'relative', width: '100%' }}>
+                                <span style={{ width: '100%', display: 'block', position: 'relative' }}>
+                                    <i className="pi pi-search" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#22c55e', fontSize: '16px', zIndex: 2 }} />
+                                    <InputText
+                                        value={searchTerm}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                        placeholder="Search premium food, desserts, or drinks..."
                                         style={{
-                                            borderColor: '#52c41a',
-                                            color: '#52c41a',
+                                            width: '100%',
+                                            paddingLeft: '44px',
+                                            paddingRight: searchTerm ? '40px' : '16px',
+                                            borderRadius: '30px',
+                                            border: '2.5px solid #22c55e',
+                                            height: '46px',
+                                            fontSize: '15px',
+                                            fontWeight: 500,
+                                            outline: 'none',
+                                            boxShadow: '0 4px 15px rgba(34, 197, 94, 0.08)',
+                                            transition: 'all 0.3s ease',
+                                            backgroundColor: '#ffffff'
+                                        }}
+                                    />
+                                </span>
+                                {searchTerm && (
+                                    <i
+                                        className="pi pi-times-circle"
+                                        onClick={() => setSearchTerm('')}
+                                        style={{
+                                            position: 'absolute',
+                                            right: '16px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            color: '#9ca3af',
+                                            cursor: 'pointer',
+                                            fontSize: '18px',
+                                            zIndex: 2,
+                                            transition: 'color 0.2s'
+                                        }}
+                                        title="Clear search"
+                                    />
+                                )}
+                            </div>
+                        </div>
+                        <div className="search-input-col search-buttons-col">
+                            {combos.length > 0 && (
+                                <div style={{ position: 'relative' }}>
+                                    <button
+                                        className="combo-deals-btn"
+                                        onClick={() => setShowComboModal(true)}
+                                        style={{
+                                            background: 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
+                                            borderColor: '#16a34a',
+                                            border: 'none',
+                                            color: 'white',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            height: '36px'
+                                            gap: '6px',
+                                            fontWeight: 700,
+                                            height: '36px',
+                                            paddingInline: '16px',
+                                            cursor: 'pointer'
                                         }}
-                                        onClick={() => setShowFilters(!showFilters)}
                                     >
-                                        <FilterOutlined style={{ marginRight: '8px' }} />
-                                        {showFilters ? 'Hide Filters' : 'Show Filters'}
-                                    </Button>
+                                        <i className="pi pi-gift" />
+                                        Combo Deals
+                                    </button>
+                                    <span
+                                        style={{
+                                            position: 'absolute',
+                                            top: '-6px',
+                                            right: '-6px',
+                                            backgroundColor: '#16a34a',
+                                            color: 'white',
+                                            borderRadius: '50%',
+                                            padding: '2px 6px',
+                                            fontSize: '11px',
+                                            fontWeight: 'bold',
+                                            lineHeight: 1
+                                        }}
+                                    >
+                                        {combos.length}
+                                    </span>
                                 </div>
-                            </Col>
-                        </Row>
-
-                        {showFilters && (
-                            <div className="filter-panel">
-                                <Row gutter={[16, 16]}>
-                                    <Col md={6} xs={24}>
-                                        <div>
-                                            <Text strong style={{ color: '#52c41a' }}>Category</Text>
-                                            <Select
-                                                value={filters.category}
-                                                onChange={(value) => handleFilterChange('category', value)}
-                                                style={{ width: '100%', marginTop: '8px', borderColor: '#52c41a' }}
-                                                placeholder="All Categories"
-                                            >
-                                                <Option value="">All Categories</Option>
-                                                {categories.map((category) => (
-                                                    <Option key={category} value={category}>
-                                                        {category.charAt(0).toUpperCase() + category.slice(1)}
-                                                    </Option>
-                                                ))}
-                                            </Select>
-                                        </div>
-                                    </Col>
-                                    <Col md={6} xs={24}>
-                                        <div>
-                                            <Text strong style={{ color: '#52c41a' }}>Min Price (₹)</Text>
-                                            <InputNumber
-                                                min={0}
-                                                value={filters.minPrice}
-                                                onChange={(value) => handleFilterChange('minPrice', value)}
-                                                style={{ width: '100%', marginTop: '8px' }}
-                                            />
-                                        </div>
-                                    </Col>
-                                    <Col md={6} xs={24}>
-                                        <div>
-                                            <Text strong style={{ color: '#52c41a' }}>Max Price (₹)</Text>
-                                            <InputNumber
-                                                min={0}
-                                                value={filters.maxPrice}
-                                                onChange={(value) => handleFilterChange('maxPrice', value)}
-                                                style={{ width: '100%', marginTop: '8px' }}
-                                            />
-                                        </div>
-                                    </Col>
-                                    <Col md={6} xs={24}>
-                                        <div>
-                                            <Text strong style={{ color: '#52c41a' }}>Min Rating</Text>
-                                            <Select
-                                                value={filters.minRating}
-                                                onChange={(value) => handleFilterChange('minRating', value)}
-                                                style={{ width: '100%', marginTop: '8px' }}
-                                            >
-                                                <Option value={0}>Any Rating</Option>
-                                                <Option value={1}>1+ Stars</Option>
-                                                <Option value={2}>2+ Stars</Option>
-                                                <Option value={3}>3+ Stars</Option>
-                                                <Option value={4}>4+ Stars</Option>
-                                                <Option value={4.5}>4.5+ Stars</Option>
-                                            </Select>
-                                        </div>
-                                    </Col>
-                                    <Col xs={24} style={{ textAlign: 'right', marginTop: '16px' }}>
-                                        <Button
-                                            type="default"
-                                            style={{ borderColor: '#52c41a', color: '#52c41a' }}
-                                            onClick={resetFilters}
-                                        >
-                                            Reset Filters
-                                        </Button>
-                                    </Col>
-                                </Row>
-                            </div>
-                        )}
-
-                        <div style={{ marginBottom: '24px' }}>
-                            <Text type="secondary">
-                                {loading ? (
-                                    <SkeletonPulse width='200px' height='20px' />
-                                ) : (
-                                    `Showing ${indexOfFirstProduct + 1}-${Math.min(indexOfLastProduct, filteredProducts.length)} of ${filteredProducts.length} products`
-                                )}
-                            </Text>
-                        </div>
-
-                        <Row gutter={[24, 24]}>
-                            {currentProducts.length > 0 ? (
-                                currentProducts.map((product) => (
-                                    <Col xl={6} lg={8} md={12} sm={12} xs={24} key={product._id}>
-                                        <Card
-                                            className="product-card"
-                                            style={{
-                                                height: '100%',
-                                                borderRadius: '12px',
-                                                border: 'none',
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                            }}
-                                            cover={
-                                                <div style={{ position: 'relative' }}>
-                                                    <img
-                                                        alt={product.title}
-                                                        src={product.image}
-                                                        style={{
-                                                            height: '215px',
-                                                            width: '100%',
-                                                            objectFit: 'cover',
-                                                            borderTopLeftRadius: '12px',
-                                                            borderTopRightRadius: '12px'
-                                                        }}
-                                                        onError={(e) => {
-                                                            const target = e.target as HTMLImageElement;
-                                                            target.onerror = null;
-                                                            target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
-                                                        }}
-                                                    />
-                                                    {product.discountPercentage && product.discountPercentage > 0 ? (
-                                                        <div className="discount-badge">
-                                                            {product.discountPercentage}% OFF
-                                                        </div>
-                                                    ) : null}
-                                                    <div className="category-badge"></div>
-                                                </div>
-                                            }
-                                        >
-                                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                                    <Tag
-                                                        color="cyan"
-                                                        style={{
-                                                            fontSize: '12px',
-                                                            padding: '2px 8px',
-                                                            border: '1px dashed'
-                                                        }}
-                                                    >
-                                                        {product.category}
-                                                    </Tag>
-                                                    <button
-                                                        className="know-more-btn"
-                                                        onClick={() => handleKnowMore(product)}
-                                                        style={{ fontSize: '14px' }}
-                                                    >
-                                                        <InfoCircleOutlined />
-                                                        <span>Know More</span>
-                                                    </button>
-                                                </div>
-                                                <Title level={5} style={{ margin: '0 0 8px 0' }} ellipsis>
-                                                    {product.title}
-                                                </Title>
-
-                                                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                                                    <Rate
-                                                        disabled
-                                                        allowHalf
-                                                        value={product.rating.rate}
-                                                        style={{ fontSize: '14px' }}
-                                                    />
-                                                    <Text type="secondary" style={{ marginLeft: '8px', fontSize: '12px' }}>
-                                                        ({product.rating.count})
-                                                    </Text>
-                                                </div>
-
-                                                <Paragraph
-                                                    type="secondary"
-                                                    style={{
-                                                        fontSize: '12px',
-                                                        marginBottom: '16px',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap',
-                                                        display: 'block',
-                                                    }}
-                                                >
-                                                    {product.description || 'No description available'}
-                                                </Paragraph>
-
-                                                <div style={{
-                                                    marginTop: 'auto',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center'
-                                                }}>
-                                                    <div>
-                                                        {product.discountPercentage && product.discountPercentage > 0 ? (
-                                                            <Space>
-                                                                <Text strong style={{ color: '#52c41a' }}>
-                                                                    ₹ {(product.discountPrice ?? product.price).toFixed(2)}
-                                                                </Text>
-                                                                <Text delete type="secondary" style={{ fontSize: '12px' }}>
-                                                                    ₹ {product.price.toFixed(2)}
-                                                                </Text>
-                                                            </Space>
-                                                        ) : (
-                                                            <Text strong style={{ color: '#52c41a' }}>
-                                                                ₹ {product.price.toFixed(2)}
-                                                            </Text>
-                                                        )}
-                                                    </div>
-                                                    <Button
-                                                        type="primary"
-                                                        size="small"
-                                                        onClick={() => addToCart(product)}
-                                                        disabled={addingToCart[product._id]}
-                                                        style={{
-                                                            backgroundColor: '#52c41a',
-                                                            borderColor: '#52c41a',
-                                                            minWidth: 110,
-                                                            height: 25,
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center'
-                                                        }}
-                                                    >
-                                                        {addingToCart[product._id] ? (
-                                                            <i className="pi pi-spin pi-spinner" style={{ fontSize: '1rem', color: '#ffffff' }} />
-                                                        ) : (
-                                                            <>
-                                                                <ShoppingCartOutlined style={{ marginRight: 4 }} />
-                                                                Add to Cart
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    </Col>
-                                ))
-                            ) : (
-                                <Col span={24}>
-                                    <Empty
-                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                        description="No products found"
-                                        style={{ margin: '50px 0' }}
-                                    />
-                                </Col>
                             )}
-                        </Row>
-
-                        {filteredProducts.length > productsPerPage && (
-                            <div style={{ textAlign: 'center', marginTop: '40px' }}>
-                                <Pagination
-                                    current={currentPage}
-                                    total={filteredProducts.length}
-                                    pageSize={productsPerPage}
-                                    onChange={(page) => setCurrentPage(page)}
-                                    showSizeChanger={false}
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', flex: 1 }}>
+                                <button
+                                    onClick={() => handleFilterChange('category', filters.category === 'Veg' ? '' : 'Veg')}
                                     style={{
-                                        display: 'inline-block'
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '8px 16px',
+                                        borderRadius: '20px',
+                                        border: filters.category === 'Veg' ? '1px solid #22c55e' : '1px solid #e2e8f0',
+                                        backgroundColor: filters.category === 'Veg' ? '#f0fdf4' : '#ffffff',
+                                        color: filters.category === 'Veg' ? '#16a34a' : '#475569',
+                                        fontWeight: 700,
+                                        fontSize: '13px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: filters.category === 'Veg' ? '0 2px 8px rgba(34, 197, 94, 0.15)' : 'none'
                                     }}
+                                >
+                                    <span>Pure Veg 🟢</span>
+                                </button>
+                                <button
+                                    onClick={() => handleFilterChange('minRating', filters.minRating === 4.5 ? 0 : 4.5)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '8px 16px',
+                                        borderRadius: '20px',
+                                        border: filters.minRating === 4.5 ? '1px solid #eab308' : '1px solid #e2e8f0',
+                                        backgroundColor: filters.minRating === 4.5 ? '#fef9c3' : '#ffffff',
+                                        color: filters.minRating === 4.5 ? '#ca8a04' : '#475569',
+                                        fontWeight: 700,
+                                        fontSize: '13px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: filters.minRating === 4.5 ? '0 2px 8px rgba(234, 179, 8, 0.15)' : 'none'
+                                    }}
+                                >
+                                    <span>4.5+ Rating ★</span>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (filters.maxPrice === 300) {
+                                            handleFilterChange('maxPrice', 2000);
+                                        } else {
+                                            handleFilterChange('maxPrice', 300);
+                                        }
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        padding: '8px 16px',
+                                        borderRadius: '20px',
+                                        border: filters.maxPrice === 300 ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+                                        backgroundColor: filters.maxPrice === 300 ? '#eff6ff' : '#ffffff',
+                                        color: filters.maxPrice === 300 ? '#2563eb' : '#475569',
+                                        fontWeight: 700,
+                                        fontSize: '13px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: filters.maxPrice === 300 ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
+                                    }}
+                                >
+                                    <span>Under ₹300 💰</span>
+                                </button>
+                                <button
+                                    style={{
+                                        borderColor: '#22c55e',
+                                        color: '#22c55e',
+                                        border: '1px solid #22c55e',
+                                        background: showFilters ? '#f0fdf4' : 'none',
+                                        borderRadius: '20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        height: '34px',
+                                        padding: '0 16px',
+                                        cursor: 'pointer',
+                                        fontWeight: 700,
+                                        fontSize: '13px',
+                                        marginLeft: 'auto'
+                                    }}
+                                    onClick={() => setShowFilters(!showFilters)}
+                                >
+                                    <i className="pi pi-sliders-h" style={{ marginRight: '8px' }} />
+                                    {showFilters ? 'Hide Filters' : 'More Filters'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {showFilters && (
+                        <Card
+                            style={{
+                                borderRadius: '16px',
+                                border: '1px solid #e2e8f0',
+                                background: '#ffffff',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                                marginBottom: '24px',
+                                padding: '8px'
+                            }}
+                        >
+                            <div className="filter-grid-layout" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                                <div>
+                                    <span style={{ fontWeight: 'bold', color: '#15803d', display: 'block', marginBottom: '8px', fontSize: '14px' }}>Category</span>
+                                    <Dropdown
+                                        value={filters.category}
+                                        options={[
+                                            { label: 'All Categories', value: '' },
+                                            ...categories.map(c => ({ label: c.charAt(0).toUpperCase() + c.slice(1), value: c }))
+                                        ]}
+                                        onChange={(e) => handleFilterChange('category', e.value)}
+                                        placeholder="Select Category"
+                                        style={{ width: '100%', borderRadius: '8px' }}
+                                    />
+                                </div>
+                                <div>
+                                    <span style={{ fontWeight: 'bold', color: '#15803d', display: 'block', marginBottom: '8px', fontSize: '14px' }}>Min Price</span>
+                                    <InputNumber
+                                        value={filters.minPrice}
+                                        onValueChange={(e) => handleFilterChange('minPrice', e.value || 0)}
+                                        min={0}
+                                        mode="currency"
+                                        currency="INR"
+                                        locale="en-IN"
+                                        inputStyle={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '10px 14px' }}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+                                <div>
+                                    <span style={{ fontWeight: 'bold', color: '#15803d', display: 'block', marginBottom: '8px', fontSize: '14px' }}>Max Price</span>
+                                    <InputNumber
+                                        value={filters.maxPrice}
+                                        onValueChange={(e) => handleFilterChange('maxPrice', e.value || 2000)}
+                                        min={0}
+                                        mode="currency"
+                                        currency="INR"
+                                        locale="en-IN"
+                                        inputStyle={{ width: '100%', borderRadius: '8px', border: '1px solid #cbd5e1', padding: '10px 14px' }}
+                                        style={{ width: '100%' }}
+                                    />
+                                </div>
+                                <div>
+                                    <span style={{ fontWeight: 'bold', color: '#15803d', display: 'block', marginBottom: '8px', fontSize: '14px' }}>Min Rating</span>
+                                    <Dropdown
+                                        value={filters.minRating}
+                                        options={[
+                                            { label: 'Any Rating', value: 0 },
+                                            { label: '1+ Stars ★', value: 1 },
+                                            { label: '2+ Stars ★', value: 2 },
+                                            { label: '3+ Stars ★', value: 3 },
+                                            { label: '4+ Stars ★', value: 4 },
+                                            { label: '4.5+ Stars ★', value: 4.5 }
+                                        ]}
+                                        onChange={(e) => handleFilterChange('minRating', e.value)}
+                                        placeholder="Select Rating"
+                                        style={{ width: '100%', borderRadius: '8px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right', marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <Button
+                                    label="Reset Filters"
+                                    icon="pi pi-refresh"
+                                    className="p-button-outlined p-button-success p-button-sm"
+                                    style={{ borderRadius: '8px', fontWeight: 600 }}
+                                    onClick={resetFilters}
                                 />
                             </div>
-                        )}
-                    </div>
-                </div>
-                {contextHolder}
+                        </Card>
+                    )}
 
-                {/* Combo Deals Modal */}
-                <Modal
-                    open={showComboModal}
-                    onCancel={() => setShowComboModal(false)}
-                    footer={null}
-                    width={860}
-                    centered
-                    closeIcon={<CloseOutlined style={{ color: '#fff', fontSize: '16px' }} />}
-                    styles={{
-                        content: { padding: 0, borderRadius: '16px', overflow: 'hidden' },
-                        body: { padding: 0 }
-                    }}
-                >
-                    <div style={{ padding: '20px 24px 16px 24px', borderBottom: '1px solid #f0f0f0' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-                            <GiftOutlined style={{ color: '#16a34a', fontSize: '26px' }} />
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: '#166534' }}>
-                                Exclusive TastyHub Combo Deals
-                            </h2>
-                            <Tag color="error" style={{ fontWeight: 700, fontSize: '0.75rem', borderRadius: '6px', marginLeft: 'auto' }}>
-                                <ThunderboltOutlined /> LIMITED OFFER
-                            </Tag>
-                        </div>
-                        <p style={{ color: '#15803d', fontSize: '0.88rem', margin: 0, fontWeight: 500 }}>
-                            Feast like royalty with special curated collections at discounted prices!
-                        </p>
+                    <div style={{ marginBottom: '24px' }}>
+                        <span style={{ color: '#6b7280', fontSize: '14px' }}>
+                            Showing {indexOfFirstProduct + 1}-{Math.min(indexOfLastProduct, filteredProducts.length)} of {filteredProducts.length} products
+                        </span>
                     </div>
 
-                    <div className="combo-modal-scroll" style={{ padding: '24px', maxHeight: '65vh', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                        {combos.length === 0 ? (
-                            <Empty description="No combo deals available right now" style={{ padding: '40px 0' }} />
-                        ) : (
-                            <Row gutter={[20, 20]}>
-                                {combos.map((combo) => {
-                                    const isAlreadyClaimed = combo.accessedUsers.includes(auth?.user?._id);
-                                    const isExpired = new Date() > new Date(combo.endTime);
-                                    const totalOriginal = combo.products.reduce((sum: number, p: any) => sum + p.price, 0);
-                                    const savings = Math.max(0, totalOriginal - combo.comboPrice);
+                    <div className="store-products-grid">
+                        {currentProducts.length > 0 ? (
+                            currentProducts.map((product) => {
+                                const ratingValue = product.rating.rate;
+                                const ratingCount = product.rating.count;
 
-                                    return (
-                                        <Col key={combo._id} md={12} xs={24}>
-                                            <Card
-                                                className="combo-card"
-                                                style={{
-                                                    border: isAlreadyClaimed
-                                                        ? '1.5px solid #86efac'
-                                                        : isExpired
-                                                        ? '1.5px solid #e2e8f0'
-                                                        : '1.5px solid #bbf7d0',
-                                                    background: isAlreadyClaimed
-                                                        ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
-                                                        : isExpired
-                                                        ? '#fafafa'
-                                                        : '#fff',
-                                                    height: '100%'
-                                                }}
-                                                styles={{ body: { padding: '18px', display: 'flex', flexDirection: 'column', height: '100%' } }}
-                                            >
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827', margin: 0, flex: 1, paddingRight: '8px' }}>
-                                                        {combo.name}
-                                                    </h3>
-                                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                        <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', lineHeight: 1 }}>₹{combo.comboPrice}</div>
-                                                        {savings > 0 && (
-                                                            <div style={{ fontSize: '0.72rem', color: '#9ca3af', textDecoration: 'line-through' }}>
-                                                                ₹{totalOriginal}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {savings > 0 && (
-                                                    <div style={{ backgroundColor: '#22c55e', color: 'white', fontSize: '0.73rem', fontWeight: 700, padding: '3px 10px', borderRadius: '6px', width: 'fit-content', marginBottom: '12px' }}>
-                                                        SAVE ₹{savings.toFixed(2)} INSTANTLY!
-                                                    </div>
-                                                )}
-
-                                                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginBottom: '14px', flex: 1 }}>
-                                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                        Items Included:
-                                                    </span>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                        {combo.products.map((p: any) => (
-                                                            <div key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                <img
-                                                                    src={p.image}
-                                                                    alt={p.title}
-                                                                    style={{ width: '34px', height: '34px', borderRadius: '7px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
-                                                                />
-                                                                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#374151' }}>{p.title}</span>
-                                                                <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, marginLeft: 'auto', flexShrink: 0 }}>₹{p.price}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    <Button
-                                                        type="primary"
-                                                        disabled={isAlreadyClaimed || claimingCombo[combo._id] || isExpired}
-                                                        loading={claimingCombo[combo._id]}
-                                                        onClick={() => handleClaimCombo(combo._id)}
-                                                        style={{
-                                                            width: '100%',
-                                                            height: '40px',
-                                                            borderRadius: '8px',
-                                                            background: isAlreadyClaimed || isExpired
-                                                                ? '#cbd5e1'
-                                                                : 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
-                                                            borderColor: isAlreadyClaimed || isExpired ? '#cbd5e1' : '#16a34a',
-                                                            fontWeight: 700,
-                                                            fontSize: '0.9rem'
-                                                        }}
-                                                    >
-                                                        {isAlreadyClaimed
-                                                            ? 'Claimed Successfully ✓'
-                                                            : isExpired
-                                                            ? 'Deal Expired'
-                                                            : 'Claim Combo Deal 🎁'}
-                                                    </Button>
-                                                    <span style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center' }}>
-                                                        Claimed {combo.timesAccessed} of {combo.totalLimit} available
-                                                    </span>
-                                                </div>
-                                            </Card>
-                                        </Col>
-                                    );
-                                })}
-                            </Row>
-                        )}
-                    </div>
-                </Modal>
-
-                {/* Product Details Modal */}
-                <Modal
-                    title={
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <InfoCircleOutlined style={{ color: '#52c41a' }} />
-                            <span style={{ color: '#52c41a', fontWeight: 'bold' }}>Product Details</span>
-                        </div>
-                    }
-                    open={showProductModal}
-                    onCancel={handleModalClose}
-                    footer={null}
-                    width={800}
-                    className="product-details-modal"
-                    closeIcon={<CloseOutlined style={{ color: '#52c41a' }} />}
-                    style={{ maxHeight: 'none', top: 50 }}
-                    styles={{ body: { maxHeight: 'none', overflow: 'visible' } }}
-                >
-                    {modalLoading ? (
-                        <div className="modal-loading-content">
-                            <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#22c55e' }} />
-                            <div className="modal-loading-text" style={{ marginTop: '16px', color: '#22c55e', fontWeight: 600 }}>
-                                Loading product details...
-                            </div>
-                        </div>
-                    ) : selectedProduct ? (
-                        <div style={{ overflow: 'visible' }}>
-                            <Row gutter={[24, 24]}>
-                                <Col md={10} xs={24}>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <Image
-                                            src={selectedProduct.image}
-                                            alt={selectedProduct.title}
+                                const cardHeader = (
+                                    <div style={{ position: 'relative' }}>
+                                        <img
+                                            alt={product.title}
+                                            src={product.image}
                                             style={{
                                                 width: '100%',
-                                                maxWidth: '300px',
-                                                height: '290px',
-                                                borderRadius: '12px',
-                                                objectFit: 'cover'
+                                                height: '200px',
+                                                objectFit: 'cover',
+                                                borderTopLeftRadius: '12px',
+                                                borderTopRightRadius: '12px'
                                             }}
-                                            preview={false}
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.onerror = null;
+                                                target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
+                                            }}
                                         />
+                                        {product.discountPercentage && product.discountPercentage > 0 ? (
+                                            <div className="discount-badge">
+                                                {product.discountPercentage}% OFF
+                                            </div>
+                                        ) : null}
                                     </div>
-                                </Col>
-                                <Col md={14} xs={24}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                            <Title level={3} style={{ color: '#52c41a', margin: 0, flex: 1 }}>
-                                                {selectedProduct.title}
-                                            </Title>
-                                        </div>
+                                );
 
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            <div>
-                                                <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Product ID:</Text>
-                                                <Tag color='purple' style={{ fontSize: '12px', border: '1px dashed' }}>{selectedProduct._id}</Tag>
+                                return (
+                                    <Card
+                                        key={product._id}
+                                        className="product-card"
+                                        header={cardHeader}
+                                        style={{
+                                            borderRadius: '12px',
+                                            border: '1px solid #e5e7eb',
+                                            background: '#ffffff',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                            height: '100%',
+                                            display: 'flex',
+                                            flexDirection: 'column'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', flexDirection: 'column', padding: '17px 13px', flexGrow: 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <Tag
+                                                    value={product.category}
+                                                    severity="info"
+                                                    style={{
+                                                        fontSize: '11px',
+                                                        border: '1px dashed #3b82f6',
+                                                        background: 'transparent',
+                                                        color: '#1d4ed8',
+                                                        fontWeight: 600,
+                                                        borderRadius: '6px'
+                                                    }}
+                                                />
+                                                <button
+                                                    className="know-more-btn"
+                                                    onClick={() => handleKnowMore(product)}
+                                                    style={{
+                                                        border: 'none',
+                                                        background: 'none',
+                                                        color: '#22c55e',
+                                                        padding: 0,
+                                                        fontSize: '13px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}
+                                                >
+                                                    <i className="pi pi-info-circle" />
+                                                    <span>Know More</span>
+                                                </button>
                                             </div>
 
-                                            <div>
-                                                <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Category:</Text>
-                                                <Tag color="cyan" style={{ fontSize: '12px', border: '1px dashed' }}>
-                                                    {selectedProduct.category}
-                                                </Tag>
+                                            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 700, color: '#1f2937', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {product.title || 'Unnamed Product'}
+                                            </h3>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px', gap: '6px' }}>
+                                                <Rating
+                                                    disabled
+                                                    cancel={false}
+                                                    value={Math.round(ratingValue)}
+                                                    stars={5}
+                                                    style={{ fontSize: '13px', color: '#f59e0b' }}
+                                                />
+                                                <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 500 }}>
+                                                    ({ratingValue.toFixed(1)} {ratingCount > 0 ? `- ${ratingCount}` : ''})
+                                                </span>
                                             </div>
 
-                                            <div>
-                                                <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Rating:</Text>
-                                                <Rate disabled allowHalf value={selectedProduct.rating.rate} style={{ fontSize: '14px' }} />
-                                                <Text strong style={{ marginLeft: '8px', fontSize: '14px' }}>
-                                                    {selectedProduct.rating.rate}
-                                                </Text>
-                                                <Text type="secondary" style={{ marginLeft: '8px' }}>
-                                                    ({selectedProduct.rating.count} reviews)
-                                                </Text>
-                                            </div>
+                                            <p style={{
+                                                fontSize: '12px',
+                                                color: '#6b7280',
+                                                marginBottom: '16px',
+                                                lineHeight: '1.4',
+                                                height: '34px',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical',
+                                                margin: '0 0 16px 0'
+                                            }}>
+                                                {product.description || 'No description available'}
+                                            </p>
 
-                                            <div>
-                                                <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Price:</Text>
-                                                {selectedProduct.discountPercentage && selectedProduct.discountPercentage > 0 ? (
-                                                    <Space>
-                                                        <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-                                                            ₹ {(selectedProduct.discountPrice ?? selectedProduct.price).toFixed(2)}
-                                                        </Text>
-                                                        <Text delete type="secondary" style={{ fontSize: '14px' }}>
-                                                            ₹ {selectedProduct.price.toFixed(2)}
-                                                        </Text>
-                                                    </Space>
-                                                ) : (
-                                                    <Text strong style={{ fontSize: '16px', color: '#52c41a' }}>
-                                                        ₹ {selectedProduct.price.toFixed(2)}
-                                                    </Text>
-                                                )}
-                                            </div>
-
-                                            {selectedProduct.calories && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                                                 <div>
-                                                    <Text strong style={{ color: '#52c41a', marginRight: '12px' }}>Calories:</Text>
-                                                    <Text style={{ fontSize: '14px' }}>
-                                                        {selectedProduct.calories} per serving
-                                                    </Text>
+                                                    {product.discountPercentage && product.discountPercentage > 0 ? (
+                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                            <span style={{ fontWeight: 'bold', color: '#52c41a', fontSize: '15px' }}>
+                                                                ₹ {(product.discountPrice ?? product.price).toFixed(2)}
+                                                            </span>
+                                                            <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: '12px' }}>
+                                                                ₹ {product.price.toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ fontWeight: 'bold', color: '#52c41a', fontSize: '15px' }}>
+                                                            ₹ {product.price.toFixed(2)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <Button
+                                                    onClick={() => addToCart(product)}
+                                                    disabled={addingToCart[product._id]}
+                                                    label={addingToCart[product._id] ? "" : "Add to Cart"}
+                                                    icon={addingToCart[product._id] ? "pi pi-spin pi-spinner" : "pi pi-shopping-cart"}
+                                                    className="p-button-success p-button-sm"
+                                                    style={{
+                                                        borderRadius: '8px',
+                                                        fontWeight: 700,
+                                                        minWidth: '110px',
+                                                        height: '32px',
+                                                        padding: '0 8px'
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </Card>
+                                );
+                            })
+                        ) : (
+                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#f9fafb', borderRadius: '12px', color: '#6b7280' }}>
+                                <i className="pi pi-folder-open" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                                <div style={{ fontWeight: 600, fontSize: '16px' }}>No products found</div>
+                                <div style={{ fontSize: '0.85rem' }}>Try clearing filters or checking other categories.</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {filteredProducts.length > productsPerPage && (
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '2rem', gap: '8px', flexWrap: 'wrap' }}>
+                            {pages.map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setCurrentPage(p)}
+                                    style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        border: p === currentPage ? '1px solid #52c41a' : '1px solid #d9d9d9',
+                                        backgroundColor: p === currentPage ? '#52c41a' : '#ffffff',
+                                        color: p === currentPage ? '#ffffff' : '#374151',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        minWidth: '32px',
+                                        textAlign: 'center'
+                                    }}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Combo Deals Modal */}
+            <Dialog
+                visible={showComboModal}
+                onHide={() => setShowComboModal(false)}
+                footer={null}
+                style={{ width: '860px', maxWidth: '95vw', borderRadius: '16px', overflow: 'hidden' }}
+                modal
+            >
+                <div style={{ padding: '8px 0 16px 0', borderBottom: '1px solid #f0f0f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                        <i className="pi pi-gift" style={{ color: '#16a34a', fontSize: '26px' }} />
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0, color: '#166534' }}>
+                            Exclusive TastyHub Combo Deals
+                        </h2>
+                        <span style={{ fontWeight: 700, fontSize: '0.75rem', borderRadius: '6px', marginLeft: 'auto', backgroundColor: '#fee2e2', color: '#ef4444', padding: '2px 8px', border: '1px solid #fca5a5' }}>
+                            <i className="pi pi-bolt" /> LIMITED OFFER
+                        </span>
+                    </div>
+                    <p style={{ color: '#15803d', fontSize: '0.88rem', margin: 0, fontWeight: 500 }}>
+                        Feast like royalty with special curated collections at discounted prices!
+                    </p>
+                </div>
+
+                <div className="combo-modal-scroll" style={{ padding: '24px 0', maxHeight: '55vh', overflowY: 'auto' }}>
+                    {combos.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
+                            <i className="pi pi-info-circle" style={{ fontSize: '2rem', marginBottom: '8px' }} />
+                            <p>No combo deals available right now</p>
+                        </div>
+                    ) : (
+                        <div className="combo-grid-layout">
+                            {combos.map((combo) => {
+                                const isAlreadyClaimed = combo.accessedUsers.includes(auth?.user?._id);
+                                const isExpired = new Date() > new Date(combo.endTime);
+                                const totalOriginal = combo.products.reduce((sum: number, p: any) => sum + p.price, 0);
+                                const savings = Math.max(0, totalOriginal - combo.comboPrice);
+
+                                return (
+                                    <div
+                                        key={combo._id}
+                                        className="combo-card"
+                                        style={{
+                                            border: isAlreadyClaimed
+                                                ? '1.5px solid #86efac'
+                                                : isExpired
+                                                ? '1.5px solid #e2e8f0'
+                                                : '1.5px solid #bbf7d0',
+                                            background: isAlreadyClaimed
+                                                ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
+                                                : isExpired
+                                                ? '#fafafa'
+                                                : '#fff',
+                                            padding: '18px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'space-between',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    >
+                                        <div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                                                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827', margin: 0, flex: 1, paddingRight: '8px' }}>
+                                                    {combo.name}
+                                                </h3>
+                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', lineHeight: 1 }}>₹{combo.comboPrice}</div>
+                                                    {savings > 0 && (
+                                                        <div style={{ fontSize: '0.72rem', color: '#9ca3af', textDecoration: 'line-through' }}>
+                                                            ₹{totalOriginal}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {savings > 0 && (
+                                                <div style={{ backgroundColor: '#22c55e', color: 'white', fontSize: '0.73rem', fontWeight: 700, padding: '3px 10px', borderRadius: '6px', width: 'fit-content', marginBottom: '12px' }}>
+                                                    SAVE ₹{savings.toFixed(2)} INSTANTLY!
                                                 </div>
                                             )}
 
-                                            <div style={{ marginTop: '20px' }}>
-                                                <Button
-                                                    type="primary"
-                                                    size="large"
-                                                    onClick={() => {
-                                                        addToCart(selectedProduct);
-                                                        setShowProductModal(false);
-                                                    }}
-                                                    disabled={addingToCart[selectedProduct._id]}
-                                                    style={{
-                                                        backgroundColor: '#52c41a',
-                                                        borderColor: '#52c41a',
-                                                        width: '100%',
-                                                        height: '45px',
-                                                        fontSize: '16px',
-                                                        fontWeight: 'bold'
-                                                    }}
-                                                >
-                                                    {addingToCart[selectedProduct._id] ? (
-                                                        <i className="pi pi-spin pi-spinner" style={{ fontSize: '1rem', color: '#ffffff' }} />
-                                                    ) : (
-                                                        <>
-                                                            <ShoppingCartOutlined style={{ marginRight: '8px' }} />
-                                                            Add to Cart
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Col>
-                            </Row>
-
-                            <Row style={{ marginTop: '24px' }}>
-                                <Col span={24}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <div>
-                                            <Text strong style={{ color: '#52c41a', display: 'block', marginBottom: '8px' }}>Image URL:</Text>
-                                            <Text
-                                                copyable
-                                                style={{
-                                                    fontSize: '12px',
-                                                    display: 'block',
-                                                    wordBreak: 'break-all',
-                                                    whiteSpace: 'normal',
-                                                    background: 'transparent',
-                                                    padding: '8px',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid #e8e8e8'
-                                                }}
-                                            >
-                                                {selectedProduct.image}
-                                            </Text>
-                                        </div>
-
-                                        <div>
-                                            <Text strong style={{ color: '#52c41a', display: 'block', marginBottom: '8px' }}>Description:</Text>
-                                            <Text style={{ fontSize: '14px', lineHeight: '1.6', display: 'block' }}>
-                                                {selectedProduct.description || 'No description available'}
-                                            </Text>
-                                        </div>
-
-                                        {selectedProduct.ingredients && selectedProduct.ingredients.length > 0 && (
-                                            <div>
-                                                <Text strong style={{ color: '#52c41a', display: 'block', marginBottom: '8px' }}>Ingredients:</Text>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                    {selectedProduct.ingredients.map((ingredient, index) => (
-                                                        <Tag
-                                                            key={index}
-                                                            color="blue"
-                                                            style={{
-                                                                border: '1px dashed',
-                                                                fontSize: '12px',
-                                                                padding: '2px 8px'
-                                                            }}
-                                                        >
-                                                            {ingredient}
-                                                        </Tag>
+                                            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginBottom: '14px' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                    Items Included:
+                                                </span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    {combo.products.map((p: any) => (
+                                                        <div key={p._id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <img
+                                                                src={p.image}
+                                                                alt={p.title}
+                                                                style={{ width: '34px', height: '34px', borderRadius: '7px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
+                                                            />
+                                                            <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#374151' }}>{p.title}</span>
+                                                            <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, marginLeft: 'auto', flexShrink: 0 }}>₹{p.price}</span>
+                                                        </div>
                                                     ))}
                                                 </div>
                                             </div>
-                                        )}
+                                        </div>
 
-                                        {selectedProduct.ageRecommendation && (
-                                            <div>
-                                                <Text strong style={{ color: '#52c41a', display: 'block', marginBottom: '8px' }}>Age Recommendation:</Text>
-                                                <Text style={{ fontSize: '14px' }}>
-                                                    {selectedProduct.ageRecommendation}
-                                                </Text>
-                                            </div>
-                                        )}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px' }}>
+                                            <button
+                                                disabled={isAlreadyClaimed || claimingCombo[combo._id] || isExpired}
+                                                onClick={() => handleClaimCombo(combo._id)}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '40px',
+                                                    borderRadius: '8px',
+                                                    border: 'none',
+                                                    color: 'white',
+                                                    cursor: (isAlreadyClaimed || isExpired) ? 'default' : 'pointer',
+                                                    background: isAlreadyClaimed || isExpired
+                                                        ? '#cbd5e1'
+                                                        : 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)',
+                                                    fontWeight: 700,
+                                                    fontSize: '0.9rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                }}
+                                            >
+                                                {claimingCombo[combo._id] ? (
+                                                    <i className="pi pi-spin pi-spinner" style={{ fontSize: '1rem' }} />
+                                                ) : isAlreadyClaimed ? (
+                                                    'Claimed Successfully ✓'
+                                                ) : isExpired ? (
+                                                    'Deal Expired'
+                                                ) : (
+                                                    'Claim Combo Deal 🎁'
+                                                )}
+                                            </button>
+                                            <span style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center' }}>
+                                                Claimed {combo.timesAccessed} of {combo.totalLimit} available
+                                            </span>
+                                        </div>
                                     </div>
-                                </Col>
-                            </Row>
+                                );
+                            })}
                         </div>
-                    ) : null}
-                </Modal>
+                    )}
+                </div>
+            </Dialog>
 
+            {/* Product Details Modal */}
+            <Dialog
+                header={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#22c55e' }}>
+                        <i className="pi pi-info-circle" />
+                        <span style={{ fontWeight: 'bold' }}>Product Details</span>
+                    </div>
+                }
+                visible={showProductModal}
+                onHide={handleModalClose}
+                style={{ width: '900px', maxWidth: '95vw' }}
+                breakpoints={{ '960px': '75vw', '641px': '95vw' }}
+                draggable={false}
+                resizable={false}
+                modal
+            >
+                {modalLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '50px' }}>
+                        <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#22c55e' }} />
+                        <p style={{ marginTop: '16px', color: '#22c55e', fontWeight: 600 }}>Loading product details...</p>
+                    </div>
+                ) : selectedProduct ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                            gap: '24px'
+                        }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <img
+                                    src={selectedProduct.image}
+                                    alt={selectedProduct.title}
+                                    style={{
+                                        width: '100%',
+                                        maxWidth: '280px',
+                                        height: '260px',
+                                        borderRadius: '12px',
+                                        objectFit: 'cover',
+                                        border: '1px solid #e5e7eb'
+                                    }}
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.onerror = null;
+                                        target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80';
+                                    }}
+                                />
+                            </div>
 
-            </Content>
-        </Layout>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: '#1f2937' }}>
+                                    {selectedProduct.title}
+                                </h3>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: '#4b5563' }}>
+                                    <div>
+                                        <strong style={{ color: '#22c55e', marginRight: '8px' }}>Product ID:</strong>
+                                        <Tag value={selectedProduct._id} severity="secondary" style={{ borderRadius: '4px', border: '1px dashed' }} />
+                                    </div>
+
+                                    <div>
+                                        <strong style={{ color: '#22c55e', marginRight: '8px' }}>Category:</strong>
+                                        <Tag value={selectedProduct.category} severity="info" style={{ borderRadius: '4px', border: '1px dashed' }} />
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <strong style={{ color: '#22c55e', marginRight: '2px' }}>Rating:</strong>
+                                        <Rating
+                                            disabled
+                                            cancel={false}
+                                            value={Math.round(selectedProduct.rating.rate)}
+                                            stars={5}
+                                            style={{ color: '#f59e0b', fontSize: '13px' }}
+                                        />
+                                        <span style={{ fontWeight: 'bold' }}>
+                                            {selectedProduct.rating.rate.toFixed(1)}
+                                        </span>
+                                    </div>
+
+                                    <div>
+                                        <strong style={{ color: '#22c55e', marginRight: '8px' }}>Price:</strong>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                            {selectedProduct.discountPercentage && selectedProduct.discountPercentage > 0 ? (
+                                                <>
+                                                    <strong style={{ fontSize: '16px', color: '#22c55e' }}>₹{(selectedProduct.discountPrice ?? selectedProduct.price).toFixed(2)}</strong>
+                                                    <span style={{ fontSize: '13px', color: '#94a3b8', textDecoration: 'line-through' }}>₹{selectedProduct.price.toFixed(2)}</span>
+                                                </>
+                                            ) : (
+                                                <strong style={{ fontSize: '16px', color: '#1f2937' }}>₹ {selectedProduct.price.toFixed(2)}</strong>
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    {selectedProduct.calories && (
+                                        <div>
+                                            <strong style={{ color: '#22c55e', marginRight: '8px' }}>Calories:</strong>
+                                            <span>{selectedProduct.calories} kcal per serving</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
+                                    <Button
+                                        onClick={() => {
+                                            addToCart(selectedProduct);
+                                            setShowProductModal(false);
+                                        }}
+                                        disabled={addingToCart[selectedProduct._id]}
+                                        label={addingToCart[selectedProduct._id] ? "" : "Add to Cart"}
+                                        icon={addingToCart[selectedProduct._id] ? "pi pi-spin pi-spinner" : "pi pi-shopping-cart"}
+                                        className="p-button-success"
+                                        style={{ width: '100%', height: '40px', borderRadius: '8px', fontWeight: 'bold' }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: 0 }} />
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
+                            <div>
+                                <strong style={{ color: '#22c55e', display: 'block', marginBottom: '6px' }}>Description:</strong>
+                                <span style={{ color: '#4b5563', lineHeight: '1.6' }}>{selectedProduct.description || 'No description available'}</span>
+                            </div>
+
+                            {selectedProduct.ingredients && selectedProduct.ingredients.length > 0 && (
+                                <div>
+                                    <strong style={{ color: '#22c55e', display: 'block', marginBottom: '6px' }}>Ingredients:</strong>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                        {selectedProduct.ingredients.map((ingredient, idx) => (
+                                            <Tag key={idx} value={ingredient} severity="warning" style={{ borderRadius: '4px', border: '1px dashed' }} />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedProduct.ageRecommendation && (
+                                <div>
+                                    <strong style={{ color: '#22c55e', marginRight: '8px' }}>Age Recommendation:</strong>
+                                    <span>{selectedProduct.ageRecommendation}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : null}
+            </Dialog>
+        </div>
     );
 };
 

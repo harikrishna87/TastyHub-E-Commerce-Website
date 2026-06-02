@@ -2,9 +2,6 @@ import { useEffect, useContext, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { Typography } from 'antd';
-
-const { Text } = Typography;
 
 const GoogleCallback = () => {
   const navigate = useNavigate();
@@ -74,11 +71,11 @@ const GoogleCallback = () => {
       }}
     >
       {error ? (
-        <Text type="danger" style={{ fontSize: '16px' }}>{error}</Text>
+        <span style={{ fontSize: '16px', color: '#ff4d4f' }}>{error}</span>
       ) : (
         <>
           <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#22c55e' }} />
-          <Text style={{ fontSize: '16px', color: '#22c55e', fontWeight: 600 }}>Signing you in with Google...</Text>
+          <span style={{ fontSize: '16px', color: '#22c55e', fontWeight: 600 }}>Signing you in with Google...</span>
         </>
       )}
     </div>

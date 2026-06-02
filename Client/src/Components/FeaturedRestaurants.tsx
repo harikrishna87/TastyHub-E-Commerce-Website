@@ -140,7 +140,7 @@ const FeaturedRestaurants: React.FC<FeaturedRestaurantsProps> = ({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
         {filteredRestaurants.map((restaurant) => {
           const cardHeader = (
-            <div style={{ position: 'relative', height: '160px', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', height: '200px', overflow: 'hidden' }}>
               <img
                 alt={restaurant.name}
                 src={restaurant.image}
@@ -200,7 +200,7 @@ const FeaturedRestaurants: React.FC<FeaturedRestaurantsProps> = ({
                 boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', padding: '17px 13px', height: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
                     {restaurant.name}

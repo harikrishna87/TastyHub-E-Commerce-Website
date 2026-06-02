@@ -149,6 +149,7 @@ const Auth: React.FC = () => {
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState<boolean>(false);
+  const [guestLoading, setGuestLoading] = useState<boolean>(false);
   const [resendLoading, setResendLoading] = useState<boolean>(false);
 
   // Form Fields
@@ -344,6 +345,29 @@ const Auth: React.FC = () => {
       toastRef.current?.show({ severity: 'error', summary: 'Request Failed', detail: errorMsg });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setGuestLoading(true);
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/auth/guest-login`,
+        {},
+        { withCredentials: true, headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
+      );
+
+      if (response.data.success) {
+        const user = response.data.user;
+        auth.login(user, response.data.token);
+        toastRef.current?.show({ severity: 'success', summary: 'Success', detail: 'Logged in as Guest Customer!' });
+        navigate('/user/home');
+      }
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.message || 'An unexpected error occurred.';
+      toastRef.current?.show({ severity: 'error', summary: 'Request Failed', detail: errorMsg });
+    } finally {
+      setGuestLoading(false);
     }
   };
 
@@ -640,6 +664,30 @@ const Auth: React.FC = () => {
               <span>{mode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
             </Button>
           </div>
+
+          {mode === 'login' && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <Button
+                onClick={handleGuestLogin}
+                loading={guestLoading}
+                className="p-button-success"
+                style={{
+                  height: '44px',
+                  borderRadius: '12px',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  width: '100%',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  background: '#e8f5e9',
+                  color: '#2e7d32',
+                  border: '1.5px dashed #2e7d32'
+                }}
+                icon="pi pi-user"
+                label="Login as Guest Customer"
+              />
+            </div>
+          )}
 
           <div className="image-toggle-footer">
             {mode === 'login' ? (

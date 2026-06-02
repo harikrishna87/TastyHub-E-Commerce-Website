@@ -12,19 +12,8 @@ import { Column } from 'primereact/column';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { OrderDeliveryStatus } from '../../types';
-import { 
-  Table, Tag as AntTag, Typography, Modal, 
-  Button as AntButton, Descriptions, Space, Card 
-} from 'antd';
-import { 
-  CheckCircleOutlined, TruckOutlined, ClockCircleOutlined, EyeOutlined, 
-  ShoppingCartOutlined, UserOutlined, DownloadOutlined, 
-  GiftOutlined, InfoCircleOutlined, WalletOutlined, NotificationOutlined 
-} from '@ant-design/icons';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-
-const { Title, Text } = Typography;
 
 interface ShippingAddress {
   fullName?: string;
@@ -61,13 +50,13 @@ interface IGiftCard {
   createdAt: string;
 }
 
-interface ITransaction {
-  _id: string;
-  type: 'Credit' | 'Debit';
-  amount: number;
-  description: string;
-  createdAt: string;
-}
+// interface ITransaction {
+//   _id: string;
+//   type: 'Credit' | 'Debit';
+//   amount: number;
+//   description: string;
+//   createdAt: string;
+// }
 
 interface ICoupon {
   _id: string;
@@ -101,47 +90,68 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
   const currentIndex = getStatusIndex(currentStatus);
 
   const steps = [
-    { key: 'Pending', title: 'ORDERED', icon: <ClockCircleOutlined /> },
-    { key: 'Accepted', title: 'ACCEPTED', icon: <CheckCircleOutlined /> },
-    { key: 'Preparing', title: 'PREPARING', icon: <ClockCircleOutlined /> },
-    { key: 'Pickup', title: 'PICKED UP', icon: <ShoppingCartOutlined /> },
-    { key: 'Out for Delivery', title: 'TRANSIT', icon: <TruckOutlined /> },
-    { key: 'Delivered', title: 'DELIVERED', icon: <GiftOutlined /> }
+    { key: 'Pending', title: 'Ordered', sub: 'Placed with success', icon: 'pi pi-clock' },
+    { key: 'Accepted', title: 'Accepted', sub: 'Kitchen confirmed', icon: 'pi pi-check-circle' },
+    { key: 'Preparing', title: 'Cooking', sub: 'Chef is preparing', icon: 'pi pi-spinner' },
+    { key: 'Pickup', title: 'Picked Up', sub: 'Partner received', icon: 'pi pi-shopping-cart' },
+    { key: 'Out for Delivery', title: 'In Transit', sub: 'Partner on the way', icon: 'pi pi-truck' },
+    { key: 'Delivered', title: 'Delivered', sub: 'Delivered at door', icon: 'pi pi-gift' }
   ];
 
   return (
-    <div style={{ padding: '24px 16px', backgroundColor: '#f0fdf4', borderRadius: '12px', margin: '16px 0', border: '1px solid #bbf7d0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ position: 'absolute', top: '20px', left: '20px', right: '20px', height: '4px', backgroundColor: '#e5e7eb', borderRadius: '2px', zIndex: 1 }}>
-          <div style={{ height: '100%', backgroundColor: '#22c55e', borderRadius: '2px', width: `${(currentIndex / 5) * 100}%`, transition: 'width 0.3s ease' }} />
+    <div style={{ padding: '28px 20px', backgroundColor: '#f0fdf4', borderRadius: '16px', margin: '8px 0', border: '1px solid #bbf7d0', boxShadow: 'inset 0 2px 8px rgba(34, 197, 94, 0.03)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', width: '100%', maxWidth: '780px', margin: '0 auto', paddingBottom: '16px' }}>
+        <div style={{ position: 'absolute', top: '22px', left: '30px', right: '30px', height: '4px', backgroundColor: '#e5e7eb', borderRadius: '4px', zIndex: 1 }}>
+          <div style={{ height: '100%', background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)', borderRadius: '4px', width: `${(currentIndex / 5) * 100}%`, transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 8px rgba(34, 197, 94, 0.4)' }} />
         </div>
 
         {steps.map((step, index) => {
-          const isCompleted = index <= currentIndex;
+          const isCompleted = index < currentIndex;
           const isActive = index === currentIndex;
           
+          let iconClass = step.icon;
+          if (isCompleted) {
+            iconClass = 'pi pi-check';
+          } else if (isActive && step.key === 'Preparing') {
+            iconClass = 'pi pi-spin pi-spinner';
+          } else if (isActive && (step.key === 'Out for Delivery' || step.key === 'Shipped')) {
+            iconClass = 'pi pi-spin pi-spinner';
+          }
+          
           return (
-            <div key={step.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+            <div key={step.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', zIndex: 2, flex: 1 }}>
               <div style={{
-                width: '40px', height: '40px', borderRadius: '50%',
-                backgroundColor: isCompleted ? '#22c55e' : '#e5e7eb',
-                border: isActive ? '3px solid #16a34a' : '3px solid transparent',
+                width: '44px', height: '44px', borderRadius: '50%',
+                backgroundColor: isCompleted ? '#22c55e' : isActive ? '#ffffff' : '#ffffff',
+                border: isCompleted 
+                  ? '3px solid #22c55e' 
+                  : isActive 
+                  ? '3px solid #16a34a' 
+                  : '3px solid #e5e7eb',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: isCompleted ? 'white' : '#9ca3af', fontSize: '16px',
-                transition: 'all 0.3s ease', boxShadow: isActive ? '0 0 0 4px rgba(34, 197, 94, 0.2)' : 'none'
+                color: isCompleted ? 'white' : isActive ? '#16a34a' : '#9ca3af', 
+                fontSize: '15px',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease', 
+                boxShadow: isActive ? '0 0 12px rgba(34, 197, 94, 0.35)' : 'none',
+                cursor: 'default'
               }}>
-                {isCompleted ? <CheckCircleOutlined /> : step.icon}
+                <i className={iconClass} style={{ fontSize: isCompleted ? '14px' : '15px' }} />
               </div>
-              <span style={{ marginTop: '12px', fontSize: '11px', fontWeight: '700', color: isCompleted ? '#16a34a' : '#9ca3af', textAlign: 'center', letterSpacing: '0.5px' }}>
+              <span style={{ marginTop: '12px', fontSize: '13px', fontWeight: '800', color: isActive ? '#15803d' : isCompleted ? '#166534' : '#9ca3af', textAlign: 'center' }}>
                 {step.title}
+              </span>
+              <span style={{ fontSize: '10px', fontWeight: '600', color: isCompleted ? '#4b5563' : isActive ? '#16a34a' : '#a3a3a3', textAlign: 'center', marginTop: '3px', maxWidth: '90px', display: 'block', lineHeight: 1.2 }}>
+                {step.sub}
               </span>
             </div>
           );
         })}
       </div>
       
-      <div style={{ textAlign: 'center', marginTop: '20px', padding: '10px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-        <span style={{ color: '#16a34a', fontWeight: '600', fontSize: '14px' }}>
+      <div style={{ textAlign: 'center', marginTop: '24px', padding: '12px 16px', backgroundColor: 'white', borderRadius: '10px', border: '1.5px dashed #bbf7d0', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
+        <span style={{ color: '#16a34a', fontWeight: '700', fontSize: '14.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <i className={currentIndex < 5 ? "pi pi-spin pi-cog" : "pi pi-check-circle"} />
           {currentStatus === 'Pending' && 'Your order has been placed and is being prepared with love 🍕'}
           {currentStatus === 'Accepted' && 'Your order has been accepted by our chef 🍳'}
           {currentStatus === 'Preparing' && 'Our kitchen team is cooking your fresh food 🍳'}
@@ -208,8 +218,8 @@ const ProfilePage: React.FC = () => {
   const [myGiftCards, setMyGiftCards] = useState<IGiftCard[]>([]);
   const totalGiftCardBalance = myGiftCards.reduce((acc, gc) => acc + (gc.balance || 0), 0);
   const [loadingGiftCards, setLoadingGiftCards] = useState<boolean>(false);
-  const [transactions, setTransactions] = useState<ITransaction[]>([]);
-  const [loadingTransactions, setLoadingTransactions] = useState<boolean>(false);
+  // const [transactions, setTransactions] = useState<ITransaction[]>([]);
+  // const [loadingTransactions, setLoadingTransactions] = useState<boolean>(false);
   const [coupons, setCoupons] = useState<ICoupon[]>([]);
   const [loadingCoupons, setLoadingCoupons] = useState<boolean>(false);
 
@@ -378,18 +388,18 @@ const ProfilePage: React.FC = () => {
     const token = authContext?.token || localStorage.getItem('token');
     if (!token) return;
     try {
-      setLoadingTransactions(true);
+      // setLoadingTransactions(true);
       const res = await axios.get(`${backendUrl}/api/promo/transactions/my`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
       if (res.data.success) {
-        setTransactions(res.data.transactions || []);
+        // setTransactions(res.data.transactions || []);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoadingTransactions(false);
+      // setLoadingTransactions(false);
     }
   };
 
@@ -728,13 +738,29 @@ const ProfilePage: React.FC = () => {
   const getStatusTag = (status: 'Pending' | 'Shipped' | 'Delivered') => {
     switch (status) {
       case 'Pending':
-        return <AntTag color="warning"><ClockCircleOutlined /> Pending</AntTag>;
+        return (
+          <span style={{ background: '#fffbe6', color: '#d46b08', border: '1px dashed #ffe58f', borderRadius: '4px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, fontSize: '13px' }}>
+            <i className="pi pi-clock" /> Pending
+          </span>
+        );
       case 'Shipped':
-        return <AntTag color="processing"><TruckOutlined /> Shipped</AntTag>;
+        return (
+          <span style={{ background: '#e6f7ff', color: '#096dd9', border: '1px dashed #91d5ff', borderRadius: '4px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, fontSize: '13px' }}>
+            <i className="pi pi-truck" /> Shipped
+          </span>
+        );
       case 'Delivered':
-        return <AntTag color="success"><CheckCircleOutlined /> Delivered</AntTag>;
+        return (
+          <span style={{ background: '#f6ffed', color: '#389e0d', border: '1px dashed #b7eb8f', borderRadius: '4px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, fontSize: '13px' }}>
+            <i className="pi pi-check-circle" /> Delivered
+          </span>
+        );
       default:
-        return <AntTag>{status}</AntTag>;
+        return (
+          <span style={{ background: '#f5f5f5', color: '#595959', border: '1px solid #d9d9d9', borderRadius: '4px', padding: '2px 8px', fontSize: '13px' }}>
+            {status}
+          </span>
+        );
     }
   };
 
@@ -750,15 +776,6 @@ const ProfilePage: React.FC = () => {
     flex: 1,
     textAlign: 'center' as const
   });
-
-  const columns = [
-    { title: 'Order ID', dataIndex: '_id', key: '_id', width: 120, render: (id: string) => <AntTag color='blue'>{id.substring(0, 8)}...</AntTag> },
-    { title: 'Amount', dataIndex: 'totalAmount', key: 'totalAmount', width: 120, render: (amount: number) => <Text strong style={{ color: '#22c55e' }}>₹{amount.toFixed(2)}</Text> },
-    { title: 'Payment', dataIndex: 'paymentMethod', key: 'paymentMethod', width: 120, render: (method: string) => <AntTag color='purple'>{method ? method.toUpperCase() : 'COD'}</AntTag> },
-    { title: 'Status', dataIndex: 'deliveryStatus', key: 'deliveryStatus', width: 130, render: (status: any, record: any) => <AntButton type="link" size="small" icon={<InfoCircleOutlined />} onClick={() => showStatusModal(record)}>Track ({status})</AntButton> },
-    { title: 'Order Date', dataIndex: 'createdAt', key: 'createdAt', width: 140, render: (date: string) => <span>{new Date(date).toLocaleDateString()}</span> },
-    { title: 'Items', dataIndex: 'items', key: 'items', width: 150, render: (items: any, record: any) => <AntButton type="link" onClick={() => showModal(record)}><EyeOutlined /> View ({items?.length || 0})</AntButton> }
-  ];
 
   if (fetchLoading) {
     return (
@@ -825,12 +842,12 @@ const ProfilePage: React.FC = () => {
         )}
       </div>
 
-      {/* Modern PrimeReact TabView unifying all parts */}
-      <Card style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)', overflow: 'hidden' }}>
+      {/* Modern TabView unifying all parts */}
+      <div style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)', overflow: 'hidden', backgroundColor: '#ffffff', padding: '1.5rem' }}>
         <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} style={{ padding: '0.5rem' }}>
           
           {/* Tab 1: Profile Details & Core Settings */}
-          <TabPanel header={<span><UserOutlined style={{ marginRight: '6px' }} /> Account Details</span>}>
+          <TabPanel header={<span><i className="pi pi-user" style={{ marginRight: '6px' }} /> Account Details</span>}>
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '1.5rem' }}>
               
               {/* Left Address panel */}
@@ -973,34 +990,95 @@ const ProfilePage: React.FC = () => {
 
           {/* Tab 2: Orders History (Customer Only) */}
           {profileData?.role === 'user' && (
-            <TabPanel header={<span><ShoppingCartOutlined style={{ marginRight: '6px' }} /> Order History</span>}>
+            <TabPanel header={<span><i className="pi pi-shopping-cart" style={{ marginRight: '6px' }} /> Order History</span>}>
               <div style={{ marginTop: '1.5rem' }}>
-                <Card title={<div style={{ display: 'flex', alignItems: 'center', fontSize: '18px', fontWeight: 700, color: '#15803d' }}><ShoppingCartOutlined style={{ marginRight: '8px' }} /> Personal Dining Orders</div>} style={{ borderRadius: '12px', border: '1px solid #b7eb8f', boxShadow: 'none' }} styles={{ body: { padding: 0 } }}>
+                <div style={{ borderRadius: '12px', border: '1px solid #b7eb8f', padding: '1.5rem', backgroundColor: '#ffffff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '18px', fontWeight: 700, color: '#15803d', marginBottom: '1.5rem' }}>
+                    <i className="pi pi-shopping-cart" style={{ marginRight: '8px' }} /> Personal dining Orders
+                  </div>
                   {orders.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f0fdf4', borderRadius: '8px' }}>
-                      <ShoppingCartOutlined style={{ fontSize: '48px', color: '#16a34a', marginBottom: '12px' }} />
+                      <i className="pi pi-shopping-cart" style={{ fontSize: '48px', color: '#16a34a', marginBottom: '12px' }} />
                       <h4 style={{ color: '#16a34a', margin: 0, fontWeight: 700 }}>No orders placed yet</h4>
                       <p style={{ color: '#8c8c8c', margin: '4px 0 0 0' }}>Your orders will appear here once you purchase gourmet dining credits.</p>
                     </div>
                   ) : (
-                    <Table
-                      columns={columns}
-                      dataSource={orders}
-                      rowKey="_id"
-                      loading={loadingOrders}
-                      size="middle"
-                      scroll={{ x: 800 }}
-                      pagination={{ pageSize: 6 }}
-                    />
+                    <DataTable value={orders} loading={loadingOrders} paginator rows={6} responsiveLayout="scroll" style={{ fontSize: '13.5px' }}>
+                      <Column header="Order ID" body={(rowData) => (
+                        <PrimeTag 
+                          value={`${rowData._id.substring(0, 8)}...`} 
+                          severity="secondary" 
+                          style={{ borderRadius: '6px', border: '1px solid #d1d5db', padding: '4px 8px', fontWeight: 600, color: '#374151', backgroundColor: '#f3f4f6' }} 
+                        />
+                      )} style={{ width: '120px' }} />
+                      
+                      <Column header="Amount" body={(rowData) => (
+                        <span style={{ fontWeight: 'bold', color: '#16a34a', fontSize: '15px' }}>₹{rowData.totalAmount.toFixed(2)}</span>
+                      )} style={{ width: '120px' }} />
+                      
+                      <Column header="Payment" body={(rowData) => (
+                        <PrimeTag 
+                          value={rowData.paymentMethod ? rowData.paymentMethod.toUpperCase() : 'COD'} 
+                          severity="warning" 
+                          style={{ borderRadius: '6px', border: '1px dashed #f59e0b', padding: '4px 8px', fontWeight: 600 }} 
+                        />
+                      )} style={{ width: '120px' }} />
+                      
+                      <Column header="Status" body={(rowData) => {
+                        const statusColors: { [key: string]: 'success' | 'info' | 'warning' | 'danger' | 'secondary' } = {
+                          'Pending': 'warning',
+                          'Accepted': 'info',
+                          'Preparing': 'info',
+                          'Pickup': 'info',
+                          'Out for Delivery': 'success',
+                          'Shipped': 'success',
+                          'Delivered': 'success',
+                          'Cancelled': 'danger'
+                        };
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <PrimeTag 
+                              value={rowData.deliveryStatus} 
+                              severity={statusColors[rowData.deliveryStatus] || 'secondary'} 
+                              style={{ borderRadius: '6px', padding: '4px 8px', fontWeight: 600 }} 
+                            />
+                            {rowData.deliveryStatus !== 'Cancelled' && (
+                              <Button 
+                                icon="pi pi-map-marker" 
+                                className="p-button-text p-button-success p-button-sm" 
+                                style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto' }} 
+                                tooltip="Track Order"
+                                tooltipOptions={{ position: 'top' }}
+                                onClick={() => showStatusModal(rowData)} 
+                              />
+                            )}
+                          </div>
+                        );
+                      }} style={{ width: '190px' }} />
+                      
+                      <Column header="Order Date" body={(rowData) => (
+                        <span style={{ color: '#4b5563', fontSize: '13px', fontWeight: 500 }}>{new Date(rowData.createdAt).toLocaleDateString()}</span>
+                      )} style={{ width: '120px' }} />
+                      
+                      <Column header="Items" body={(rowData) => (
+                        <Button 
+                          label={`View (${rowData.items?.length || 0})`}
+                          icon="pi pi-eye" 
+                          className="p-button-outlined p-button-success p-button-sm" 
+                          style={{ borderRadius: '6px', fontWeight: 600, padding: '4px 12px' }} 
+                          onClick={() => showModal(rowData)} 
+                        />
+                      )} style={{ width: '140px' }} />
+                    </DataTable>
                   )}
-                </Card>
+                </div>
               </div>
             </TabPanel>
           )}
 
           {/* Tab 3: Gift Cards Management */}
           {profileData?.role === 'user' && (
-            <TabPanel header={<span><GiftOutlined style={{ marginRight: '6px' }} /> Gift Cards</span>}>
+            <TabPanel header={<span><i className="pi pi-gift" style={{ marginRight: '6px' }} /> Gift Cards</span>}>
               <div style={{ marginTop: '1.5rem', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
                 {/* Left Card: Purchase */}
                 <div style={{ flex: '1 1 450px', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem' }}>
@@ -1054,11 +1132,9 @@ const ProfilePage: React.FC = () => {
             </TabPanel>
           )}
 
-
-
           {/* Tab 5: Active Coupons Announcements */}
           {profileData?.role === 'user' && (
-            <TabPanel header={<span><NotificationOutlined style={{ marginRight: '6px' }} /> Dynamic Coupons</span>}>
+            <TabPanel header={<span><i className="pi pi-bell" style={{ marginRight: '6px' }} /> Dynamic Coupons</span>}>
               <div style={{ marginTop: '1.5rem' }}>
                 <h3 style={{ margin: '0 0 1.25rem 0', fontWeight: 800, color: '#1f2937' }}>Available Coupon Codes Announcements</h3>
                 
@@ -1066,7 +1142,7 @@ const ProfilePage: React.FC = () => {
                   <div style={{ textAlign: 'center', padding: '2rem' }}><i className="pi pi-spin pi-spinner" style={{ fontSize: '2rem', color: '#15803d' }} /></div>
                 ) : coupons.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '3rem', background: '#f9fafb', borderRadius: '12px', color: '#6b7280' }}>
-                    <NotificationOutlined style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                    <i className="pi pi-bell" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
                     <div style={{ fontWeight: 600 }}>No promo codes running at this time</div>
                     <div style={{ fontSize: '0.85rem' }}>Check back soon for festive culinary announcements!</div>
                   </div>
@@ -1079,7 +1155,13 @@ const ProfilePage: React.FC = () => {
                         <div style={{ fontSize: '0.85rem', color: '#15803d' }}>Minimum Order Required: <strong>₹{c.minOrderAmount}</strong></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #bbf7d0', marginTop: '0.5rem' }}>
                           <code style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#111827' }}>{c.code}</code>
-                          <AntButton type="primary" size="small" style={{ backgroundColor: '#15803d' }} onClick={() => handleCopyCode(c.code)}>COPY</AntButton>
+                          <button
+                            type="button"
+                            style={{ backgroundColor: '#15803d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                            onClick={() => handleCopyCode(c.code)}
+                          >
+                            COPY
+                          </button>
                         </div>
                         <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 'auto' }}>Valid until: {new Date(c.expiryDate).toLocaleDateString()}</div>
                       </div>
@@ -1091,101 +1173,134 @@ const ProfilePage: React.FC = () => {
           )}
 
         </TabView>
-      </Card>
+      </div>
 
       {/* Migrated Order Details modal */}
       {selectedOrder && (
-        <Modal
-          title={<Space><ShoppingCartOutlined style={{ color: '#15803d' }} /><strong>Order Details - {selectedOrder._id}</strong></Space>}
-          open={isModalVisible}
-          onCancel={() => { setIsModalVisible(false); setSelectedOrder(null); }}
-          footer={[
-            <AntButton key="back" onClick={() => { setIsModalVisible(false); setSelectedOrder(null); }}>Close</AntButton>,
-            <AntButton key="download" type="primary" icon={<DownloadOutlined />} loading={isDownloading} onClick={handleDownloadReceipt} style={{ backgroundColor: '#15803d' }}>Download Invoice</AntButton>,
-          ]}
-          width={700}
+        <Dialog
+          header={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803d', fontWeight: 'bold', fontSize: '1.2rem' }}>
+              <i className="pi pi-shopping-cart" />
+              <span>Order Details - {selectedOrder._id}</span>
+            </div>
+          }
+          visible={isModalVisible}
+          onHide={() => { setIsModalVisible(false); setSelectedOrder(null); }}
+          style={{ width: '700px', maxWidth: '95vw' }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <Button label="Close" onClick={() => { setIsModalVisible(false); setSelectedOrder(null); }} className="p-button-outlined p-button-secondary" style={{ color: '#595959', border: '1px solid #d9d9d9' }} />
+              <Button label="Download Invoice" icon="pi pi-download" loading={isDownloading} onClick={handleDownloadReceipt} style={{ backgroundColor: '#15803d', borderColor: '#15803d', color: 'white' }} />
+            </div>
+          }
         >
-          <Descriptions bordered column={2} size="small" style={{ marginBottom: 20 }}>
-            <Descriptions.Item label="Customer">{selectedOrder.user?.name || 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Email">{selectedOrder.user?.email || 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Order Date">{new Date(selectedOrder.createdAt).toLocaleString()}</Descriptions.Item>
-            <Descriptions.Item label="Status">{getStatusTag(selectedOrder.deliveryStatus)}</Descriptions.Item>
-            <Descriptions.Item label="Total Amount" span={2}><Text strong style={{ color: '#22c55e', fontSize: '15px' }}>₹{selectedOrder.totalAmount.toFixed(2)}</Text></Descriptions.Item>
-          </Descriptions>
+          <div style={{ padding: '8px 0' }}>
+            <div style={{ marginBottom: '24px', border: '1px solid #f0f0f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Customer</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>{selectedOrder.user?.name || 'N/A'}</div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Email</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>{selectedOrder.user?.email || 'N/A'}</div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Order Date</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>{new Date(selectedOrder.createdAt).toLocaleString()}</div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Status</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>{getStatusTag(selectedOrder.deliveryStatus)}</div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Total Amount</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#22c55e', fontWeight: 'bold', fontSize: '15px' }}>₹{selectedOrder.totalAmount.toFixed(2)}</div>
+              </div>
+            </div>
 
-          <Title level={5} style={{ color: '#15803d', marginBottom: 12 }}>Items List</Title>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {selectedOrder.items?.map((item: any, idx: number) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f3f4f6', borderRadius: '10px', padding: '0.75rem 1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <img src={item.image} alt={item.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }} />
-                  <div>
-                    <h5 style={{ margin: 0, fontWeight: 700 }}>{item.name}</h5>
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Qty: {item.quantity}</span>
+            <h5 style={{ color: '#15803d', marginBottom: 12, fontSize: '1.1rem', fontWeight: 'bold' }}>Items List</h5>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {selectedOrder.items?.map((item: any, idx: number) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f3f4f6', borderRadius: '10px', padding: '0.75rem 1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <img src={item.image} alt={item.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }} />
+                    <div>
+                      <h5 style={{ margin: 0, fontWeight: 700 }}>{item.name}</h5>
+                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Qty: {item.quantity}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 'bold', color: '#15803d' }}>₹{((item.discount_price || item.original_price) * item.quantity).toFixed(2)}</span>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.88rem', fontWeight: 'bold', color: '#15803d' }}>₹{((item.discount_price || item.original_price) * item.quantity).toFixed(2)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {/* PDF hidden invoice container */}
-          <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
-            <div ref={receiptContentRef} style={{ width: '320px', padding: '20px', fontFamily: '"Courier New", Courier, monospace', fontSize: '12px', color: '#000', backgroundColor: '#fff' }}>
-              <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>TastyHub</h3>
-                <p style={{ margin: 0, fontSize: '11px' }}>1-23 Gourmet Plaza, Gachibowli, Hyderabad</p>
-                <p style={{ margin: 0, fontSize: '11px' }}>www.TastyHub.com</p>
-              </div>
-              <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
-              <p style={{ margin: '2px 0' }}><strong>Order ID:</strong> {selectedOrder._id}</p>
-              <p style={{ margin: '2px 0' }}><strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
-              <p style={{ margin: '2px 0' }}><strong>Customer:</strong> {selectedOrder.user?.name}</p>
-              <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
-              <table style={{ width: '100%', fontSize: '12px' }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left' }}>ITEM</th>
-                    <th style={{ textAlign: 'center' }}>QTY</th>
-                    <th style={{ textAlign: 'right' }}>PRICE</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedOrder.items?.map((item: any, i: number) => (
-                    <tr key={i}>
-                      <td style={{ textAlign: 'left' }}>{item.name}</td>
-                      <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                      <td style={{ textAlign: 'right' }}>₹{(item.discount_price || item.original_price).toFixed(2)}</td>
+            {/* PDF hidden invoice container */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
+              <div ref={receiptContentRef} style={{ width: '320px', padding: '20px', fontFamily: '"Courier New", Courier, monospace', fontSize: '12px', color: '#000', backgroundColor: '#fff' }}>
+                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>TastyHub</h3>
+                  <p style={{ margin: 0, fontSize: '11px' }}>1-23 Gourmet Plaza, Gachibowli, Hyderabad</p>
+                  <p style={{ margin: 0, fontSize: '11px' }}>www.TastyHub.com</p>
+                </div>
+                <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
+                <p style={{ margin: '2px 0' }}><strong>Order ID:</strong> {selectedOrder._id}</p>
+                <p style={{ margin: '2px 0' }}><strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                <p style={{ margin: '2px 0' }}><strong>Customer:</strong> {selectedOrder.user?.name}</p>
+                <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
+                <table style={{ width: '100%', fontSize: '12px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>ITEM</th>
+                      <th style={{ textAlign: 'center' }}>QTY</th>
+                      <th style={{ textAlign: 'right' }}>PRICE</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ margin: '2px 0', fontSize: '14px', fontWeight: 'bold' }}><strong>TOTAL:</strong> ₹{selectedOrder.totalAmount.toFixed(2)}</p>
-              </div>
-              <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
-              <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                <p style={{ margin: 0 }}>Thank you for dining with TastyHub!</p>
+                  </thead>
+                  <tbody>
+                    {selectedOrder.items?.map((item: any, i: number) => (
+                      <tr key={i}>
+                        <td style={{ textAlign: 'left' }}>{item.name}</td>
+                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right' }}>₹{(item.discount_price || item.original_price).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ margin: '2px 0', fontSize: '14px', fontWeight: 'bold' }}><strong>TOTAL:</strong> ₹{selectedOrder.totalAmount.toFixed(2)}</p>
+                </div>
+                <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
+                <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                  <p style={{ margin: 0 }}>Thank you for dining with TastyHub!</p>
+                </div>
               </div>
             </div>
           </div>
-        </Modal>
+        </Dialog>
       )}
 
       {/* Tracker Status modal */}
       {selectedOrderForStatus && (
-        <Modal
-          title={<Space><TruckOutlined style={{ color: '#15803d' }} /><strong>Order Delivery Progress</strong></Space>}
-          open={isStatusModalVisible}
-          onCancel={() => { setIsStatusModalVisible(false); setSelectedOrderForStatus(null); }}
-          footer={[<AntButton key="close" onClick={() => { setIsStatusModalVisible(false); setSelectedOrderForStatus(null); }}>Close</AntButton>]}
-          width={550}
+        <Dialog
+          header={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803d', fontWeight: 'bold', fontSize: '1.2rem' }}>
+              <i className="pi pi-truck" />
+              <span>Order Delivery Progress</span>
+            </div>
+          }
+          visible={isStatusModalVisible}
+          onHide={() => { setIsStatusModalVisible(false); setSelectedOrderForStatus(null); }}
+          style={{ width: '850px', maxWidth: '95vw' }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button label="Close" onClick={() => { setIsStatusModalVisible(false); setSelectedOrderForStatus(null); }} className="p-button-outlined p-button-secondary" style={{ color: '#595959', border: '1px solid #d9d9d9' }} />
+            </div>
+          }
         >
           <OrderStatusTracker currentStatus={selectedOrderForStatus.deliveryStatus} />
-        </Modal>
+        </Dialog>
       )}
 
       {/* Address Edit Dialog Modal */}

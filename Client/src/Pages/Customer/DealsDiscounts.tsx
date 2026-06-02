@@ -200,7 +200,7 @@ export default function DealsDiscounts() {
           }
         }
         .product-card .p-card-body {
-          padding: 12px !important;
+          padding: 0px !important;
         }
         .product-card .p-card-content {
           padding: 0 !important;
@@ -387,7 +387,7 @@ export default function DealsDiscounts() {
                             alt={prod.title || prod.name} 
                             style={{
                               width: '100%',
-                              height: '215px',
+                              height: '200px',
                               objectFit: 'cover',
                               borderTopLeftRadius: '12px',
                               borderTopRightRadius: '12px'
@@ -413,16 +413,16 @@ export default function DealsDiscounts() {
                           header={cardHeader}
                           style={{
                             borderRadius: '12px',
-                            border: '1px solid #e2e8f0',
+                            border: '1px solid #e5e7eb',
                             background: '#ffffff',
-                            boxShadow: 'none',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
                             height: '100%',
                             display: 'flex',
                             flexDirection: 'column'
                           }}
                         >
 
-                          <div style={{ display: 'flex', flexDirection: 'column', padding: '0px', flexGrow: 1 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', padding: '17px 13px', flexGrow: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                               <Tag 
                                 value={prod.category} 
@@ -545,7 +545,7 @@ export default function DealsDiscounts() {
         }
         visible={showProductModal}
         onHide={() => setShowProductModal(false)}
-        style={{ width: '90vw', maxWidth: '750px' }}
+        style={{ width: '900px', maxWidth: '95vw' }}
         breakpoints={{ '960px': '75vw', '641px': '95vw' }}
         draggable={false}
         resizable={false}

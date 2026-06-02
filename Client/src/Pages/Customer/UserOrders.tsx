@@ -1,13 +1,45 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
-import { Table, Tag, Alert, Typography, Modal, Button, Descriptions, Space, Tooltip, Row, Col, Card, Pagination } from 'antd';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Card } from 'primereact/card';
+import { Dialog } from 'primereact/dialog';
+import { Button } from 'primereact/button';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 import { IOrder, OrderDeliveryStatus } from '../../types';
-import { CheckCircleOutlined, TruckOutlined, ClockCircleOutlined, EyeOutlined, CalendarOutlined, ShoppingCartOutlined, UserOutlined, DownloadOutlined, GiftOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const { Title, Text } = Typography;
+const customStyles = `
+  .orders-table .p-datatable-thead > tr > th {
+    background-color: #f6ffed !important;
+    color: #15803d !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid #b7eb8f !important;
+    padding: 16px !important;
+  }
+  .orders-table .p-datatable-tbody > tr {
+    transition: background-color 0.2s;
+  }
+  .orders-table .p-datatable-tbody > tr:hover {
+    background-color: #f9fffa !important;
+  }
+  .orders-table .p-datatable-tbody > tr > td {
+    padding: 16px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+  }
+  .orders-table .p-paginator {
+    background-color: #ffffff !important;
+    border-top: 1px solid #f0f0f0 !important;
+    padding: 12px !important;
+    border-radius: 0 0 16px 16px !important;
+  }
+  .orders-table .p-paginator .p-paginator-page.p-highlight {
+    background: #e6f7ff !important;
+    border-color: #1890ff !important;
+    color: #1890ff !important;
+  }
+`;
 
 interface OrderStatusTrackerProps {
   currentStatus: OrderDeliveryStatus;
@@ -35,19 +67,19 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
     {
       key: 'Pending',
       title: 'ORDERED',
-      icon: <ClockCircleOutlined />,
+      icon: 'pi pi-clock',
       index: 0
     },
     {
       key: 'Shipped', 
       title: 'ORDER SHIPPED',
-      icon: <TruckOutlined />,
+      icon: 'pi pi-truck',
       index: 1
     },
     {
       key: 'Delivered',
       title: 'DELIVERED', 
-      icon: <GiftOutlined />,
+      icon: 'pi pi-gift',
       index: 2
     }
   ];
@@ -112,7 +144,7 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
                 transition: 'all 0.3s ease',
                 boxShadow: isActive ? '0 0 0 4px rgba(82, 196, 26, 0.2)' : 'none'
               }}>
-                {isCompleted ? <CheckCircleOutlined /> : step.icon}
+                <i className={isCompleted ? 'pi pi-check-circle' : step.icon} />
               </div>
               
               <span style={{
@@ -175,13 +207,14 @@ const UserOrders: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
+  
   const messageApi = {
-    info: (opts: any) => (window as any).showToast?.('info', 'Info', typeof opts === 'string' ? opts : opts.content || ''),
-    success: (opts: any) => (window as any).showToast?.('success', 'Success', typeof opts === 'string' ? opts : opts.content || ''),
-    error: (opts: any) => (window as any).showToast?.('error', 'Error', typeof opts === 'string' ? opts : opts.content || ''),
-    warning: (opts: any) => (window as any).showToast?.('warn', 'Warning', typeof opts === 'string' ? opts : opts.content || ''),
-    loading: (opts: any) => (window as any).showToast?.('info', 'Loading', typeof opts === 'string' ? opts : opts.content || ''),
+    info: (content: string) => (window as any).showToast?.('info', 'Info', content),
+    success: (content: string) => (window as any).showToast?.('success', 'Success', content),
+    error: (content: string) => (window as any).showToast?.('error', 'Error', content),
+    loading: (content: string) => (window as any).showToast?.('info', 'Loading', content),
   };
+  
   const [selectedOrder, setSelectedOrder] = useState<IOrder | null>(null);
   const [selectedOrderForStatus, setSelectedOrderForStatus] = useState<IOrder | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -199,7 +232,16 @@ const UserOrders: React.FC = () => {
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    
+    // Inject styles
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = customStyles;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      document.head.removeChild(styleElement);
+    };
   }, []);
 
   useEffect(() => {
@@ -241,17 +283,11 @@ const UserOrders: React.FC = () => {
       console.error('Error fetching user orders:', err);
       const errorMessage = err.response?.data?.message || 'Failed to fetch your orders.';
       setError(errorMessage);
-      messageApi.error({
-        content: errorMessage,
-        duration: 3,
-        style: {
-          marginTop: '20vh',
-        },
-      });
+      messageApi.error(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [auth?.token, backendUrl, messageApi]);
+  }, [auth?.token, backendUrl]);
 
   useEffect(() => {
     fetchUserOrders();
@@ -284,7 +320,7 @@ const UserOrders: React.FC = () => {
     }
 
     setIsDownloading(true);
-    messageApi.loading({ content: 'Generating your receipt...', key: 'pdf-download', duration: 0 });
+    messageApi.loading('Generating your receipt...');
 
     try {
       const receiptElement = receiptContentRef.current;
@@ -304,57 +340,69 @@ const UserOrders: React.FC = () => {
       pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
       pdf.save(`Receipt-Order-${selectedOrder._id}.pdf`);
 
-      messageApi.success({ content: 'Receipt downloaded successfully!', key: 'pdf-download', duration: 3 });
+      messageApi.success('Receipt downloaded successfully!');
 
     } catch (err) {
       console.error('Error generating PDF receipt:', err);
-      messageApi.error({ content: 'Failed to download receipt. Please try again.', key: 'pdf-download', duration: 3 });
+      messageApi.error('Failed to download receipt. Please try again.');
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  };
+  // const truncateText = (text: string, maxLength: number) => {
+  //   if (text.length <= maxLength) return text;
+  //   return text.substring(0, maxLength) + '...';
+  // };
 
   const getStatusTag = (status: OrderDeliveryStatus) => {
     switch (status) {
       case 'Pending':
         return (
-          <Tag color="warning" style={{ borderRadius: '5px', padding: '2px 10px', display: 'flex', alignItems: 'center', border:'1px dashed' }}>
-            <ClockCircleOutlined style={{ marginRight: '4px' }} /> Pending
-          </Tag>
+          <span style={{ background: '#fffbe6', color: '#d46b08', border: '1px dashed #ffe58f', borderRadius: '5px', padding: '2px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+            <i className="pi pi-clock" /> Pending
+          </span>
         );
       case 'Shipped':
         return (
-          <Tag color="processing" style={{ borderRadius: '5px', padding: '2px 10px', display: 'flex', alignItems: 'center', border:'1px dashed' }}>
-            <TruckOutlined style={{ marginRight: '4px' }} /> Shipped
-          </Tag>
+          <span style={{ background: '#e6f7ff', color: '#096dd9', border: '1px dashed #91d5ff', borderRadius: '5px', padding: '2px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+            <i className="pi pi-truck" /> Shipped
+          </span>
         );
       case 'Delivered':
         return (
-          <Tag color="success" style={{ borderRadius: '5px', padding: '2px 10px', display: 'flex', alignItems: 'center', border:'1px dashed' }}>
-            <CheckCircleOutlined style={{ marginRight: '4px' }} /> Delivered
-          </Tag>
+          <span style={{ background: '#f6ffed', color: '#389e0d', border: '1px dashed #b7eb8f', borderRadius: '5px', padding: '2px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+            <i className="pi pi-check-circle" /> Delivered
+          </span>
         );
       default:
-        return <Tag color="default">{status}</Tag>;
+        return (
+          <span style={{ background: '#f5f5f5', color: '#595959', border: '1px solid #d9d9d9', borderRadius: '5px', padding: '2px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {status}
+          </span>
+        );
     }
   };
 
   const getStatusBadge = (order: IOrder) => {
     return (
-      <Button 
-        type="link" 
-        size="small" 
-        icon={<InfoCircleOutlined />}
+      <button 
         onClick={() => showStatusModal(order)}
-        style={{ padding: 0 }}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#22c55e',
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: 0
+        }}
       >
-        Track Status
-      </Button>
+        <i className="pi pi-info-circle" /> Track Status
+      </button>
     );
   };
 
@@ -378,99 +426,17 @@ const UserOrders: React.FC = () => {
         margin: '0 auto' 
       }}>
         <div style={{ padding: '40px 0', textAlign: 'center' }}>
-          <Alert
-            message="Access Denied or Error!"
-            description={
-              <div>
-                <p>{error}</p>
-                <p>Please ensure you are logged in to view your orders.</p>
-              </div>
-            }
-            type="error"
-            showIcon
-            icon={<InfoCircleOutlined />}
-          />
+          <div style={{ padding: '24px', border: '1px solid #fca5a5', borderRadius: '12px', background: '#fef2f2', color: '#991b1b', textAlign: 'left' }}>
+            <h4 style={{ fontWeight: 'bold', margin: '0 0 8px 0', fontSize: '16px' }}><i className="pi pi-info-circle" style={{ marginRight: '8px' }} /> Access Denied or Error!</h4>
+            <p style={{ margin: '0 0 8px 0' }}>{error}</p>
+            <p style={{ margin: 0 }}>Please ensure you are logged in to view your orders.</p>
+          </div>
         </div>
       </div>
     );
   }
 
   const sortedOrders = [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  const columns = [
-    {
-      title: <span style={{color: "#52c41a", fontWeight: 600}}>Order ID</span>,
-      dataIndex: '_id',
-      key: '_id',
-      width: 120,
-      render: (id: string) => <Tag color='blue'>{id}</Tag>,
-    },
-    {
-      title: <span style={{color: "#52c41a", fontWeight: 600}}>Customer</span>,
-      dataIndex: 'user',
-      key: 'user',
-      width: 200,
-      render: (user: any) => (
-        <div>
-          <div style={{ fontWeight: 500, color: '#262626' }}>{user?.name || 'N/A'}</div>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            {user?.email || 'N/A'}
-          </Text>
-        </div>
-      ),
-    },
-    {
-      title: <span style={{color: "#52c41a", fontWeight: 600}}>Amount</span>,
-      dataIndex: 'totalAmount',
-      key: 'totalAmount',
-      width: 120,
-      align: 'center' as const,
-      render: (amount: number) => (
-        <Text strong style={{ color: '#52c41a', fontSize: '14px' }}>
-          ₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-        </Text>
-      ),
-    },
-    {
-      title: <span style={{color: "#52c41a", fontWeight: 600}}>Status</span>,
-      dataIndex: 'deliveryStatus',
-      key: 'deliveryStatus',
-      width: 130,
-      render: (_: OrderDeliveryStatus, record: IOrder) => getStatusBadge(record),
-    },
-    {
-      title: <span style={{color: "#52c41a", fontWeight: 600}}>Order Date</span>,
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 140,
-      render: (date: string) => (
-        <Space>
-          <CalendarOutlined style={{ color: '#52c41a' }} />
-          <span>{new Date(date).toLocaleDateString('en-IN')}</span>
-        </Space>
-      ),
-    },
-    {
-      title: <span style={{color: "#52c41a", fontWeight: 600}}>Items</span>,
-      dataIndex: 'items',
-      key: 'items',
-      width: 150,
-      render: (items: any, record: IOrder) => (
-        <Button 
-          type="link" 
-          onClick={() => showModal(record)} 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: 0
-          }}
-        >
-          <EyeOutlined style={{ marginRight: 4 }} /> 
-          View Items ({items?.length || 0})
-        </Button>
-      ),
-    },
-  ];
 
   const totalItems = selectedOrder?.items?.length || 0;
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -485,251 +451,350 @@ const UserOrders: React.FC = () => {
     <div style={{ 
       padding: '32px 24px', 
       maxWidth: 1250, 
-      margin: '0 auto'
+      margin: '0 auto',
+      fontFamily: 'Outfit, sans-serif'
     }}>
       
       <div style={{ 
         textAlign: 'center',
         marginBottom: 32
       }}>
-        <Title level={1} style={{ 
+        <h1 style={{ 
           margin: 0, 
           color: '#52c41a',
           fontSize: '30px',
           fontWeight: 700
         }}>
           My Orders History
-        </Title>
+        </h1>
       </div>
 
       <Card
-        title={
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            fontSize: '20px',
-            fontWeight: 600,
-            color: '#52c41a'
-          }}>
-            <ShoppingCartOutlined style={{ marginRight: 12, fontSize: '24px', color: '#52c41a' }} />
-            Your Order History
-          </div>
-        }
+        className="orders-table"
         style={{ 
           borderRadius: '16px',
           border: '2px dashed #b7eb8f',
           boxShadow: '0 4px 16px rgba(183, 235, 143, 0.2)',
-          background: 'white'
+          background: 'white',
+          overflow: 'hidden'
         }}
-        styles={{ body: { padding: '24px' } }}
       >
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center',
+          fontSize: '20px',
+          fontWeight: 600,
+          color: '#52c41a',
+          padding: '24px 24px 12px 24px'
+        }}>
+          <i className="pi pi-shopping-cart" style={{ marginRight: 12, fontSize: '24px', color: '#52c41a' }} />
+          Your Order History
+        </div>
+
         {orders.length === 0 ? (
           <div style={{ 
             textAlign: 'center', 
             padding: '60px 20px',
             background: '#f6ffed',
             borderRadius: '12px',
-            border: '1px solid #d9f7be'
+            border: '1px solid #d9f7be',
+            margin: '24px'
           }}>
-            <ShoppingCartOutlined style={{ fontSize: '64px', color: '#52c41a', marginBottom: '16px' }} />
-            <Title level={4} style={{ color: '#52c41a', margin: 0 }}>No orders placed yet</Title>
-            <Text style={{ color: '#8c8c8c' }}>Your orders will appear here once you start shopping</Text>
+            <i className="pi pi-shopping-cart" style={{ fontSize: '64px', color: '#52c41a', marginBottom: '16px' }} />
+            <h4 style={{ color: '#52c41a', margin: '0 0 8px 0', fontSize: '18px', fontWeight: 'bold' }}>No orders placed yet</h4>
+            <span style={{ color: '#8c8c8c' }}>Your orders will appear here once you start shopping</span>
           </div>
         ) : (
-          <Table
-            columns={columns}
-            dataSource={sortedOrders}
-            rowKey="_id"
-            size="large"
-            scroll={{ x: 1000 }}
-            pagination={{
-              pageSize: 10,
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} orders`,
-            }}
-          />
+          <DataTable 
+            value={sortedOrders} 
+            dataKey="_id" 
+            paginator 
+            rows={10} 
+            responsiveLayout="scroll"
+          >
+            <Column 
+              header="Order ID" 
+              body={(rowData: IOrder) => (
+                <span style={{ background: '#e6f7ff', color: '#1890ff', border: '1px solid #91d5ff', borderRadius: '4px', padding: '2px 8px', fontSize: '13px', fontWeight: 600 }}>
+                  {rowData._id}
+                </span>
+              )} 
+              style={{ width: '150px' }} 
+            />
+            <Column 
+              header="Customer" 
+              body={(rowData: IOrder) => (
+                <div>
+                  <div style={{ fontWeight: 500, color: '#262626' }}>{rowData.user?.name || 'N/A'}</div>
+                  <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                    {rowData.user?.email || 'N/A'}
+                  </span>
+                </div>
+              )} 
+            />
+            <Column 
+              header="Amount" 
+              body={(rowData: IOrder) => (
+                <span style={{ fontWeight: 'bold', color: '#52c41a', fontSize: '14px' }}>
+                  ₹{rowData.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              )} 
+              style={{ textAlign: 'center', width: '120px' }} 
+            />
+            <Column 
+              header="Status" 
+              body={(rowData: IOrder) => getStatusBadge(rowData)} 
+              style={{ width: '140px' }} 
+            />
+            <Column 
+              header="Order Date" 
+              body={(rowData: IOrder) => (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <i className="pi pi-calendar" style={{ color: '#52c41a' }} />
+                  <span>{new Date(rowData.createdAt).toLocaleDateString('en-IN')}</span>
+                </span>
+              )} 
+              style={{ width: '140px' }} 
+            />
+            <Column 
+              header="Items" 
+              body={(rowData: IOrder) => (
+                <button 
+                  onClick={() => showModal(rowData)} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px',
+                    padding: 0,
+                    background: 'none',
+                    border: 'none',
+                    color: '#1890ff',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }}
+                >
+                  <i className="pi pi-eye" /> 
+                  View Items ({rowData.items?.length || 0})
+                </button>
+              )} 
+              style={{ width: '160px' }} 
+            />
+          </DataTable>
         )}
       </Card>
 
       {selectedOrder && (
-        <Modal
-          title={
-            <Space>
-              <ShoppingCartOutlined />
+        <Dialog
+          header={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#52c41a', fontWeight: 'bold', fontSize: '1.25rem' }}>
+              <i className="pi pi-shopping-cart" />
               <span>Order Details - {isMobile ? selectedOrder._id.substring(0, 6) + '...' : selectedOrder._id}</span>
-            </Space>
-          }
-          open={isModalVisible}
-          onCancel={handleCancel}
-          footer={[
-            <Button key="back" onClick={handleCancel}>
-              Close
-            </Button>,
-            <Button
-              key="download"
-              type="primary"
-              icon={<DownloadOutlined />}
-              loading={isDownloading}
-              onClick={handleDownloadReceipt}
-              style={{backgroundColor: "#52c41a"}}
-            >
-              Download Receipt
-            </Button>,
-          ]}
-          width={isMobile ? '95%' : 800}
-          style={isMobile ? { top: 15 } : { top: 15 }}
-        >
-          <Title level={4} style={{ marginBottom: 16, color: '#52c41a' }}>Customer Details</Title>
-          <Descriptions
-            bordered
-            column={isMobile ? 1 : 2}
-            size={isMobile ? 'small' : 'default'}
-            style={{ marginBottom: 24 }}
-          >
-            <Descriptions.Item label="Customer Name">
-              <Space>
-                <UserOutlined />
-                {selectedOrder.user?.name || 'N/A'}
-              </Space>
-            </Descriptions.Item>
-            <Descriptions.Item label="Customer Email">
-              <Tooltip title={selectedOrder.user?.email || 'N/A'}>
-                <Text>{isMobile ? truncateText(selectedOrder.user?.email || 'N/A', 20) : (selectedOrder.user?.email || 'N/A')}</Text>
-              </Tooltip>
-            </Descriptions.Item>
-          </Descriptions>
-
-          <Title level={4} style={{ marginBottom: 16, color: '#52c41a' }}>Order Information</Title>
-          <Descriptions
-            bordered
-            column={isMobile ? 1 : 2}
-            size={isMobile ? 'small' : 'default'}
-            style={{ marginBottom: 24 }}
-          >
-            <Descriptions.Item label="Order ID">
-              <Tooltip title={selectedOrder._id}>
-                <Text code style={{color: '#52c41a'}}>{isMobile ? truncateText(selectedOrder._id, 15) : selectedOrder._id}</Text>
-              </Tooltip>
-            </Descriptions.Item>
-            <Descriptions.Item label="Order Date">
-              {new Date(selectedOrder.createdAt).toLocaleDateString()}
-            </Descriptions.Item>
-            <Descriptions.Item label="Total Amount">
-              <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-                ₹{selectedOrder.totalAmount.toFixed(2)}
-              </Text>
-            </Descriptions.Item>
-            <Descriptions.Item label="Status">
-              {getStatusTag(selectedOrder.deliveryStatus)}
-            </Descriptions.Item>
-          </Descriptions>
-
-          <Title level={4} style={{ marginBottom: 16, color: '#52c41a' }}>
-            Order Items ({totalItems} items)
-          </Title>
-          <Row gutter={[16, 16]}>
-            {currentItems.map((item, idx) => (
-                <Col span={isMobile ? 24 : 12} key={startIndex + idx}>
-                    <Card size="small" hoverable style={{ padding: '16px', height: '100%', border:'2px dashed #b7eb8f' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-                            {item.image && (
-                                <div style={{ flexShrink: 0 }}>
-                                    <img src={item.image} alt={item.name} style={{ width: 80, height: 80, borderRadius: 8, objectFit: 'cover', border: '2px solid #b7eb8f' }} onError={(e) => { (e.target as HTMLImageElement).src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RUG8G+5BhMlyJFAcxBOJqhE8wQ7kKQQtKSlkZzZnZklBW1KKaUKZhJFM7MpIQ6lJTJKKJGJ6GElJvK5Z+cFklVVr6vr9e/39v3V/e8P"; }} />
-                                </div>
-                            )}
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <Title level={5} style={{ margin: '0 0 8px 0', fontSize: '16px' }}>{item.name || 'Unknown Item'}</Title>
-                                <div style={{ marginBottom: '8px' }}><Text type="secondary" style={{ fontSize: '14px' }}>Quantity: <Text strong>{item.quantity || 0}</Text></Text></div>
-                                <div><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <Text delete style={{ color: '#8c8c8c', fontSize: '14px' }}>₹{((item as any).original_price || 0).toFixed(2)}</Text>
-                                    <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>₹{((item as any).discount_price || 0).toFixed(2)}</Text>
-                                </div></div>
-                            </div>
-                        </div>
-                    </Card>
-                </Col>
-            ))}
-          </Row>
-
-          {totalItems > itemsPerPage && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
-              <Pagination current={currentPage} total={totalItems} pageSize={itemsPerPage} onChange={handlePageChange} showSizeChanger={false} showQuickJumper={false} size={isMobile ? 'small' : 'default'} />
             </div>
-          )}
-          <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
-            <div ref={receiptContentRef} style={{
-                width: '320px',
-                padding: '20px',
-                fontFamily: '"Courier New", Courier, monospace',
-                fontSize: '12px',
-                lineHeight: '1.6',
-                color: '#000',
-                backgroundColor: '#fff',
-            }}>
-              <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>FoodDelight</h3>
-                <p style={{ margin: 0, fontSize: '11px' }}>1-23 Gourmet Street, Nellore - 524001</p>
-                <p style={{ margin: 0, fontSize: '11px' }}>www.FoodDelight.com</p>
+          }
+          visible={isModalVisible}
+          onHide={handleCancel}
+          style={{ width: isMobile ? '95%' : '800px' }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '12px 0 0 0' }}>
+              <Button label="Close" onClick={handleCancel} className="p-button-outlined p-button-secondary" style={{ color: '#595959', border: '1px solid #d9d9d9' }} />
+              <Button
+                label="Download Receipt"
+                icon="pi pi-download"
+                loading={isDownloading}
+                onClick={handleDownloadReceipt}
+                style={{ backgroundColor: "#52c41a", borderColor: "#52c41a", color: 'white' }}
+              />
+            </div>
+          }
+        >
+          <div style={{ padding: '8px 0' }}>
+            <h4 style={{ marginBottom: 16, color: '#52c41a', fontSize: '1.15rem', fontWeight: 'bold' }}>Customer Details</h4>
+            
+            <div style={{ marginBottom: '24px', border: '1px solid #f0f0f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Customer Name</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <i className="pi pi-user" /> {selectedOrder.user?.name || 'N/A'}
+                </div>
               </div>
-              <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
-              <p style={{ margin: '2px 0' }}><strong>Order ID:</strong> {selectedOrder._id}</p>
-              <p style={{ margin: '2px 0' }}><strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
-              <p style={{ margin: '2px 0' }}><strong>Customer:</strong> {selectedOrder.user.name}</p>
-              <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', paddingBottom: '5px' }}>ITEM</th>
-                    <th style={{ textAlign: 'center', paddingBottom: '5px' }}>QTY</th>
-                    <th style={{ textAlign: 'right', paddingBottom: '5px' }}>PRICE</th>
-                    <th style={{ textAlign: 'right', paddingBottom: '5px' }}>TOTAL</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedOrder.items.map((item, index) => (
-                    <tr key={`receipt-${index}`}>
-                      <td style={{ textAlign: 'left', verticalAlign: 'top' }}>{item.name}</td>
-                      <td style={{ textAlign: 'center', verticalAlign: 'top' }}>{item.quantity}</td>
-                      <td style={{ textAlign: 'right', verticalAlign: 'top' }}>{(item as any).discount_price.toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', verticalAlign: 'top' }}>{(item.quantity * (item as any).discount_price).toFixed(2)}</td>
+              <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Customer Email</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>
+                  {selectedOrder.user?.email || 'N/A'}
+                </div>
+              </div>
+            </div>
+
+            <h4 style={{ marginBottom: 16, color: '#52c41a', fontSize: '1.15rem', fontWeight: 'bold' }}>Order Information</h4>
+            
+            <div style={{ marginBottom: '24px', border: '1px solid #f0f0f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Order ID</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#52c41a', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                  {selectedOrder._id}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Order Date</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>
+                  {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Total Amount</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#52c41a', fontWeight: 'bold', fontSize: '16px' }}>
+                  ₹{selectedOrder.totalAmount.toFixed(2)}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Status</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>
+                  {getStatusTag(selectedOrder.deliveryStatus)}
+                </div>
+              </div>
+            </div>
+
+            <h4 style={{ marginBottom: 16, color: '#52c41a', fontSize: '1.15rem', fontWeight: 'bold' }}>
+              Order Items ({totalItems} items)
+            </h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+              {currentItems.map((item, idx) => (
+                <div key={startIndex + idx} style={{ padding: '16px', borderRadius: '8px', border: '2px dashed #b7eb8f', backgroundColor: '#fff', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  {item.image && (
+                    <img src={item.image} alt={item.name} style={{ width: 80, height: 80, borderRadius: 8, objectFit: 'cover', border: '2px solid #b7eb8f' }} onError={(e) => { (e.target as HTMLImageElement).src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RUG8G+5BhMlyJFAcxBOJqhE8wQ7kKQQtKSlkZzZnZklBW1KKaUKZhJFM7MpIQ6lJTJKKJGJ6GElJvK5Z+cFklVVr6vr9e/39v3V/e8P"; }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h5 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 'bold', color: '#262626' }}>{item.name || 'Unknown Item'}</h5>
+                    <div style={{ marginBottom: '8px', color: '#8c8c8c', fontSize: '14px' }}>Quantity: <strong style={{ color: '#262626' }}>{item.quantity || 0}</strong></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ textDecoration: 'line-through', color: '#8c8c8c', fontSize: '14px' }}>₹{((item as any).original_price || 0).toFixed(2)}</span>
+                      <span style={{ fontWeight: 'bold', color: '#52c41a', fontSize: '16px' }}>₹{((item as any).discount_price || 0).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {totalItems > itemsPerPage && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: 24 }}>
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  style={{
+                    background: currentPage === 1 ? '#f5f5f5' : '#fff',
+                    color: currentPage === 1 ? '#bfbfbf' : '#52c41a',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: '4px',
+                    padding: '6px 12px',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <i className="pi pi-chevron-left" /> Previous
+                </button>
+                <span style={{ fontSize: '14px', color: '#595959' }}>
+                  Page <strong>{currentPage}</strong> of <strong>{Math.ceil(totalItems / itemsPerPage)}</strong>
+                </span>
+                <button
+                  disabled={currentPage === Math.ceil(totalItems / itemsPerPage)}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  style={{
+                    background: currentPage === Math.ceil(totalItems / itemsPerPage) ? '#f5f5f5' : '#fff',
+                    color: currentPage === Math.ceil(totalItems / itemsPerPage) ? '#bfbfbf' : '#52c41a',
+                    border: '1px solid #d9d9d9',
+                    borderRadius: '4px',
+                    padding: '6px 12px',
+                    cursor: currentPage === Math.ceil(totalItems / itemsPerPage) ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Next <i className="pi pi-chevron-right" />
+                </button>
+              </div>
+            )}
+            
+            {/* Receipt container for printing */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
+              <div ref={receiptContentRef} style={{
+                  width: '320px',
+                  padding: '20px',
+                  fontFamily: '"Courier New", Courier, monospace',
+                  fontSize: '12px',
+                  lineHeight: '1.6',
+                  color: '#000',
+                  backgroundColor: '#fff',
+              }}>
+                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>FoodDelight</h3>
+                  <p style={{ margin: 0, fontSize: '11px' }}>1-23 Gourmet Street, Nellore - 524001</p>
+                  <p style={{ margin: 0, fontSize: '11px' }}>www.FoodDelight.com</p>
+                </div>
+                <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
+                <p style={{ margin: '2px 0' }}><strong>Order ID:</strong> {selectedOrder._id}</p>
+                <p style={{ margin: '2px 0' }}><strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                <p style={{ margin: '2px 0' }}><strong>Customer:</strong> {selectedOrder.user.name}</p>
+                <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', paddingBottom: '5px' }}>ITEM</th>
+                      <th style={{ textAlign: 'center', paddingBottom: '5px' }}>QTY</th>
+                      <th style={{ textAlign: 'right', paddingBottom: '5px' }}>PRICE</th>
+                      <th style={{ textAlign: 'right', paddingBottom: '5px' }}>TOTAL</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ margin: '2px 0' }}><strong>Subtotal:</strong> ₹{selectedOrder.totalAmount.toFixed(2)}</p>
-                <p style={{ margin: '2px 0', fontSize: '14px', fontWeight: 'bold' }}><strong>TOTAL:</strong> ₹{selectedOrder.totalAmount.toFixed(2)}</p>
-              </div>
-              <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
-              <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                <p style={{ margin: 0 }}>Thank you for your order!</p>
+                  </thead>
+                  <tbody>
+                    {selectedOrder.items.map((item, index) => (
+                      <tr key={`receipt-${index}`}>
+                        <td style={{ textAlign: 'left', verticalAlign: 'top' }}>{item.name}</td>
+                        <td style={{ textAlign: 'center', verticalAlign: 'top' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right', verticalAlign: 'top' }}>{(item as any).discount_price.toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', verticalAlign: 'top' }}>{(item.quantity * (item as any).discount_price).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ margin: '2px 0' }}><strong>Subtotal:</strong> ₹{selectedOrder.totalAmount.toFixed(2)}</p>
+                  <p style={{ margin: '2px 0', fontSize: '14px', fontWeight: 'bold' }}><strong>TOTAL:</strong> ₹{selectedOrder.totalAmount.toFixed(2)}</p>
+                </div>
+                <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
+                <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                  <p style={{ margin: 0 }}>Thank you for your order!</p>
+                </div>
               </div>
             </div>
           </div>
-        </Modal>
+        </Dialog>
       )}
 
       {selectedOrderForStatus && (
-        <Modal
-          title={
-            <Space>
-              <TruckOutlined />
+        <Dialog
+          header={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#52c41a', fontWeight: 'bold', fontSize: '1.25rem' }}>
+              <i className="pi pi-truck" />
               <span>Order Status Tracking - {isMobile ? selectedOrderForStatus._id.substring(0, 6) + '...' : selectedOrderForStatus._id}</span>
-            </Space>
+            </div>
           }
-          open={isStatusModalVisible}
-          onCancel={handleStatusModalCancel}
-          footer={[
-            <Button key="close" onClick={handleStatusModalCancel}>
-              Close
-            </Button>,
-          ]}
-          width={isMobile ? '95%' : 600}
-          style={isMobile ? { top: 150 } : { top: 175 }}
+          visible={isStatusModalVisible}
+          onHide={handleStatusModalCancel}
+          style={{ width: isMobile ? '95%' : '600px' }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 0 0 0' }}>
+              <Button label="Close" onClick={handleStatusModalCancel} className="p-button-outlined p-button-secondary" style={{ color: '#595959', border: '1px solid #d9d9d9' }} />
+            </div>
+          }
         >
-          <Title level={4} style={{ marginBottom: 16, color: '#52c41a' }}>Delivery Progress</Title>
-          <OrderStatusTracker currentStatus={selectedOrderForStatus.deliveryStatus} />
-        </Modal>
+          <div style={{ padding: '8px 0' }}>
+            <h4 style={{ marginBottom: 16, color: '#52c41a', fontSize: '1.15rem', fontWeight: 'bold' }}>Delivery Progress</h4>
+            <OrderStatusTracker currentStatus={selectedOrderForStatus.deliveryStatus} />
+          </div>
+        </Dialog>
       )}
     </div>
   );

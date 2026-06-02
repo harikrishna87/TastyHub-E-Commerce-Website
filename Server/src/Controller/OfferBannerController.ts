@@ -4,27 +4,43 @@ import OfferBanner from "../Models/OfferBanner";
 // Default preset banner slides for automatic database seeding
 const defaultBanners = [
   {
-    title: "Flat 50% Off On First Order",
-    subtitle: "Delicious gourmet meals delivered hot & fresh to you",
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&auto=format&fit=crop&q=80",
-    linkCategory: "Burgers",
-    discountText: "WELCOME50",
+    title: "Royal Biryani Feast",
+    subtitle: "Experience the rich, authentic flavors of slow-cooked gourmet biryanis.",
+    image: "/biryani_banner.png",
+    linkCategory: "NonVeg",
+    discountText: "ROYALBIRYANI",
     isActive: true
   },
   {
-    title: "Weekend Combo Feasts",
-    subtitle: "Huge discounts on combo thalis and family packs",
-    image: "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=1200&auto=format&fit=crop&q=80",
-    linkCategory: "NonVeg",
-    discountText: "COMBOFEAST",
+    title: "Gourmet Craft Burgers",
+    subtitle: "Juicy hand-pressed patties, toasted brioche buns, and house-made sauces.",
+    image: "/burgers_banner.png",
+    linkCategory: "Burgers",
+    discountText: "BURGERCRUSH",
+    isActive: true
+  },
+  {
+    title: "Woodfired Artisanal Pizzas",
+    subtitle: "Hand-stretched dough baked to perfection in traditional stone ovens.",
+    image: "/pizzas_banner.png",
+    linkCategory: "Pizzas",
+    discountText: "PIZZALOVE",
     isActive: true
   },
   {
     title: "Sweet Tooth Delights",
-    subtitle: "Order chocolate lava cakes, ice creams, and gulab jamuns",
-    image: "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=1200&auto=format&fit=crop&q=80",
+    subtitle: "Indulge in premium molten cakes, artisanal gelatos, and traditional sweets.",
+    image: "/desserts_banner.png",
     linkCategory: "Desserts",
     discountText: "SWEETCAKE",
+    isActive: true
+  },
+  {
+    title: "Fresh Garden Harvest",
+    subtitle: "Nutrient-dense, organic green bowls and pure vegetarian specialties.",
+    image: "/veg_banner.png",
+    linkCategory: "Veg",
+    discountText: "HEALTHYVEG",
     isActive: true
   }
 ];
@@ -36,9 +52,18 @@ export const getAllBanners = async (req: Request, res: Response) => {
   try {
     let banners = await OfferBanner.find({});
     
-    // Automatic DB Seeding
-    if (banners.length === 0) {
-      console.log("🌱 Database is empty of banners. Seeding defaults...");
+    // Check if the database has old placeholder banners and upgrade them
+    const hasOldBanners = banners.some(
+      (b) =>
+        b.title === "Flat 50% Off On First Order" ||
+        b.title === "Weekend Combo Feasts" ||
+        b.image.includes("unsplash.com")
+    );
+
+    // Automatic DB Seeding & Upgrade
+    if (banners.length === 0 || hasOldBanners) {
+      console.log("🌱 Resetting and seeding new custom gourmet banners...");
+      await OfferBanner.deleteMany({});
       await OfferBanner.insertMany(defaultBanners);
       banners = await OfferBanner.find({});
     }
