@@ -31,10 +31,11 @@ const customStyles = `
     background-color: #f1f5f9;
     color: #1e293b;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     font-family: 'Inter', 'Outfit', sans-serif;
     padding: 20px 1rem;
+    min-height: calc(100vh - 120px);
   }
   .dedicated-auth-card {
     background: #ffffff;
@@ -182,9 +183,9 @@ const Auth: React.FC = () => {
       if (auth.user?.role === 'admin') {
         navigate('/admin/home');
       } else if (auth.user?.role === 'delivery_executive') {
-        navigate('/delivery/dashboard');
+        navigate('/delivery/home');
       } else {
-        navigate('/');
+        navigate('/user/home');
       }
     }
 
@@ -314,9 +315,9 @@ const Auth: React.FC = () => {
           toastRef.current?.show({ severity: 'success', summary: 'Success', detail: `Welcome back ${user.name}!` });
           
           if (user.role === 'delivery_executive') {
-            navigate('/delivery/dashboard');
+            navigate('/delivery/home');
           } else {
-            navigate('/');
+            navigate('/user/home');
           }
         }
       } else {
@@ -368,7 +369,7 @@ const Auth: React.FC = () => {
         toastRef.current?.show({ severity: 'success', summary: 'Verified', detail: 'Email verified successfully! Welcome to TastyHub!' });
         setShowOTPVerification(false);
         setOtpValues(['', '', '', '', '', '']);
-        navigate('/');
+        navigate('/user/home');
       }
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Failed to verify OTP.';

@@ -12,10 +12,11 @@ const customStyles = `
     background-color: #f1f5f9;
     color: #1e293b;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     font-family: 'Inter', 'Outfit', sans-serif;
     padding: 20px 1rem;
+    min-height: calc(100vh - 120px);
   }
   .dedicated-admin-auth-card {
     background: #ffffff;

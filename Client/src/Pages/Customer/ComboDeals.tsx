@@ -65,7 +65,7 @@ export default function ComboDeals() {
 
   const handleBuyCombo = async (combo: ComboDeal) => {
     if (!auth?.isAuthenticated) {
-      navigate('/auth');
+      navigate('/user/auth');
       return;
     }
 
@@ -114,7 +114,7 @@ export default function ComboDeals() {
         if ((window as any).updateCartCount) {
           (window as any).updateCartCount();
         }
-        navigate(`/checkout?comboId=${combo._id}`);
+        navigate(`/user/checkout?comboId=${combo._id}`);
       }, 1500);
 
     } catch (error) {

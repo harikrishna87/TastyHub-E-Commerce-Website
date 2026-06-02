@@ -87,14 +87,13 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
   const getStatusIndex = (status: string) => {
     switch (status) {
       case 'Pending': return 0;
-      case 'Accepted':
-      case 'Preparing':
-      case 'Pickup':
+      case 'Accepted': return 1;
+      case 'Preparing': return 2;
+      case 'Pickup': return 3;
       case 'Out for Delivery':
       case 'Shipped':
-        return 1;
-      case 'Delivered':
-        return 2;
+        return 4;
+      case 'Delivered': return 5;
       default: return 0;
     }
   };
@@ -102,16 +101,19 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
   const currentIndex = getStatusIndex(currentStatus);
 
   const steps = [
-    { key: 'Pending', title: 'ORDERED', icon: <ClockCircleOutlined />, index: 0 },
-    { key: 'Shipped', title: 'SHIPPED', icon: <TruckOutlined />, index: 1 },
-    { key: 'Delivered', title: 'DELIVERED', icon: <GiftOutlined />, index: 2 }
+    { key: 'Pending', title: 'ORDERED', icon: <ClockCircleOutlined /> },
+    { key: 'Accepted', title: 'ACCEPTED', icon: <CheckCircleOutlined /> },
+    { key: 'Preparing', title: 'PREPARING', icon: <ClockCircleOutlined /> },
+    { key: 'Pickup', title: 'PICKED UP', icon: <ShoppingCartOutlined /> },
+    { key: 'Out for Delivery', title: 'TRANSIT', icon: <TruckOutlined /> },
+    { key: 'Delivered', title: 'DELIVERED', icon: <GiftOutlined /> }
   ];
 
   return (
     <div style={{ padding: '24px 16px', backgroundColor: '#f0fdf4', borderRadius: '12px', margin: '16px 0', border: '1px solid #bbf7d0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', maxWidth: '500px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', maxWidth: '800px', margin: '0 auto' }}>
         <div style={{ position: 'absolute', top: '20px', left: '20px', right: '20px', height: '4px', backgroundColor: '#e5e7eb', borderRadius: '2px', zIndex: 1 }}>
-          <div style={{ height: '100%', backgroundColor: '#22c55e', borderRadius: '2px', width: `${(currentIndex / 2) * 100}%`, transition: 'width 0.3s ease' }} />
+          <div style={{ height: '100%', backgroundColor: '#22c55e', borderRadius: '2px', width: `${(currentIndex / 5) * 100}%`, transition: 'width 0.3s ease' }} />
         </div>
 
         {steps.map((step, index) => {
@@ -130,7 +132,7 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
               }}>
                 {isCompleted ? <CheckCircleOutlined /> : step.icon}
               </div>
-              <span style={{ marginTop: '12px', fontSize: '12px', fontWeight: '700', color: isCompleted ? '#16a34a' : '#9ca3af', textAlign: 'center', letterSpacing: '0.5px' }}>
+              <span style={{ marginTop: '12px', fontSize: '11px', fontWeight: '700', color: isCompleted ? '#16a34a' : '#9ca3af', textAlign: 'center', letterSpacing: '0.5px' }}>
                 {step.title}
               </span>
             </div>
@@ -141,7 +143,10 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
       <div style={{ textAlign: 'center', marginTop: '20px', padding: '10px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
         <span style={{ color: '#16a34a', fontWeight: '600', fontSize: '14px' }}>
           {currentStatus === 'Pending' && 'Your order has been placed and is being prepared with love 🍕'}
-          {currentStatus === 'Shipped' && 'Your order is out for delivery 🛵'}
+          {currentStatus === 'Accepted' && 'Your order has been accepted by our chef 🍳'}
+          {currentStatus === 'Preparing' && 'Our kitchen team is cooking your fresh food 🍳'}
+          {currentStatus === 'Pickup' && 'The delivery partner has picked up your hot food 🛵'}
+          {(currentStatus === 'Out for Delivery' || currentStatus === 'Shipped') && 'Your order is out for delivery 🛵'}
           {currentStatus === 'Delivered' && 'Your order has been successfully delivered! Enjoy your meal 🍔'}
         </span>
       </div>
@@ -813,10 +818,6 @@ const ProfilePage: React.FC = () => {
         {profileData?.role === 'user' && (
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '12px', padding: '1.25rem 2rem', backdropFilter: 'blur(10px)', textAlign: 'center', minWidth: '220px' }}>
-              <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#dcfce7', display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Wallet Balance</span>
-              <span style={{ fontSize: '2rem', fontWeight: 800 }}>₹{(profileData?.walletBalance || 0).toFixed(2)}</span>
-            </div>
-            <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '12px', padding: '1.25rem 2rem', backdropFilter: 'blur(10px)', textAlign: 'center', minWidth: '220px' }}>
               <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#dcfce7', display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Gift Card Balance</span>
               <span style={{ fontSize: '2rem', fontWeight: 800 }}>₹{totalGiftCardBalance.toFixed(2)}</span>
             </div>
@@ -1053,21 +1054,7 @@ const ProfilePage: React.FC = () => {
             </TabPanel>
           )}
 
-          {/* Tab 4: Wallet Transactions Ledger */}
-          {profileData?.role === 'user' && (
-            <TabPanel header={<span><WalletOutlined style={{ marginRight: '6px' }} /> Wallet Ledger</span>}>
-              <div style={{ marginTop: '1.5rem' }}>
-                <Card title={<div style={{ display: 'flex', alignItems: 'center', fontSize: '18px', fontWeight: 700, color: '#15803d' }}><WalletOutlined style={{ marginRight: '8px' }} /> Transaction History Statement</div>} style={{ borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                  <DataTable value={transactions} loading={loadingTransactions} paginator rows={8} style={{ fontSize: '0.88rem' }} emptyMessage="No transactions logged yet. Redeem gift cards or complete checkouts using wallet credits.">
-                    <Column header="DATE" body={(r: ITransaction) => <span>{new Date(r.createdAt).toLocaleString()}</span>} />
-                    <Column header="TYPE" body={(r: ITransaction) => <PrimeTag severity={r.type === 'Credit' ? 'success' : 'warning'} value={r.type} />} />
-                    <Column header="AMOUNT" body={(r: ITransaction) => <span style={{ fontWeight: 'bold', color: r.type === 'Credit' ? '#16a34a' : '#dc2626' }}>{r.type === 'Credit' ? '+' : '-'} ₹{r.amount.toFixed(2)}</span>} />
-                    <Column header="DESCRIPTION" field="description" />
-                  </DataTable>
-                </Card>
-              </div>
-            </TabPanel>
-          )}
+
 
           {/* Tab 5: Active Coupons Announcements */}
           {profileData?.role === 'user' && (

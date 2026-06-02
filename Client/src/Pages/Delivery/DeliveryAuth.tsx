@@ -10,10 +10,11 @@ const customStyles = `
     background-color: #f1f5f9;
     color: #1e293b;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     font-family: 'Inter', 'Outfit', sans-serif;
     padding: 20px 1rem;
+    min-height: calc(100vh - 120px);
   }
   .image-login-card {
     background: #ffffff !important;
@@ -165,7 +166,7 @@ const DeliveryAuth: React.FC = () => {
     document.head.appendChild(styleElement);
 
     if (authContext?.isAuthenticated && authContext.user?.role === 'delivery_executive') {
-      navigate('/delivery/dashboard');
+      navigate('/delivery/home');
     }
 
     return () => {
@@ -198,7 +199,7 @@ const DeliveryAuth: React.FC = () => {
             authContext.login(user, token || localStorage.getItem('token') || '');
           }
           
-          navigate('/delivery/dashboard');
+          navigate('/delivery/home');
         }
       } catch (err: any) {
         message.error({

@@ -167,7 +167,7 @@ const CartPage: React.FC = () => {
           <Button
             label="Explore Menu"
             icon="pi pi-arrow-left"
-            onClick={() => navigate('/menu-items')}
+            onClick={() => navigate('/user/menu-items')}
             className="p-button-success"
             style={{ borderRadius: '12px', padding: '0.75rem 1.5rem', fontWeight: 600 }}
           />
@@ -189,7 +189,7 @@ const CartPage: React.FC = () => {
       <div style={styles.mainGrid}>
         
         {/* Left column: Cart Items list */}
-        <div style={styles.itemsColumn}>
+        <div style={styles.itemsColumn} className="hide-scrollbar">
           {cartItems.map((item) => (
             <div key={item._id} style={styles.itemCard} className="cart-item-card">
               <img
@@ -198,39 +198,39 @@ const CartPage: React.FC = () => {
                 style={styles.itemImg}
                 onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop' }}
               />
-              <div style={styles.itemDetails}>
-                <span style={styles.itemCategory}>{item.category}</span>
-                <h3 style={styles.itemName}>{item.name}</h3>
-                
+              <div style={styles.itemRightSide}>
+                <div style={styles.itemDetails}>
+                  <span style={styles.itemCategory}>{item.category}</span>
+                  <h3 style={styles.itemName}>{item.name}</h3>
+                </div>
+
+                {/* Quantity selectors */}
+                <div style={styles.qtyPanel}>
+                  <button
+                    onClick={() => handleQuantityUpdate(item._id, item.quantity - 1)}
+                    style={styles.qtyBtn}
+                    disabled={item.quantity <= 1}
+                  >
+                    <i className="pi pi-minus" style={{ fontSize: '0.75rem' }} />
+                  </button>
+                  <span style={styles.qtyText}>{item.quantity}</span>
+                  <button
+                    onClick={() => handleQuantityUpdate(item._id, item.quantity + 1)}
+                    style={styles.qtyBtn}
+                  >
+                    <i className="pi pi-plus" style={{ fontSize: '0.75rem' }} />
+                  </button>
+                </div>
+
+                {/* Price block */}
                 <div style={styles.priceRow}>
                   {item.original_price > item.discount_price && (
-                    <span style={styles.origPrice}>₹{item.original_price}</span>
+                    <span style={styles.origPrice}>₹{(item.original_price * item.quantity).toFixed(2)}</span>
                   )}
-                  <span style={styles.discPrice}>₹{item.discount_price}</span>
+                  <span style={styles.discPrice}>₹{(item.discount_price * item.quantity).toFixed(2)}</span>
                 </div>
-              </div>
 
-              {/* Quantity selectors */}
-              <div style={styles.qtyPanel}>
-                <button
-                  onClick={() => handleQuantityUpdate(item._id, item.quantity - 1)}
-                  style={styles.qtyBtn}
-                  disabled={item.quantity <= 1}
-                >
-                  <i className="pi pi-minus" style={{ fontSize: '0.75rem' }} />
-                </button>
-                <span style={styles.qtyText}>{item.quantity}</span>
-                <button
-                  onClick={() => handleQuantityUpdate(item._id, item.quantity + 1)}
-                  style={styles.qtyBtn}
-                >
-                  <i className="pi pi-plus" style={{ fontSize: '0.75rem' }} />
-                </button>
-              </div>
-
-              {/* Individual totals column */}
-              <div style={styles.itemTotalColumn}>
-                <span style={styles.itemTotalVal}>₹{(item.discount_price * item.quantity).toFixed(2)}</span>
+                {/* Delete button */}
                 <Button
                   icon="pi pi-trash"
                   className="p-button-text p-button-danger p-button-sm"
@@ -310,14 +310,14 @@ const CartPage: React.FC = () => {
             <Button
               label="Proceed to Checkout"
               icon="pi pi-credit-card"
-              onClick={() => navigate('/checkout')}
+              onClick={() => navigate('/user/checkout')}
               className="p-button-success"
               style={{ width: '100%', marginTop: '1.5rem', borderRadius: '12px', padding: '0.85rem', fontWeight: 700, fontSize: '15px' }}
             />
             <Button
               label="Continue Shopping"
               icon="pi pi-arrow-left"
-              onClick={() => navigate('/menu-items')}
+              onClick={() => navigate('/user/menu-items')}
               className="p-button-outlined p-button-secondary"
               style={{ width: '100%', marginTop: '0.75rem', borderRadius: '12px', padding: '0.85rem', fontWeight: 700, fontSize: '15px' }}
             />
@@ -330,9 +330,9 @@ const CartPage: React.FC = () => {
 
 const styles = {
   container: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '2rem 1.25rem',
+    width: '100%',
+    maxWidth: 'none',
+    padding: '2rem 5%',
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '2rem',
@@ -356,16 +356,20 @@ const styles = {
     fontWeight: 500
   },
   mainGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    display: 'flex',
+    flexWrap: 'wrap' as const,
     gap: '2rem',
     alignItems: 'start',
+    width: '100%',
   },
   itemsColumn: {
-    display: 'flex',
-    flexDirection: 'column' as const,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
     gap: '1.25rem',
-    flex: 2,
+    flex: '0 0 calc(70% - 1rem)',
+    minWidth: '320px',
+    maxHeight: '445px',
+    overflowY: 'auto' as const,
   },
   itemCard: {
     backgroundColor: '#ffffff',
@@ -385,6 +389,15 @@ const styles = {
     borderRadius: '12px',
     objectFit: 'cover' as const,
     border: '1px solid #f1f5f9',
+  },
+  itemRightSide: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '1.5rem',
+    flexWrap: 'wrap' as const,
+    minWidth: '240px',
   },
   itemDetails: {
     flex: 1,
@@ -411,7 +424,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.65rem',
-    marginTop: '0.35rem',
+    marginTop: '0px',
   },
   origPrice: {
     fontSize: '0.85rem',
@@ -468,7 +481,8 @@ const styles = {
     color: '#0f172a',
   },
   summaryColumn: {
-    flex: 1,
+    flex: '0 0 calc(30% - 1rem)',
+    minWidth: '300px',
   },
   summaryCard: {
     backgroundColor: '#ffffff',

@@ -136,7 +136,7 @@ const FAQ: React.FC = () => {
   const breadcrumbItems = [
     { 
       template: () => (
-        <Link to="/faq" style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#22c55e', fontWeight: 600 }}>
+        <Link to="/user/faq" style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#22c55e', fontWeight: 600 }}>
           <i className="pi pi-question-circle" />
           <span>FAQ</span>
         </Link>

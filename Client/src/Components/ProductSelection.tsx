@@ -138,7 +138,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
 
   const addToCart = async (product: Product) => {
     if (!auth?.isAuthenticated) {
-      navigate('/auth');
+      navigate('/user/auth');
       return;
     }
 
@@ -180,7 +180,7 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
           auth?.logout?.();
-          navigate('/auth');
+          navigate('/user/auth');
           messageApi.error({
             content: "Session expired. Please login again.",
             duration: 3,

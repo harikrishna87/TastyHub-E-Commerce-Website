@@ -49,6 +49,8 @@ const AppContent: React.FC = () => {
     location.pathname.startsWith('/delivery') ||
     location.pathname.startsWith('/deivery')
 
+  const isAuthRoute = location.pathname.includes('/auth')
+
   if (auth?.isAuthenticated && auth.user?.role === 'admin') {
     return (
       <AdminLayout>
@@ -76,9 +78,10 @@ const AppContent: React.FC = () => {
   if (auth?.isAuthenticated && auth.user?.role === 'delivery_executive') {
     return (
       <Routes>
-        <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
+        <Route path="/delivery/home" element={<DeliveryDashboard />} />
+        <Route path="/delivery/dashboard" element={<Navigate to="/delivery/home" replace />} />
         <Route path='/auth/callback' element={<GoogleCallback />} />
-        <Route path="*" element={<Navigate to="/delivery/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/delivery/home" replace />} />
       </Routes>
     )
   }
@@ -94,23 +97,41 @@ const AppContent: React.FC = () => {
         }
       >
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/menu-items" element={<Store />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path='/profilepage' element={<ProfilePage />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path='/faq' element={<FAQ />} />
-          <Route path='/cart' element={<CartPage />} />
-          <Route path='/checkout' element={<CheckoutPage />} />
-          <Route path="/ordersuccess/:orderId" element={<OrderSuccessPage />} />
-          <Route path='/newarrivals' element={<NewArrivals />} />
-          <Route path='/dealsdiscount' element={<DealsDiscounts />} />
-          <Route path='/giftcards' element={<GiftCards />} />
-          <Route path='/combodeals' element={<ComboDeals />} />
-          <Route path='/shoppinginfo' element={<ShoppingInfo />} />
-          <Route path='/returnexchanges' element={<ReturnsExchanges />} />
-          <Route path='/terms' element={<TermsOfService />} />
-          <Route path='/auth' element={<AuthPage />} />
+          <Route path="/" element={<Navigate to="/user/home" replace />} />
+          <Route path="/home" element={<Navigate to="/user/home" replace />} />
+          <Route path="/user/home" element={<Home />} />
+          <Route path="/user/menu-items" element={<Store />} />
+          <Route path="/menu-items" element={<Navigate to="/user/menu-items" replace />} />
+          <Route path="/user/contact" element={<Contact />} />
+          <Route path="/contact" element={<Navigate to="/user/contact" replace />} />
+          <Route path='/user/profilepage' element={<ProfilePage />} />
+          <Route path='/profilepage' element={<Navigate to="/user/profilepage" replace />} />
+          <Route path="/user/privacy" element={<PrivacyPolicy />} />
+          <Route path="/privacy" element={<Navigate to="/user/privacy" replace />} />
+          <Route path='/user/faq' element={<FAQ />} />
+          <Route path='/faq' element={<Navigate to="/user/faq" replace />} />
+          <Route path='/user/cart' element={<CartPage />} />
+          <Route path='/cart' element={<Navigate to="/user/cart" replace />} />
+          <Route path='/user/checkout' element={<CheckoutPage />} />
+          <Route path='/checkout' element={<Navigate to="/user/checkout" replace />} />
+          <Route path="/user/ordersuccess/:orderId" element={<OrderSuccessPage />} />
+          <Route path="/ordersuccess/:orderId" element={<Navigate to="/user/ordersuccess/:orderId" replace />} />
+          <Route path='/user/newarrivals' element={<NewArrivals />} />
+          <Route path='/newarrivals' element={<Navigate to="/user/newarrivals" replace />} />
+          <Route path='/user/dealsdiscount' element={<DealsDiscounts />} />
+          <Route path='/dealsdiscount' element={<Navigate to="/user/dealsdiscount" replace />} />
+          <Route path='/user/giftcards' element={<GiftCards />} />
+          <Route path='/giftcards' element={<Navigate to="/user/giftcards" replace />} />
+          <Route path='/user/combodeals' element={<ComboDeals />} />
+          <Route path='/combodeals' element={<Navigate to="/user/combodeals" replace />} />
+          <Route path='/user/shoppinginfo' element={<ShoppingInfo />} />
+          <Route path='/shoppinginfo' element={<Navigate to="/user/shoppinginfo" replace />} />
+          <Route path='/user/returnexchanges' element={<ReturnsExchanges />} />
+          <Route path='/returnexchanges' element={<Navigate to="/user/returnexchanges" replace />} />
+          <Route path='/user/terms' element={<TermsOfService />} />
+          <Route path='/terms' element={<Navigate to="/user/terms" replace />} />
+          <Route path='/user/auth' element={<AuthPage />} />
+          <Route path='/auth' element={<Navigate to="/user/auth" replace />} />
           <Route path='/auth/callback' element={<GoogleCallback />} />
           <Route path='/delivery' element={<DeliveryLandingPage />} />
           <Route path='/deivery' element={<DeliveryLandingPage />} />
@@ -118,13 +139,15 @@ const AppContent: React.FC = () => {
           <Route path='/admin/auth' element={<AdminAuth />} />
 
           <Route element={<ProtectedRoute allowedRoles={['delivery_executive']} />}>
-            <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
+            <Route path="/delivery/home" element={<DeliveryDashboard />} />
+            <Route path="/delivery/dashboard" element={<Navigate to="/delivery/home" replace />} />
           </Route>
 
-          <Route path="/admin/orderanalytics" element={<Navigate to="/" replace />} />
+          <Route path="/admin/home" element={<Navigate to="/user/home" replace />} />
+          <Route path="/admin/orderanalytics" element={<Navigate to="/user/home" replace />} />
         </Routes>
-        {!isDeliveryRoute && <FoodFooter />}
       </div>
+      {!isDeliveryRoute && !isAuthRoute && <FoodFooter />}
     </>
   )
 }

@@ -68,7 +68,7 @@ const ShoppingInfo: React.FC = () => {
   const breadcrumbItems = [
     {
       template: () => (
-        <Link to="/shoppinginfo" style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#22c55e', fontWeight: 600 }}>
+        <Link to="/user/shoppinginfo" style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#22c55e', fontWeight: 600 }}>
           <i className="pi pi-shopping-cart" />
           <span>Shopping Info</span>
         </Link>

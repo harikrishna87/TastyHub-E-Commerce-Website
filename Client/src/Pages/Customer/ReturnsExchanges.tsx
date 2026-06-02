@@ -124,7 +124,7 @@ const ReturnsExchanges: React.FC = () => {
   const breadcrumbItems = [
     {
       template: () => (
-        <Link to="/returns" style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#22c55e', fontWeight: 600 }}>
+        <Link to="/user/returnexchanges" style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#22c55e', fontWeight: 600 }}>
           <i className="pi pi-refresh" />
           <span>Returns & Exchanges</span>
         </Link>

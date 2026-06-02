@@ -194,7 +194,9 @@ export const acceptOrder = async (req: Request, res: Response): Promise<void> =>
     const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
 
     // Send status update email to the customer
-    await EmailService.sendOrderStatusUpdate(populatedOrder, 'Accepted');
+    await EmailService.sendOrderStatusUpdate(populatedOrder, 'Accepted').catch((err: any) => {
+      console.error('Failed to send Accepted status update email:', err);
+    });
 
     res.status(200).json({
       success: true,
@@ -250,7 +252,9 @@ export const deliverOrder = async (req: Request, res: Response): Promise<void> =
     const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
 
     // Send delivered email to customer
-    await EmailService.sendOrderStatusUpdate(populatedOrder, 'Delivered');
+    await EmailService.sendOrderStatusUpdate(populatedOrder, 'Delivered').catch((err: any) => {
+      console.error('Failed to send Delivered status update email:', err);
+    });
 
     res.status(200).json({
       success: true,
@@ -323,7 +327,9 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
 
     // Send status update email to customer
-    await EmailService.sendOrderStatusUpdate(populatedOrder, status);
+    await EmailService.sendOrderStatusUpdate(populatedOrder, status).catch((err: any) => {
+      console.error(`Failed to send status update email for ${status}:`, err);
+    });
 
     res.status(200).json({
       success: true,

@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
+import confetti from 'canvas-confetti';
 
 interface ShippingAddress {
   fullName: string;
@@ -148,7 +149,7 @@ const CheckoutPage: React.FC = () => {
         setCartItems(cartData.Cart_Items);
         if (cartData.Cart_Items.length === 0) {
           showToast('info', 'Cart Empty', 'Your cart is empty. Add items before checking out.');
-          navigate('/menu-items');
+          navigate('/user/menu-items');
           return;
         }
       }
@@ -318,6 +319,23 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
+  const triggerConfetti = () => {
+    const duration = 2500;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1060 };
+
+    const interval = window.setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      confetti({ ...defaults, particleCount, origin: { x: 0.2, y: Math.random() - 0.2 } });
+      confetti({ ...defaults, particleCount, origin: { x: 0.8, y: Math.random() - 0.2 } });
+    }, 250);
+  };
+
   const clearCartAndRedirect = async (orderId: string, successMessage: string) => {
     if (!auth?.token) return;
 
@@ -331,8 +349,10 @@ const CheckoutPage: React.FC = () => {
       (window as any).updateCartCount();
     }
 
+    triggerConfetti();
+
     showToast('success', 'Order Confirmed', successMessage);
-    setTimeout(() => navigate(`/ordersuccess/${orderId}`), 900);
+    setTimeout(() => navigate('/'), 2200);
   };
 
   const createOrder = async (paymentMethod: string, paymentId?: string) => {
@@ -694,10 +714,11 @@ const CheckoutPage: React.FC = () => {
             </div>
 
             <Button
-              label={finalPayable === 0 ? 'Complete Order' : placingOrder ? 'Processing...' : `Place Order (₹${finalPayable.toFixed(2)})`}
+              label={finalPayable === 0 ? 'Complete Order' : `Place Order (₹${finalPayable.toFixed(2)})`}
               icon="pi pi-check"
               onClick={handlePlaceOrder}
               disabled={placingOrder}
+              loading={placingOrder}
               className="p-button-success"
               style={{ width: '100%', marginTop: '1.5rem', borderRadius: '12px', padding: '0.85rem', fontWeight: 600 }}
             />

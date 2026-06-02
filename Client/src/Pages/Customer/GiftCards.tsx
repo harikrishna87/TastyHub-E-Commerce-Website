@@ -99,7 +99,7 @@ const GiftCards: React.FC = () => {
   // Buy Gift Card using Razorpay payment
   const handlePurchaseGiftCard = async () => {
     if (!auth?.isAuthenticated) {
-      navigate('/auth');
+      navigate('/user/auth');
       return;
     }
     const amount = getPurchaseAmount();
@@ -210,7 +210,7 @@ const GiftCards: React.FC = () => {
   const handleRedeemGiftCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth?.isAuthenticated) {
-      navigate('/auth');
+      navigate('/user/auth');
       return;
     }
     if (!redeemCode.trim()) {
@@ -305,7 +305,7 @@ const GiftCards: React.FC = () => {
           severity="success"
           onClick={() => {
             if (!auth?.isAuthenticated) {
-              navigate('/auth');
+              navigate('/user/auth');
             } else {
               setRedeemModalOpen(true);
             }

@@ -108,15 +108,15 @@ const FoodNavbar: React.FC = () => {
 
   const getActiveKey = (pathname: string): string => {
     if (pathname === '/') return 'home';
-    if (pathname === '/menu-items') return 'menu';
-    if (pathname === '/contact') return 'contact';
-    if (pathname === '/profilepage') return 'profile';
+    if (pathname === '/user/menu-items' || pathname === '/menu-items') return 'menu';
+    if (pathname === '/user/contact' || pathname === '/contact') return 'contact';
+    if (pathname === '/user/profilepage' || pathname === '/profilepage') return 'profile';
     if (pathname === '/admin/orderanalytics' || pathname === '/admin/home') return 'orderanalytics';
     if (pathname === '/admin/productspage') return 'products';
     if (pathname === '/admin/ordermanagement') return 'ordermanagement';
     if (pathname === '/admin/paymentoverview') return 'paymentoverview';
     if (pathname === '/admin/profilepage') return 'profile';
-    if (pathname === '/delivery/dashboard') return 'delivery_dashboard';
+    if (pathname === '/delivery/home' || pathname === '/delivery/dashboard') return 'delivery_dashboard';
     return '';
   };
 
@@ -218,10 +218,10 @@ const FoodNavbar: React.FC = () => {
 
   const handleCartClick = () => {
     if (!auth?.isAuthenticated) {
-      navigate('/auth');
+      navigate('/user/auth');
       return;
     }
-    navigate('/cart');
+    navigate('/user/cart');
   };
 
   const handleLogoutClick = () => {
@@ -246,32 +246,32 @@ const FoodNavbar: React.FC = () => {
       if (auth?.user?.role === 'delivery_executive') {
         return [
           { key: 'home', icon: <HomeOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
-          { key: 'delivery_dashboard', icon: <DashboardOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/delivery/dashboard'); }}>Delivery Dashboard</span> },
-          { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/profilepage'); }}>Profile</span> },
+          { key: 'delivery_dashboard', icon: <DashboardOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/delivery/home'); }}>Delivery Dashboard</span> },
+          { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/profilepage'); }}>Profile</span> },
           ...(isMobile ? [{ key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }] : [])
         ];
       }
 
       return [
         { key: 'home', icon: <HomeOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
-        { key: 'menu', icon: <MenuOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/menu-items'); }}>Menu</span> },
-        { key: 'contact', icon: <ContactsOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/contact'); }}>Contact</span> },
-        { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/profilepage'); }}>Profile</span> },
+        { key: 'menu', icon: <MenuOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/menu-items'); }}>Menu</span> },
+        { key: 'contact', icon: <ContactsOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/contact'); }}>Contact</span> },
+        { key: 'profile', icon: <UserOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/profilepage'); }}>Profile</span> },
         ...(isMobile ? [{ key: 'logout', icon: <LogoutOutlined />, label: <span onClick={handleLogoutClick}>Logout</span>, style: { color: '#1890ff' } }] : [])
       ];
     }
 
     const items: any[] = [
       { key: 'home', icon: <HomeOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/'); }}>Home</span> },
-      { key: 'menu', icon: <MenuOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/menu-items'); }}>Menu</span> },
-      { key: 'contact', icon: <ContactsOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/contact'); }}>Contact</span> },
+      { key: 'menu', icon: <MenuOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/menu-items'); }}>Menu</span> },
+      { key: 'contact', icon: <ContactsOutlined />, label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/contact'); }}>Contact</span> },
     ];
 
     if (isMobile) {
       items.push({
         key: 'login',
         icon: <LoginOutlined />,
-        label: <span onClick={() => { setMobileMenuVisible(false); navigate('/auth'); }}>Login / Register</span>,
+        label: <span onClick={() => { setMobileMenuVisible(false); navigate('/user/auth'); }}>Login / Register</span>,
         style: { color: '#52c41a' }
       });
     }
@@ -365,7 +365,7 @@ const FoodNavbar: React.FC = () => {
             {isLargeScreen() && !auth?.isAuthenticated && (
               <Button
                 type="primary"
-                onClick={() => { navigate('/auth'); }}
+                onClick={() => { navigate('/user/auth'); }}
                 style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', fontWeight: 700, borderRadius: '8px' }}
               >
                 Login / Register

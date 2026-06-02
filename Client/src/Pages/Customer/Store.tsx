@@ -307,7 +307,7 @@ const Store: React.FC = () => {
     const handleClaimCombo = async (comboId: string) => {
         if (!auth?.isAuthenticated) {
             setShowComboModal(false);
-            navigate('/auth');
+            navigate('/user/auth');
             return;
         }
 
@@ -377,7 +377,7 @@ const Store: React.FC = () => {
 
                 // 5. Navigate to checkout
                 setTimeout(() => {
-                    navigate(`/checkout?comboId=${comboId}`);
+                    navigate(`/user/checkout?comboId=${comboId}`);
                 }, 1000);
             }
         } catch (err: any) {
@@ -476,7 +476,7 @@ const Store: React.FC = () => {
 
     const addToCart = async (product: Product) => {
         if (!auth?.isAuthenticated) {
-            navigate('/auth');
+            navigate('/user/auth');
             return;
         }
 
@@ -531,7 +531,7 @@ const Store: React.FC = () => {
                             marginTop: '10vh',
                         },
                     });
-                    navigate('/auth');
+                    navigate('/user/auth');
                 } else if (error.response?.status === 400) {
                     messageApi.info({
                         content: error.response.data.message || "Item already exists in cart",

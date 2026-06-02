@@ -102,7 +102,7 @@ export default function DealsDiscounts() {
 
   const addToCart = async (product: Product) => {
     if (!auth?.isAuthenticated) {
-      navigate('/auth');
+      navigate('/user/auth');
       return;
     }
 

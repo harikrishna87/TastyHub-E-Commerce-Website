@@ -73,7 +73,7 @@ const NewArrivals = () => {
 
     const addToCart = async (product: Product) => {
         if (!auth?.isAuthenticated) {
-            navigate('/auth');
+            navigate('/user/auth');
             return;
         }
 
@@ -109,7 +109,7 @@ const NewArrivals = () => {
             if (axios.isAxiosError(error)) {
                 if (error.response?.status === 401) {
                     auth?.logout?.();
-                    navigate('/auth');
+                    navigate('/user/auth');
                     showToastMsg('error', 'Session Expired', 'Session expired. Please login again.');
                 } else if (error.response?.status === 400) {
                     showToastMsg('info', 'Info', error.response.data.message || "Item already exists in cart");
@@ -147,7 +147,7 @@ const NewArrivals = () => {
     const breadcrumbItems = [
         {
             template: () => (
-                <Link to="/newarrivals" style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#22c55e', fontWeight: 600 }}>
+                <Link to="/user/newarrivals" style={{ display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#22c55e', fontWeight: 600 }}>
                     <i className="pi pi-star" />
                     <span>New Arrivals</span>
                 </Link>

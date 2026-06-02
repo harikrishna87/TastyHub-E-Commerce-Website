@@ -99,7 +99,6 @@ const Footer: React.FC<FooterProps> = ({
   return (
     <footer
       style={{
-        marginTop: '40px',
         background: 'white',
         paddingTop: '40px',
         paddingBottom: '24px',
@@ -194,62 +193,62 @@ const Footer: React.FC<FooterProps> = ({
             </h5>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <Link
-                to="/store"
+                to="/user/menu-items"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation('/menu-items')}
+                onClick={handleNavigation('/user/menu-items')}
               >
                 All Products
               </Link>
               <Link
-                to="#"
+                to="/user/newarrivals"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation('/newarrivals')}
+                onClick={handleNavigation('/user/newarrivals')}
               >
                 New Arrivals
               </Link>
               <Link
-                to="/dealsdiscount"
+                to="/user/dealsdiscount"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation('/dealsdiscount')}
+                onClick={handleNavigation('/user/dealsdiscount')}
               >
                 Deals & Discounts
               </Link>
               <Link
-                to="/giftcards"
+                to="/user/giftcards"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation('/giftcards')}
+                onClick={handleNavigation('/user/giftcards')}
               >
                 Gift Cards
               </Link>
               <Link
-                to="/combodeals"
+                to="/user/combodeals"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation('/combodeals')}
+                onClick={handleNavigation('/user/combodeals')}
               >
                 Combo Deals
               </Link>
@@ -262,50 +261,50 @@ const Footer: React.FC<FooterProps> = ({
             </h5>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <Link
-                to="/contact"
+                to="/user/contact"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation('/contact')}
+                onClick={handleNavigation('/user/contact')}
               >
                 Contact Us
               </Link>
               <Link
-                to="/faq"
+                to="/user/faq"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation("/faq")}
+                onClick={handleNavigation("/user/faq")}
               >
                 FAQ
               </Link>
               <Link
-                to="/shoppinginfo"
+                to="/user/shoppinginfo"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation('/shoppinginfo')}
+                onClick={handleNavigation('/user/shoppinginfo')}
               >
                 Shipping Info
               </Link>
               <Link
-                to="/returnexchanges"
+                to="/user/returnexchanges"
                 style={{
                   color: '#212529',
                   textDecoration: 'none',
                   padding: '4px 0',
                   marginBottom: '4px'
                 }}
-                onClick={handleNavigation('/returnexchanges')}
+                onClick={handleNavigation('/user/returnexchanges')}
               >
                 Returns & Exchanges
               </Link>
@@ -383,25 +382,25 @@ const Footer: React.FC<FooterProps> = ({
           <Col xs={24} md={12} style={{ marginBottom: '24px' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
               <Link
-                to="/privacy"
+                to="/user/privacy"
                 style={{
                   color: '#212529',
                   padding: '4px 16px',
                   borderRight: '1px solid #28a745',
                   textDecoration: 'none'
                 }}
-                onClick={handleNavigation('/privacy')}
+                onClick={handleNavigation('/user/privacy')}
               >
                 Privacy Policy
               </Link>
               <Link
-                to="/terms"
+                to="/user/terms"
                 style={{
                   color: '#212529',
                   padding: '4px 16px',
                   textDecoration: 'none'
                 }}
-                onClick={handleNavigation('/terms')}
+                onClick={handleNavigation('/user/terms')}
               >
                 Terms of Service
               </Link>

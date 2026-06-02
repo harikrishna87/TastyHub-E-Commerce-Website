@@ -248,21 +248,9 @@ export const accessComboDeal = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    // Apply / record access
-    comboDeal.timesAccessed += 1;
-    comboDeal.accessedUsers.push(userId as Types.ObjectId);
-    await comboDeal.save();
-
-    const user = await User.findById(userId);
-
-    // Send purchase/claim notification email
-    if (user) {
-      await EmailService.sendComboDealPurchase(user, comboDeal);
-    }
-
     res.status(200).json({
       success: true,
-      message: 'Combo deal accessed successfully! An email receipt has been sent.',
+      message: 'Combo deal validated successfully!',
       comboDeal
     });
   } catch (error: any) {
