@@ -210,44 +210,8 @@ const OrderAnalytics: React.FC = () => {
   }, [orders]);
 
   // Chart Configurations
-  // 1. Weekly Performance Chart (Line Chart for Revenue and Bar for Orders)
-  const weeklyChartData = useMemo(() => {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const earnings = [0, 0, 0, 0, 0, 0, 0];
-    const orderCounts = [0, 0, 0, 0, 0, 0, 0];
-
-    orders.forEach(order => {
-      const dayIndex = (new Date(order.createdAt).getDay() + 6) % 7; // Mon=0, Sun=6
-      earnings[dayIndex] += order.totalAmount;
-      orderCounts[dayIndex] += 1;
-    });
-
-    return {
-      labels: weekdays,
-      datasets: [
-        {
-          label: 'Revenue (₹)',
-          type: 'line',
-          borderColor: '#15803d',
-          borderWidth: 3,
-          fill: false,
-          tension: 0.4,
-          data: earnings,
-          yAxisID: 'y'
-        },
-        {
-          label: 'Orders',
-          type: 'bar',
-          backgroundColor: '#3b82f6',
-          data: orderCounts,
-          yAxisID: 'y1',
-          barPercentage: 0.4
-        }
-      ]
-    };
-  }, [orders]);
-
-  const weeklyChartOptions = {
+  // 1. Common Chart Options for Dual Axis
+  const commonChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -278,7 +242,66 @@ const OrderAnalytics: React.FC = () => {
     }
   };
 
-  // 2. Order Status Distribution (Doughnut Chart)
+  // 2. Weekly Performance Chart (Line Chart for Revenue, Bar for Orders, Bar for Customers)
+  const weeklyChartData = useMemo(() => {
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const earnings = [0, 0, 0, 0, 0, 0, 0];
+    const orderCounts = [0, 0, 0, 0, 0, 0, 0];
+    const customerCounts = [0, 0, 0, 0, 0, 0, 0];
+
+    orders.forEach(order => {
+      if (order.createdAt) {
+        const dayIndex = (new Date(order.createdAt).getDay() + 6) % 7; // Mon=0, Sun=6
+        if (dayIndex >= 0 && dayIndex < 7) {
+          earnings[dayIndex] += order.totalAmount;
+          orderCounts[dayIndex] += 1;
+        }
+      }
+    });
+
+    customers.forEach(cust => {
+      if (cust.createdAt) {
+        const dayIndex = (new Date(cust.createdAt).getDay() + 6) % 7; // Mon=0, Sun=6
+        if (dayIndex >= 0 && dayIndex < 7) {
+          customerCounts[dayIndex] += 1;
+        }
+      }
+    });
+
+    return {
+      labels: weekdays,
+      datasets: [
+        {
+          label: 'Revenue (₹)',
+          type: 'bar',
+          backgroundColor: '#15803d',
+          data: earnings,
+          yAxisID: 'y',
+          barPercentage: 0.6
+        },
+        {
+          label: 'Orders',
+          type: 'bar',
+          backgroundColor: '#3b82f6',
+          data: orderCounts,
+          yAxisID: 'y1',
+          barPercentage: 0.6
+        },
+        {
+          label: 'New Customers',
+          type: 'bar',
+          backgroundColor: '#f59e0b',
+          data: customerCounts,
+          yAxisID: 'y1',
+          barPercentage: 0.6
+        }
+      ]
+    };
+  }, [orders, customers]);
+
+  const weeklyChartOptions = commonChartOptions;
+
+  // 3. Order Status Distribution (Doughnut Chart)
   const doughnutChartData = useMemo(() => {
     return {
       labels: ['Pending', 'Preparing', 'Out For Delivery', 'Delivered', 'Cancelled'],
@@ -317,81 +340,165 @@ const OrderAnalytics: React.FC = () => {
     }
   };
 
-  // 3. Yearly Analysis Data (Bar Chart)
+  // 4. Yearly Analysis Data (Line Chart for Revenue, Bar for Orders, Bar for Customers)
   const yearlyChartData = useMemo(() => {
+    const yearsSet = new Set<string>();
+    orders.forEach(o => {
+      if (o.createdAt) {
+        yearsSet.add(new Date(o.createdAt).getFullYear().toString());
+      }
+    });
+    customers.forEach(c => {
+      if (c.createdAt) {
+        yearsSet.add(new Date(c.createdAt).getFullYear().toString());
+      }
+    });
+    const sortedYears = Array.from(yearsSet).sort();
+    if (sortedYears.length === 0) {
+      sortedYears.push(new Date().getFullYear().toString());
+    }
+
+    const yearlyRevenue = sortedYears.map(() => 0);
+    const yearlyOrders = sortedYears.map(() => 0);
+    const yearlyCustomers = sortedYears.map(() => 0);
+
+    orders.forEach(o => {
+      if (o.createdAt) {
+        const y = new Date(o.createdAt).getFullYear().toString();
+        const idx = sortedYears.indexOf(y);
+        if (idx !== -1) {
+          yearlyRevenue[idx] += o.totalAmount;
+          yearlyOrders[idx] += 1;
+        }
+      }
+    });
+
+    customers.forEach(c => {
+      if (c.createdAt) {
+        const y = new Date(c.createdAt).getFullYear().toString();
+        const idx = sortedYears.indexOf(y);
+        if (idx !== -1) {
+          yearlyCustomers[idx] += 1;
+        }
+      }
+    });
+
     return {
-      labels: ['2026'],
+      labels: sortedYears,
       datasets: [
         {
           label: 'Revenue (₹)',
+          type: 'bar',
           backgroundColor: '#15803d',
-          data: [stats.totalRevenue],
-          barPercentage: 0.3
+          data: yearlyRevenue,
+          yAxisID: 'y',
+          barPercentage: 0.6
         },
         {
           label: 'Orders',
+          type: 'bar',
           backgroundColor: '#3b82f6',
-          data: [stats.totalOrders],
-          barPercentage: 0.3
+          data: yearlyOrders,
+          yAxisID: 'y1',
+          barPercentage: 0.6
         },
         {
-          label: 'Customers',
+          label: 'New Customers',
+          type: 'bar',
           backgroundColor: '#f59e0b',
-          data: [stats.uniqueCustomers],
-          barPercentage: 0.3
+          data: yearlyCustomers,
+          yAxisID: 'y1',
+          barPercentage: 0.6
         }
       ]
     };
-  }, [stats]);
+  }, [orders, customers]);
 
-  const yearlyChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top', labels: { color: '#475569', font: { family: 'Inter' } } }
-    },
-    scales: {
-      x: { ticks: { color: '#64748b', font: { family: 'Inter' } } },
-      y: { ticks: { color: '#64748b', font: { family: 'Inter' } } }
-    }
-  };
+  const yearlyChartOptions = commonChartOptions;
 
-  // 4. Monthly Performance (Column/Bar Chart for last 6 Months)
+  // 5. Monthly Performance (Line Chart for Revenue, Bar for Orders, Bar for Customers)
   const monthlyChartData = useMemo(() => {
-    const monthNames = ['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
-    const monthlyRevenue = [0, 0, 0, 0, stats.totalRevenue * 0.3, stats.totalRevenue * 0.7]; // mock for monthly dispersion
-    const monthlyOrders = [0, 0, 0, 0, Math.round(stats.totalOrders * 0.3), Math.round(stats.totalOrders * 0.7)];
+    const monthNames: string[] = [];
+    const monthlyRevenue: number[] = [];
+    const monthlyOrders: number[] = [];
+    const monthlyCustomers: number[] = [];
+
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      monthNames.push(d.toLocaleString('en-US', { month: 'short' }));
+      monthlyRevenue.push(0);
+      monthlyOrders.push(0);
+      monthlyCustomers.push(0);
+    }
+
+    orders.forEach(order => {
+      if (order.createdAt) {
+        const orderDate = new Date(order.createdAt);
+        const orderYear = orderDate.getFullYear();
+        const orderMonth = orderDate.getMonth();
+        
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+          if (d.getFullYear() === orderYear && d.getMonth() === orderMonth) {
+            const idx = 5 - i;
+            monthlyRevenue[idx] += order.totalAmount;
+            monthlyOrders[idx] += 1;
+            break;
+          }
+        }
+      }
+    });
+
+    customers.forEach(cust => {
+      if (cust.createdAt) {
+        const custDate = new Date(cust.createdAt);
+        const custYear = custDate.getFullYear();
+        const custMonth = custDate.getMonth();
+
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+          if (d.getFullYear() === custYear && d.getMonth() === custMonth) {
+            const idx = 5 - i;
+            monthlyCustomers[idx] += 1;
+            break;
+          }
+        }
+      }
+    });
 
     return {
       labels: monthNames,
       datasets: [
         {
           label: 'Revenue (₹)',
+          type: 'bar',
           backgroundColor: '#15803d',
           data: monthlyRevenue,
-          barPercentage: 0.5
+          yAxisID: 'y',
+          barPercentage: 0.6
         },
         {
           label: 'Orders',
+          type: 'bar',
           backgroundColor: '#3b82f6',
           data: monthlyOrders,
-          barPercentage: 0.5
+          yAxisID: 'y1',
+          barPercentage: 0.6
+        },
+        {
+          label: 'New Customers',
+          type: 'bar',
+          backgroundColor: '#f59e0b',
+          data: monthlyCustomers,
+          yAxisID: 'y1',
+          barPercentage: 0.6
         }
       ]
     };
-  }, [stats]);
+  }, [orders, customers]);
 
-  const monthlyChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top', labels: { color: '#475569', font: { family: 'Inter' } } }
-    },
-    scales: {
-      x: { ticks: { color: '#64748b', font: { family: 'Inter' } } },
-      y: { ticks: { color: '#64748b', font: { family: 'Inter' } } }
-    }
-  };
+  const monthlyChartOptions = commonChartOptions;
 
   // Consolidate timeframe data
   const activeChartData = useMemo(() => {

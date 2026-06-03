@@ -465,11 +465,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1.2rem', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <i className="pi pi-bell" style={{ color: '#15803d', fontSize: '1.2rem' }}></i> Notifications
             </h3>
-            {unreadCount > 0 && (
-              <span style={{ backgroundColor: '#fee2e2', color: '#ef4444', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '20px' }}>
-                {unreadCount} New
-              </span>
-            )}
           </div>
         }
       >

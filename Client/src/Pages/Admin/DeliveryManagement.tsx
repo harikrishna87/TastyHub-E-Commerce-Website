@@ -371,7 +371,7 @@ const DeliveryManagement: React.FC = () => {
     
     return (
       <Tag 
-        value={`${perf} (${count} daily)`} 
+        value={`${perf} (${count})`} 
         severity={severity} 
         style={{ borderRadius: '6px', fontSize: '0.78rem', padding: '3px 8px', fontWeight: 700 }} 
       />
@@ -434,6 +434,16 @@ const DeliveryManagement: React.FC = () => {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        /* Hide horizontal scrollbar for PrimeReact DataTable wrapper */
+        .p-datatable-wrapper::-webkit-scrollbar {
+          display: none !important;
+        }
+        .p-datatable-wrapper {
+          -ms-overflow-style: none !important;  /* IE and Edge */
+          scrollbar-width: none !important;  /* Firefox */
+        }
+      `}</style>
       <Toast ref={toast} />
       
       {activeTab === 'profiles' && (

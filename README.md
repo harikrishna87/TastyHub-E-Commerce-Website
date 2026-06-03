@@ -73,6 +73,11 @@ TastyHub uses a robust, modern full-stack architecture to ensure security, visua
 *   **Creation Forms Modals & Tab Filtering**:
     *   Transitioned admin management forms (Coupons, Catalog Discounts, Combo Deals, Gift Cards) into PrimeReact `<Dialog>` modals triggered by "+ Create" buttons.
     *   Filtered logs tables dynamically using URL query parameters (`?tab=...`).
+*   **Dining & Gifting Section Views**: Separated "Active Dining Restaurants" and "Main Screen Promotion Banners" into distinct views controlled by tab routing query parameters (`?tab=restaurants` and `?tab=banners`).
+*   **Scrollbar Optimization**: Removed horizontal scrollbars on Delivery Management tables to ensure a clean, modern layout.
+*   **Notifications Sidebar Drawer**: Removed the redundant notifications count next to the drawer close icon for a cleaner presentation.
+*   **Performance Analytics Bar Charts**: Refactored the dashboard's performance section to display Revenue, Orders, and New Customers all as bar charts with custom bar widths (`barPercentage: 0.6`) and a dual Y-axis layout across weekly, monthly, and yearly timeframes.
+*   **Executive Profiles Cleanup**: Removed the "daily" text from the executive performance indicators (e.g., `Low (0 daily)` -> `Low (0)`).
 
 ### Delivery Executive Portal
 
