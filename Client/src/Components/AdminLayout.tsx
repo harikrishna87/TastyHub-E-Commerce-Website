@@ -267,6 +267,16 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           -ms-overflow-style: none !important;
           scrollbar-width: none !important;
         }
+        /* Hide scrollbars for admin notifications sidebar drawer and all its contents */
+        .admin-notifications-sidebar,
+        .admin-notifications-sidebar * {
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .admin-notifications-sidebar::-webkit-scrollbar,
+        .admin-notifications-sidebar *::-webkit-scrollbar {
+          display: none !important;
+        }
       `}</style>
       {/* Sidebar Panel */}
       <aside style={styles.sidebar}>
@@ -442,7 +452,14 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         visible={notifyDrawerOpen}
         onHide={() => setNotifyDrawerOpen(false)}
         position="right"
-        style={{ width: '480px', padding: '1.5rem', fontFamily: 'Inter, sans-serif' }}
+        className="admin-notifications-sidebar"
+        style={{ 
+          width: '480px', 
+          padding: '1.5rem', 
+          fontFamily: 'Inter, sans-serif',
+          borderTopLeftRadius: '24px',
+          borderBottomLeftRadius: '24px'
+        }}
         header={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
             <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1.2rem', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
