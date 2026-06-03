@@ -3,51 +3,71 @@ import Product from '../Models/Products';
 import Discount from '../Models/Discount';
 
 const applyActiveDiscounts = async (productsList: any[]) => {
-    const activeDiscounts = await Discount.find({ isActive: true });
-    return productsList.map(prod => {
-        const plainProd = prod.toObject ? prod.toObject() : prod;
+    try {
+        const activeDiscounts = await Discount.find({ isActive: true });
+        return productsList.map(prod => {
+            const plainProd = prod.toObject ? prod.toObject() : prod;
+            let maxDiscount = 0;
+
+            for (const discount of activeDiscounts) {
+                const targetValue = (discount?.targetValue || '').toLowerCase();
+                const targetType = discount?.targetType;
+                const prodTitle = (plainProd?.title || '').toLowerCase();
+                const prodCategory = (plainProd?.category || '').toLowerCase();
+
+                if (targetType === 'product' && targetValue && prodTitle && targetValue === prodTitle) {
+                    maxDiscount = Math.max(maxDiscount, discount.discountPercentage || 0);
+                } else if (targetType === 'category' && targetValue && prodCategory && targetValue === prodCategory) {
+                    maxDiscount = Math.max(maxDiscount, discount.discountPercentage || 0);
+                }
+            }
+
+            if (maxDiscount > 0) {
+                plainProd.discountPercentage = maxDiscount;
+                plainProd.discountPrice = (plainProd.price || 0) * (1 - maxDiscount / 100);
+            } else {
+                plainProd.discountPercentage = 0;
+                plainProd.discountPrice = plainProd.price || 0;
+            }
+            return plainProd;
+        });
+    } catch (error) {
+        console.error("Error in applyActiveDiscounts:", error);
+        return productsList;
+    }
+};
+
+const applyDiscountToSingleProduct = async (product: any) => {
+    try {
+        const activeDiscounts = await Discount.find({ isActive: true });
+        const plainProd = product.toObject ? product.toObject() : product;
         let maxDiscount = 0;
 
         for (const discount of activeDiscounts) {
-            if (discount.targetType === 'product' && discount.targetValue.toLowerCase() === plainProd.title.toLowerCase()) {
-                maxDiscount = Math.max(maxDiscount, discount.discountPercentage);
-            } else if (discount.targetType === 'category' && discount.targetValue.toLowerCase() === plainProd.category.toLowerCase()) {
-                maxDiscount = Math.max(maxDiscount, discount.discountPercentage);
+            const targetValue = (discount?.targetValue || '').toLowerCase();
+            const targetType = discount?.targetType;
+            const prodTitle = (plainProd?.title || '').toLowerCase();
+            const prodCategory = (plainProd?.category || '').toLowerCase();
+
+            if (targetType === 'product' && targetValue && prodTitle && targetValue === prodTitle) {
+                maxDiscount = Math.max(maxDiscount, discount.discountPercentage || 0);
+            } else if (targetType === 'category' && targetValue && prodCategory && targetValue === prodCategory) {
+                maxDiscount = Math.max(maxDiscount, discount.discountPercentage || 0);
             }
         }
 
         if (maxDiscount > 0) {
             plainProd.discountPercentage = maxDiscount;
-            plainProd.discountPrice = plainProd.price * (1 - maxDiscount / 100);
+            plainProd.discountPrice = (plainProd.price || 0) * (1 - maxDiscount / 100);
         } else {
             plainProd.discountPercentage = 0;
-            plainProd.discountPrice = plainProd.price;
+            plainProd.discountPrice = plainProd.price || 0;
         }
         return plainProd;
-    });
-};
-
-const applyDiscountToSingleProduct = async (product: any) => {
-    const activeDiscounts = await Discount.find({ isActive: true });
-    const plainProd = product.toObject ? product.toObject() : product;
-    let maxDiscount = 0;
-
-    for (const discount of activeDiscounts) {
-        if (discount.targetType === 'product' && discount.targetValue.toLowerCase() === plainProd.title.toLowerCase()) {
-            maxDiscount = Math.max(maxDiscount, discount.discountPercentage);
-        } else if (discount.targetType === 'category' && discount.targetValue.toLowerCase() === plainProd.category.toLowerCase()) {
-            maxDiscount = Math.max(maxDiscount, discount.discountPercentage);
-        }
+    } catch (error) {
+        console.error("Error in applyDiscountToSingleProduct:", error);
+        return product;
     }
-
-    if (maxDiscount > 0) {
-        plainProd.discountPercentage = maxDiscount;
-        plainProd.discountPrice = plainProd.price * (1 - maxDiscount / 100);
-    } else {
-        plainProd.discountPercentage = 0;
-        plainProd.discountPrice = plainProd.price;
-    }
-    return plainProd;
 };
 
 export const CreateProduct: RequestHandler = async (req: Request, res: Response) => {

@@ -25,7 +25,6 @@ import OrderManagement from './Pages/Admin/OrderManagement'
 import OrderAnalytics from './Pages/Admin/OrderAnalytics'
 import ProfilePage from './Pages/Customer/ProfilePage'
 import CheckoutPage from './Pages/Customer/CheckoutPage'
-import OrderSuccessPage from './Pages/Customer/OrderSuccessPage'
 import GoogleCallback from './Components/GoogleCallback'
 import AdminLayout from './Components/AdminLayout'
 import DeliveryManagement from './Pages/Admin/DeliveryManagement'
@@ -115,8 +114,6 @@ const AppContent: React.FC = () => {
           <Route path='/cart' element={<Navigate to="/user/cart" replace />} />
           <Route path='/user/checkout' element={<CheckoutPage />} />
           <Route path='/checkout' element={<Navigate to="/user/checkout" replace />} />
-          <Route path="/user/ordersuccess/:orderId" element={<OrderSuccessPage />} />
-          <Route path="/ordersuccess/:orderId" element={<Navigate to="/user/ordersuccess/:orderId" replace />} />
           <Route path='/user/newarrivals' element={<NewArrivals />} />
           <Route path='/newarrivals' element={<Navigate to="/user/newarrivals" replace />} />
           <Route path='/user/dealsdiscount' element={<DealsDiscounts />} />

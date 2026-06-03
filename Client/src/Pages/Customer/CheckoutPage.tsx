@@ -336,7 +336,7 @@ const CheckoutPage: React.FC = () => {
     }, 250);
   };
 
-  const clearCartAndRedirect = async (orderId: string, successMessage: string) => {
+  const clearCartAndRedirect = async (_orderId: string, successMessage: string) => {
     if (!auth?.token) return;
 
     await fetch(`${backendUrl}/api/cart/clear_cart`, {
@@ -352,7 +352,7 @@ const CheckoutPage: React.FC = () => {
     triggerConfetti();
 
     showToast('success', 'Order Confirmed', successMessage);
-    setTimeout(() => navigate(`/user/ordersuccess/${orderId}`), 2200);
+    setTimeout(() => navigate(`/user/profilepage?tab=orders`), 2200);
   };
 
   const createOrder = async (paymentMethod: string, paymentId?: string) => {

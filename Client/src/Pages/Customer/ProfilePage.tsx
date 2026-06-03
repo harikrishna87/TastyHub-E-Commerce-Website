@@ -9,7 +9,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { AuthContext } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDate } from '../../utils/dateFormatter';
 import { OrderDeliveryStatus } from '../../types';
 import jsPDF from 'jspdf';
@@ -167,6 +167,7 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
 const ProfilePage: React.FC = () => {
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const toast = useRef<Toast>(null);
   
   const [profileData, setProfileData] = useState<UserProfile | null>(null);
@@ -426,6 +427,19 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     fetchUserProfile();
   }, [authContext?.token]);
+
+  useEffect(() => {
+    const activeTabParam = searchParams.get('tab');
+    if (activeTabParam === 'orders') {
+      setActiveIndex(1);
+    } else if (activeTabParam === 'giftcards') {
+      setActiveIndex(2);
+    } else if (activeTabParam === 'coupons') {
+      setActiveIndex(3);
+    } else {
+      setActiveIndex(0);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (authContext?.user?.image) {
