@@ -242,12 +242,7 @@ export const deliverOrder = async (req: Request, res: Response): Promise<void> =
     order.deliveryStatus = 'Delivered';
     await order.save();
 
-    // Credit Delivery Executive's wallet Balance by ₹30 commission
-    const executive = await User.findById(req.user._id);
-    if (executive) {
-      executive.walletBalance = (executive.walletBalance || 0) + 30;
-      await executive.save();
-    }
+    // Delivery Executive commissions are calculated dynamically from completed orders, no wallet Balance update needed.
 
     const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
 
@@ -313,12 +308,7 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     }
 
     if (status === 'Delivered') {
-      // Credit Delivery Executive's wallet Balance by ₹30 commission
-      const executive = await User.findById(req.user._id);
-      if (executive) {
-        executive.walletBalance = (executive.walletBalance || 0) + 30;
-        await executive.save();
-      }
+      // Delivery Executive commissions are calculated dynamically from completed orders, no wallet Balance update needed.
     }
 
     order.deliveryStatus = status;
@@ -350,9 +340,37 @@ export const adminGetDeliveryExecutives = async (req: Request, res: Response): P
     }
 
     const executives = await User.find({ role: 'delivery_executive' });
+    
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const executivesWithStats = [];
+    for (const exec of executives) {
+      const dailyOrderCount = await Order.countDocuments({
+        deliveryExecutive: exec._id,
+        deliveryStatus: 'Delivered',
+        updatedAt: { $gte: startOfToday, $lte: endOfToday }
+      });
+      
+      let performance = 'Low';
+      if (dailyOrderCount >= 5) {
+        performance = 'High';
+      } else if (dailyOrderCount >= 2) {
+        performance = 'Medium';
+      }
+
+      executivesWithStats.push({
+        ...exec.toObject(),
+        dailyOrderCount,
+        performance
+      });
+    }
+
     res.status(200).json({
       success: true,
-      executives
+      executives: executivesWithStats
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -409,8 +427,8 @@ export const requestWithdrawal = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    if (!amount || amount < 50 || !paymentDetails) {
-      res.status(400).json({ success: false, message: 'Please provide withdrawal amount (minimum ₹50) and payment/UPI coordinates.' });
+    if (!amount || amount < 100 || !paymentDetails) {
+      res.status(400).json({ success: false, message: 'Please provide withdrawal amount (minimum ₹100) and bank account details.' });
       return;
     }
 
@@ -420,15 +438,25 @@ export const requestWithdrawal = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const balance = executive.walletBalance || 0;
-    if (balance < amount) {
-      res.status(400).json({ success: false, message: `Insufficient earnings balance. Available balance: ₹${balance.toFixed(2)}` });
+    // Calculate Available Balance Dynamically
+    const completedOrdersCount = await Order.countDocuments({
+      deliveryExecutive: req.user._id,
+      deliveryStatus: 'Delivered'
+    });
+    const lifetimeEarnings = completedOrdersCount * 30;
+
+    const activeWithdrawals = await WithdrawalRequest.find({
+      deliveryExecutive: req.user._id,
+      status: { $ne: 'Rejected' }
+    });
+    const totalWithdrawnOrPending = activeWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
+
+    const withdrawableBalance = Math.max(0, lifetimeEarnings - totalWithdrawnOrPending);
+
+    if (withdrawableBalance < amount) {
+      res.status(400).json({ success: false, message: `Insufficient earnings balance. Available balance: ₹${withdrawableBalance.toFixed(2)}` });
       return;
     }
-
-    // Deduct amount from balance immediately (holding state)
-    executive.walletBalance = balance - amount;
-    await executive.save();
 
     const request = await WithdrawalRequest.create({
       deliveryExecutive: req.user._id as Types.ObjectId,
@@ -441,7 +469,7 @@ export const requestWithdrawal = async (req: Request, res: Response): Promise<vo
       success: true,
       message: 'Withdrawal request submitted successfully!',
       request,
-      walletBalance: executive.walletBalance
+      walletBalance: withdrawableBalance - amount
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -526,10 +554,10 @@ export const adminUpdateWithdrawalStatus = async (req: Request, res: Response): 
     request.processedDate = new Date();
     await request.save();
 
-    // If Rejected, refund the amount back to delivery executive's wallet balance
+    // If Rejected, refund the amount back to delivery executive's wallet balance (only if not a delivery executive, since they use dynamic calculations)
     if (status === 'Rejected') {
       const executive = await User.findById(request.deliveryExecutive);
-      if (executive) {
+      if (executive && executive.role !== 'delivery_executive') {
         executive.walletBalance = (executive.walletBalance || 0) + request.amount;
         await executive.save();
       }

@@ -25,6 +25,7 @@ export interface IUser extends Document {
   isActive?: boolean;
   walletBalance?: number;
   accessedCoupons?: Types.ObjectId[];
+  rating?: IRating;
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (password: string) => Promise<boolean>;
@@ -67,6 +68,8 @@ export interface IOrder extends Document {
   paymentMethod?: string;
   paymentId?: string;
   deliveryExecutive?: Types.ObjectId;
+  isProductRated?: boolean;
+  isDeliveryRated?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -153,6 +156,27 @@ export interface IWithdrawalRequest extends Document {
   requestDate: Date;
   processedDate?: Date;
   adminNotes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IProductReview extends Document {
+  order: Types.ObjectId;
+  product: Types.ObjectId;
+  user: Types.ObjectId;
+  rating: number;
+  review: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IDeliveryReview extends Document {
+  deliveryExecutive: Types.ObjectId;
+  user: Types.ObjectId;
+  rating: number;
+  feedback: string;
+  isComplaint: boolean;
+  order: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -5,6 +5,7 @@ import { Button } from 'primereact/button';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import confetti from 'canvas-confetti';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface OrderItem {
   _id: string;
@@ -188,7 +189,7 @@ const OrderSuccessPage: React.FC = () => {
               </div>
               <div>
                 <span style={{ display: 'block', marginBottom: '8px', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Order Date</span>
-                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{new Date(order.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>{formatDate(order.createdAt)}</span>
               </div>
               <div>
                 <span style={{ display: 'block', marginBottom: '8px', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Total Amount</span>
@@ -242,7 +243,7 @@ const OrderSuccessPage: React.FC = () => {
                       </div>
                       <span style={{ marginTop: '14px', fontSize: '13px', fontWeight: 700, color: isComplete ? '#15803d' : '#94a3b8', textAlign: 'center' }}>{step.label}</span>
                       <span style={{ marginTop: '4px', fontSize: '12px', color: isCurrent ? '#22c55e' : '#94a3b8', textAlign: 'center' }}>
-                        {index === 0 ? new Date(order.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : step.description}
+                        {index === 0 ? formatDate(order.createdAt) : step.description}
                       </span>
                     </div>
                   );

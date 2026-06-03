@@ -5,6 +5,7 @@ import { Tag } from 'primereact/tag';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 import { IOrder } from '../../types';
+import { formatDate } from '../../utils/dateFormatter';
 
 const PaymentOverview: React.FC = () => {
   const auth = useContext(AuthContext);
@@ -115,7 +116,7 @@ const PaymentOverview: React.FC = () => {
   const dateTemplate = (row: IOrder) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.88rem' }}>
       <i className="pi pi-calendar" style={{ color: '#22c55e' }} />
-      <span>{new Date(row.createdAt).toLocaleDateString('en-IN')}</span>
+      <span>{formatDate(row.createdAt)}</span>
     </div>
   );
 

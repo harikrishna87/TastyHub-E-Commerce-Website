@@ -10,7 +10,7 @@ import FoodFooter from './Components/FoodFooter'
 import PrivacyPolicy from './Pages/Customer/PrivacyPolicy'
 import TermsOfService from './Pages/Customer/TermsOfService'
 import { AuthProvider, AuthContext } from './context/AuthContext'
-import AuthPage from './Pages/Auth'
+import AuthPage from './Pages/Customer/UserAuth'
 
 import ProtectedRoute from './Components/ProtectedRoute'
 import ProductsPage from './Pages/Admin/ProductsPage'
@@ -49,6 +49,7 @@ const AppContent: React.FC = () => {
     location.pathname.startsWith('/delivery') ||
     location.pathname.startsWith('/deivery')
 
+  const isAdminRoute = location.pathname.startsWith('/admin')
   const isAuthRoute = location.pathname.includes('/auth')
 
   if (auth?.isAuthenticated && auth.user?.role === 'admin') {
@@ -88,10 +89,10 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      {!isDeliveryRoute && <FoodNavbar />}
+      {!isDeliveryRoute && !isAdminRoute && <FoodNavbar />}
       <div
         style={
-          isDeliveryRoute
+          isDeliveryRoute || isAdminRoute || isAuthRoute
             ? {}
             : { margin: '30px', width: 'auto' }
         }

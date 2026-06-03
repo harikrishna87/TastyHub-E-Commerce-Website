@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
+import { Toast } from 'primereact/toast';
+import { Dialog } from 'primereact/dialog';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface Owner {
   _id: string;
@@ -27,11 +30,13 @@ interface GiftCard {
 const GiftCardsManagement: React.FC = () => {
   const auth = useContext(AuthContext);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const toast = useRef<Toast>(null);
 
   // States
   const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [giftCardDialogVisible, setGiftCardDialogVisible] = useState<boolean>(false);
 
   // Form State
   const [amount, setAmount] = useState<number>(0);
@@ -70,7 +75,11 @@ const GiftCardsManagement: React.FC = () => {
     if (!auth?.token) return;
 
     if (amount <= 0) {
-      alert('Please enter a valid gift card amount greater than zero.');
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Validation Error',
+        detail: 'Please enter a valid gift card amount greater than zero.'
+      });
       return;
     }
 
@@ -94,16 +103,29 @@ const GiftCardsManagement: React.FC = () => {
       );
 
       if (response.data.success) {
-        alert('Gift Card generated successfully! Code: ' + response.data.giftCard.code);
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Gift Card generated successfully! Code: ' + response.data.giftCard.code
+        });
         setAmount(0);
         setRecipientEmail('');
+        setGiftCardDialogVisible(false);
         fetchGiftCards();
       } else {
-        alert(response.data.message || 'Failed to generate gift card.');
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failed',
+          detail: response.data.message || 'Failed to generate gift card.'
+        });
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to generate gift card.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || 'Failed to generate gift card.'
+      });
     } finally {
       setSubmitting(false);
     }
@@ -162,88 +184,104 @@ const GiftCardsManagement: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Prepaid Gift Cards Management</h1>
-        <p style={styles.sub}>Generate new gift card codes and audit balances or redemptions across all users</p>
+      <Toast ref={toast} />
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={styles.title}>Prepaid Gift Cards Management</h1>
+          <p style={styles.sub}>Generate new gift card codes and audit balances or redemptions across all users</p>
+        </div>
+        <Button
+          label="Generate Gift Card"
+          icon="pi pi-plus"
+          severity="warning"
+          onClick={() => setGiftCardDialogVisible(true)}
+          style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: 'bold', color: '#ffffff', backgroundColor: '#eab308', border: 'none' }}
+        />
       </div>
 
-      <div style={styles.splitGrid}>
-        {/* Generate Card Card */}
-        <div style={styles.cardPanel}>
-          <h2 style={styles.cardTitle}>
-            <i className="pi pi-gift" style={styles.cardIcon('#eab308')} />
-            <span>Generate Prepaid Gift Card</span>
-          </h2>
-          <p style={styles.cardSub}>Issue a secure gift card and send details directly via Brevo email services</p>
-
-          <form onSubmit={handleGenerateGiftCard} style={styles.form}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Gift Card Amount (₹) *</label>
-              <input
-                type="number"
-                placeholder="e.g. 500, 1000, 5000"
-                value={amount || ''}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                style={styles.input}
-              />
+      {/* Audit Cards list */}
+      <div style={styles.tablePanel}>
+        <h2 style={{ ...styles.cardTitle, marginBottom: '1.5rem' }}>
+          <i className="pi pi-list" style={styles.cardIcon('#eab308')} />
+          <span>Issued Gift Cards Audit</span>
+        </h2>
+        <DataTable
+          value={giftCards}
+          paginator
+          rows={5}
+          rowsPerPageOptions={[5, 10]}
+          className="p-datatable-striped"
+          responsiveLayout="scroll"
+          emptyMessage={() => (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
+              <i className="pi pi-gift" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+              <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No gift cards issued yet.</div>
+              <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Issued prepaid codes or buyer history will display here.</div>
             </div>
+          )}
+        >
+          <Column header="GIFT CARD CODE" body={codeTemplate} style={{ fontWeight: 600 }} sortable />
+          <Column header="PURCHASER (OWNER)" body={ownerTemplate} />
+          <Column header="RECIPIENT EMAIL" body={recipientTemplate} />
+          <Column field="originalValue" header="ORIGINAL VALUE" body={(r) => `₹${r.originalValue.toFixed(2)}`} sortable />
+          <Column field="expiryDate" header="EXPIRY DATE" body={(r) => r.expiryDate ? formatDate(r.expiryDate) : 'N/A'} sortable />
+          <Column header="STATUS" body={statusTemplate} />
+        </DataTable>
+      </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Recipient Email Address (Optional)</label>
-              <input
-                type="email"
-                placeholder="e.g. customer@gmail.com (defaults to buyer email)"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                style={styles.input}
-              />
-              <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>
-                If provided, the gift card code will be emailed directly to this recipient.
-              </p>
-            </div>
+      {/* Generate Gift Card Dialog */}
+      <Dialog
+        header="Generate Prepaid Gift Card"
+        visible={giftCardDialogVisible}
+        onHide={() => setGiftCardDialogVisible(false)}
+        style={{ width: '480px', maxWidth: '95vw', borderRadius: '12px' }}
+        modal
+      >
+        <form onSubmit={handleGenerateGiftCard} style={{ ...styles.form, marginTop: '1rem' }}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Gift Card Amount (₹) *</label>
+            <input
+              type="number"
+              placeholder="e.g. 500, 1000, 5000"
+              value={amount || ''}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              style={styles.input}
+              required
+            />
+          </div>
 
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Recipient Email Address (Optional)</label>
+            <input
+              type="email"
+              placeholder="e.g. customer@gmail.com (defaults to buyer email)"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              style={styles.input}
+            />
+            <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>
+              If provided, the gift card code will be emailed directly to this recipient.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Cancel"
+              severity="secondary"
+              outlined
+              onClick={() => setGiftCardDialogVisible(false)}
+            />
             <Button
               type="submit"
               label="Issue Gift Card Code"
-              icon="pi pi-check"
-              className="p-button-warning"
-              style={{ width: '100%', marginTop: '0.5rem', borderRadius: '12px', padding: '0.75rem', backgroundColor: '#eab308', border: 'none', color: '#ffffff' }}
+              style={{ backgroundColor: '#eab308', border: 'none', color: '#ffffff' }}
               loading={submitting}
             />
-          </form>
-        </div>
-
-        {/* Audit Cards list */}
-        <div style={styles.tablePanel}>
-          <h2 style={{ ...styles.cardTitle, marginBottom: '1.5rem' }}>
-            <i className="pi pi-list" style={styles.cardIcon('#eab308')} />
-            <span>Issued Gift Cards Audit</span>
-          </h2>
-          <DataTable
-            value={giftCards}
-            paginator
-            rows={5}
-            rowsPerPageOptions={[5, 10]}
-            className="p-datatable-striped"
-            responsiveLayout="scroll"
-            emptyMessage={() => (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
-                <i className="pi pi-gift" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
-                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No gift cards issued yet.</div>
-                <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Issued prepaid codes or buyer history will display here.</div>
-              </div>
-            )}
-          >
-            <Column header="GIFT CARD CODE" body={codeTemplate} style={{ fontWeight: 600 }} sortable />
-            <Column header="PURCHASER (OWNER)" body={ownerTemplate} />
-            <Column header="RECIPIENT EMAIL" body={recipientTemplate} />
-            <Column field="originalValue" header="ORIGINAL VALUE" body={(r) => `₹${r.originalValue.toFixed(2)}`} sortable />
-            <Column field="balance" header="REMAINING BALANCE" body={(r) => `₹${r.balance.toFixed(2)}`} sortable />
-            <Column field="expiryDate" header="EXPIRY DATE" body={(r) => r.expiryDate ? new Date(r.expiryDate).toLocaleDateString() : 'N/A'} sortable />
-            <Column header="STATUS" body={statusTemplate} />
-          </DataTable>
-        </div>
-      </div>
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 };

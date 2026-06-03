@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -6,6 +6,7 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import { Tag } from 'primereact/tag';
 import { Dropdown } from 'primereact/dropdown';
+import { Toast } from 'primereact/toast';
 
 interface Rating {
   rate: number;
@@ -52,6 +53,7 @@ interface FormErrors {
 }
 
 const ProductsPage: React.FC = () => {
+  const toast = useRef<Toast>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
@@ -155,14 +157,30 @@ const ProductsPage: React.FC = () => {
     try {
       await axios.delete(`${backendUrl}/api/products/deleteproduct/${productId}`);
       setProducts(products.filter(p => p._id !== productId));
+      toast.current?.show({
+        severity: 'success',
+        summary: 'Deleted',
+        detail: 'Product deleted successfully'
+      });
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Failed to delete product.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Failed to delete product.'
+      });
     }
   };
 
   const handleSaveProduct = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Validation Error',
+        detail: 'Please fix the errors in the form before saving.'
+      });
+      return;
+    }
 
     const productData = {
       title: formData.title.trim(),
@@ -183,14 +201,28 @@ const ProductsPage: React.FC = () => {
       if (editingProduct && editingProduct._id) {
         await axios.put(`${backendUrl}/api/products/updateproduct/${editingProduct._id}`, productData);
         setProducts(products.map(p => p._id === editingProduct._id ? { ...p, ...productData } : p));
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Product updated successfully'
+        });
       } else {
         const response = await axios.post(`${backendUrl}/api/products/addproduct`, productData);
         setProducts([...products, response.data]);
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Product added successfully'
+        });
       }
       setIsModalVisible(false);
     } catch (error) {
       console.error('Error saving product:', error);
-      alert('Failed to save product.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Failed to save product.'
+      });
     }
   };
 
@@ -278,6 +310,7 @@ const ProductsPage: React.FC = () => {
 
   return (
     <div style={styles.container}>
+      <Toast ref={toast} />
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Products Management</h1>

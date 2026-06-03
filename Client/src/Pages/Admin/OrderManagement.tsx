@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Dialog } from 'primereact/dialog';
@@ -7,9 +7,11 @@ import { Tag } from 'primereact/tag';
 import { Dropdown } from 'primereact/dropdown';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
+import { Toast } from 'primereact/toast';
 import { IOrder, OrderDeliveryStatus } from '../../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatDate } from '../../utils/dateFormatter';
 
 const getAvailableStatusOptions = (currentStatus: OrderDeliveryStatus): OrderDeliveryStatus[] => {
   const statusFlow: Record<OrderDeliveryStatus, OrderDeliveryStatus[]> = {
@@ -26,6 +28,7 @@ const getAvailableStatusOptions = (currentStatus: OrderDeliveryStatus): OrderDel
 
 const OrderManagement: React.FC = () => {
   const auth = useContext(AuthContext);
+  const toast = useRef<Toast>(null);
   const [orders, setOrders] = useState<IOrder[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
@@ -73,7 +76,11 @@ const OrderManagement: React.FC = () => {
 
   const handleStatusChange = async (orderId: string, newStatus: OrderDeliveryStatus) => {
     if (!auth?.token) {
-      alert('You are not authenticated to perform this action.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Authentication Error',
+        detail: 'You are not authenticated to perform this action.'
+      });
       return;
     }
 
@@ -102,12 +109,25 @@ const OrderManagement: React.FC = () => {
               : order
           )
         );
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Status Updated',
+          detail: 'Order status successfully updated to ' + newStatus
+        });
       } else {
-        alert(response.data.message || 'Failed to update status.');
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failed',
+          detail: response.data.message || 'Failed to update status.'
+        });
       }
     } catch (err: any) {
       console.error('Error updating order status:', err);
-      alert(err.response?.data?.message || 'Failed to update order status.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || 'Failed to update order status.'
+      });
     } finally {
       setStatusUpdateLoading(null);
     }
@@ -135,7 +155,7 @@ const OrderManagement: React.FC = () => {
         `${order.user?.name || 'N/A'}\n${order.user?.email || 'N/A'}`,
         amountString,
         order.deliveryStatus,
-        new Date(order.createdAt).toLocaleDateString(),
+        formatDate(order.createdAt),
         itemsList
       ];
       tableRows.push(orderData);
@@ -302,7 +322,7 @@ const OrderManagement: React.FC = () => {
   const dateTemplate = (row: IOrder) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.88rem' }}>
       <i className="pi pi-calendar" style={{ color: '#22c55e' }} />
-      <span>{new Date(row.createdAt).toLocaleDateString('en-IN')}</span>
+      <span>{formatDate(row.createdAt)}</span>
     </div>
   );
 
@@ -319,6 +339,7 @@ const OrderManagement: React.FC = () => {
 
   return (
     <div style={styles.container}>
+      <Toast ref={toast} />
       {/* Title Header Section */}
       <div style={styles.headerRow}>
         <div>
@@ -378,7 +399,7 @@ const OrderManagement: React.FC = () => {
             <div style={styles.infoGrid}>
               <div><strong>Name:</strong> {selectedOrder.user?.name || 'N/A'}</div>
               <div><strong>Email:</strong> {selectedOrder.user?.email || 'N/A'}</div>
-              <div><strong>Order Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</div>
+              <div><strong>Order Date:</strong> {formatDate(selectedOrder.createdAt)}</div>
               <div><strong>Status:</strong> {getStatusTag(selectedOrder.deliveryStatus)}</div>
             </div>
 

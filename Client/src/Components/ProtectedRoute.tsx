@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -18,6 +18,35 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   }
 
   const { isAuthenticated, isLoading, user } = auth;
+  // Track if this instance was ever authenticated. If so, it means the user logged out intentionally
+  // during this route mount, so we should skip showing the login error toast.
+  const wasAuthenticatedRef = useRef(isAuthenticated);
+
+  if (isAuthenticated && !wasAuthenticatedRef.current) {
+    wasAuthenticatedRef.current = true;
+  }
+
+  useEffect(() => {
+    if (!isLoading) {
+      const logoutIntentional = localStorage.getItem('logout_intentional') === 'true';
+      if (logoutIntentional) {
+        setTimeout(() => {
+          localStorage.removeItem('logout_intentional');
+        }, 100);
+        return;
+      }
+
+      if (!isAuthenticated && !wasAuthenticatedRef.current) {
+        messageApi.error({
+          content: "You need to login to access this feature",
+        });
+      } else if (isAuthenticated && allowedRoles && user && !allowedRoles.includes(user.role)) {
+        messageApi.error({
+          content: "You do not have permission to access this page",
+        });
+      }
+    }
+  }, [isAuthenticated, isLoading, user, allowedRoles]);
 
   if (isLoading) {
     return (
@@ -38,24 +67,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   }
 
   if (!isAuthenticated) {
-    messageApi.error({
-      content: "You need to login to access this feature",
-      duration: 3,
-      style: {
-        marginTop: '20vh',
-      },
-    });
     return <Navigate to="/" replace />;
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    messageApi.error({
-      content: "You do not have permission to access this page",
-      duration: 3,
-      style: {
-        marginTop: '20vh',
-      },
-    });
     return <Navigate to="/" replace />;
   }
 

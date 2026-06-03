@@ -9,6 +9,7 @@ import { Toast } from 'primereact/toast';
 import { Dialog } from 'primereact/dialog';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface IGiftCard {
   _id: string;
@@ -492,7 +493,7 @@ const GiftCards: React.FC = () => {
           />
           <Column
             header="EXPIRY"
-            body={(rowData: IGiftCard) => <span>{new Date(rowData.expiryDate).toLocaleDateString()}</span>}
+            body={(rowData: IGiftCard) => <span>{formatDate(rowData.expiryDate)}</span>}
           />
           <Column
             header="STATUS"

@@ -6,11 +6,11 @@ import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
 import { Tag as PrimeTag } from 'primereact/tag';
 import { Dropdown } from 'primereact/dropdown';
-import { TabView, TabPanel } from 'primereact/tabview';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '../../utils/dateFormatter';
 import { OrderDeliveryStatus } from '../../types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -226,8 +226,9 @@ const ProfilePage: React.FC = () => {
   // Buy/Redeem Gift Card fields
   const [selectedPresetAmount, setSelectedPresetAmount] = useState<number>(1000);
   const [customAmount, setCustomAmount] = useState<string>('');
-  const [recipientEmail, setRecipientEmail] = useState<string>('');
+  const [giftCardRecipientEmail, setGiftCardRecipientEmail] = useState<string>('');
   const [purchasing, setPurchasing] = useState<boolean>(false);
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState<boolean>(false);
   const [redeemModalOpen, setRedeemModalOpen] = useState<boolean>(false);
   const [redeemCode, setRedeemCode] = useState<string>('');
   const [redeeming, setRedeeming] = useState<boolean>(false);
@@ -636,7 +637,7 @@ const ProfilePage: React.FC = () => {
             try {
               const res = await axios.post(`${backendUrl}/api/promo/giftcards`, {
                 amount,
-                recipientEmail: recipientEmail || undefined,
+                recipientEmail: giftCardRecipientEmail || undefined,
                 paymentId: response.razorpay_payment_id
               }, {
                 headers: { Authorization: `Bearer ${authContext?.token}` },
@@ -646,7 +647,8 @@ const ProfilePage: React.FC = () => {
               if (res.data.success) {
                 toast.current?.show({ severity: 'success', summary: 'Success', detail: res.data.message || 'Gift card purchased!' });
                 setCustomAmount('');
-                setRecipientEmail('');
+                setGiftCardRecipientEmail('');
+                setPurchaseModalOpen(false);
                 fetchGiftCardsList();
               }
             } catch (err: any) {
@@ -713,6 +715,9 @@ const ProfilePage: React.FC = () => {
     setIsStatusModalVisible(true);
   };
 
+  const openProductReviewModal = (_order: any) => { /* logic */ };
+  const openDeliveryReviewModal = (_order: any) => { /* logic */ };
+
   const handleDownloadReceipt = async () => {
     if (!receiptContentRef.current || !selectedOrder) {
       toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Content not found' });
@@ -732,35 +737,6 @@ const ProfilePage: React.FC = () => {
       toast.current?.show({ severity: 'error', summary: 'Failed', detail: 'Failed to download receipt' });
     } finally {
       setIsDownloading(false);
-    }
-  };
-
-  const getStatusTag = (status: 'Pending' | 'Shipped' | 'Delivered') => {
-    switch (status) {
-      case 'Pending':
-        return (
-          <span style={{ background: '#fffbe6', color: '#d46b08', border: '1px dashed #ffe58f', borderRadius: '4px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, fontSize: '13px' }}>
-            <i className="pi pi-clock" /> Pending
-          </span>
-        );
-      case 'Shipped':
-        return (
-          <span style={{ background: '#e6f7ff', color: '#096dd9', border: '1px dashed #91d5ff', borderRadius: '4px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, fontSize: '13px' }}>
-            <i className="pi pi-truck" /> Shipped
-          </span>
-        );
-      case 'Delivered':
-        return (
-          <span style={{ background: '#f6ffed', color: '#389e0d', border: '1px dashed #b7eb8f', borderRadius: '4px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600, fontSize: '13px' }}>
-            <i className="pi pi-check-circle" /> Delivered
-          </span>
-        );
-      default:
-        return (
-          <span style={{ background: '#f5f5f5', color: '#595959', border: '1px solid #d9d9d9', borderRadius: '4px', padding: '2px 8px', fontSize: '13px' }}>
-            {status}
-          </span>
-        );
     }
   };
 
@@ -842,337 +818,505 @@ const ProfilePage: React.FC = () => {
         )}
       </div>
 
-      {/* Modern TabView unifying all parts */}
+      {/* Modern Profile and Tab Panel unifying all parts */}
       <div style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)', overflow: 'hidden', backgroundColor: '#ffffff', padding: '1.5rem' }}>
-        <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} style={{ padding: '0.5rem' }}>
-          
-          {/* Tab 1: Profile Details & Core Settings */}
-          <TabPanel header={<span><i className="pi pi-user" style={{ marginRight: '6px' }} /> Account Details</span>}>
-            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginTop: '1.5rem' }}>
-              
-              {/* Left Address panel */}
-              {profileData?.role === 'user' && (
-                <div style={{ flex: '2 1 450px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <i className="pi pi-map-marker" style={{ color: '#15803d', fontSize: '1.25rem' }}></i>
-                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>Shipping Details</h3>
+        {profileData?.role === 'admin' ? (
+          /* REDESIGNED ADMIN CONFIGURATION AND METADATA PANEL */
+          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+            {/* Left Column: Store Configuration */}
+            <div style={{ flex: '2 1 500px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #f0fdf4', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="pi pi-cog" style={{ color: '#15803d', fontSize: '1.4rem' }}></i>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#111827' }}>Store & Delivery Configuration</h3>
+                </div>
+                <PrimeTag value={storeStatus === 'Open' ? 'ACCEPTING ORDERS' : 'PAUSED'} severity={storeStatus === 'Open' ? 'success' : 'danger'} style={{ borderRadius: '6px', padding: '4px 10px' }} />
+              </div>
+              <form onSubmit={handleSaveSettings} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4b5563' }}>Store Brand Name *</label>
+                  <InputText value={storeName} onChange={(e) => setStoreName(e.target.value)} required style={styles.formInput} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4b5563' }}>Restaurant Status *</label>
+                  <Dropdown value={storeStatus} options={[{ label: 'Open (Accept Orders)', value: 'Open' }, { label: 'Closed (Pause Orders)', value: 'Closed' }]} onChange={(e) => setStoreStatus(e.value as any)} style={{ width: '100%', borderRadius: '10px' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4b5563' }}>Free Delivery Min amount (₹) *</label>
+                  <InputText type="number" value={String(freeDeliveryMin)} onChange={(e) => setFreeDeliveryMin(Number(e.target.value))} required style={styles.formInput} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4b5563' }}>Flat Delivery Fee (₹) *</label>
+                  <InputText type="number" value={String(deliveryFee)} onChange={(e) => setDeliveryFee(Number(e.target.value))} required style={styles.formInput} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4b5563' }}>Catering Support Email *</label>
+                  <InputText type="email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} required style={styles.formInput} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4b5563' }}>Support Contact Phone *</label>
+                  <InputText value={supportPhone} onChange={(e) => setSupportPhone(e.target.value)} required style={styles.formInput} />
+                </div>
+                <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f3f4f6', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
+                  <Button type="submit" label="Save Settings" icon="pi pi-check" severity="success" loading={savingSettings} style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: 'bold' }} />
+                </div>
+              </form>
+            </div>
+
+            {/* Right Column: Security & Metadata */}
+            <div style={{ flex: '1 1 320px', borderLeft: '1px solid #e5e7eb', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1.5px solid #f0fdf4', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                  <i className="pi pi-user-edit" style={{ color: '#15803d', fontSize: '1.4rem' }}></i>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#111827' }}>Admin Identity</h3>
+                </div>
+                <div style={{ backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div>
+                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 'bold', display: 'block' }}>Display Name</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', marginTop: '2px', display: 'block' }}>{profileData?.name}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 'bold', display: 'block' }}>Email Address</span>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', marginTop: '2px', display: 'block' }}>{profileData?.email}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 'bold', display: 'block' }}>Authority Role</span>
+                    <PrimeTag value={profileData?.role?.toUpperCase()} severity="success" style={{ fontSize: '0.7rem', fontWeight: 'bold', marginTop: '4px' }} />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1.5px solid #f0fdf4', paddingBottom: '0.5rem', marginBottom: '1.25rem' }}>
+                  <i className="pi pi-shield" style={{ color: '#15803d', fontSize: '1.2rem' }}></i>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#111827' }}>Security Actions</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <Button label="Change Admin Password" icon="pi pi-key" severity="success" outlined onClick={() => setShowPasswordModal(true)} style={{ borderRadius: '8px', width: '100%', fontWeight: 'bold' }} />
+                  <Button label="Deactivate Admin Account" icon="pi pi-trash" severity="danger" text onClick={() => setShowDeleteModal(true)} style={{ borderRadius: '8px', width: '100%', fontWeight: 'bold' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : profileData?.role === 'delivery_executive' ? (
+          /* REDESIGNED DELIVERY EXECUTIVE SINGLE PANEL */
+          <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+            <div style={{ flex: '2 1 450px' }}>
+              <div style={{ borderBottom: '1.5px solid #f0fdf4', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#111827' }}>Delivery Partner Service Center</h3>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div style={styles.addressItem}>
+                  <span style={styles.addressLabel}>Approval Status</span>
+                  <span style={{ fontWeight: 'bold', color: profileData?.deliveryStatus === 'Approved' ? '#16a34a' : '#ea580c', marginTop: '4px' }}>{profileData?.deliveryStatus?.toUpperCase()}</span>
+                </div>
+                <div style={styles.addressItem}>
+                  <span style={styles.addressLabel}>Availability status</span>
+                  <Dropdown
+                    value={profileData?.isAvailable ? 'available' : 'offline'}
+                    options={[{ label: 'Online / Available for Duty', value: 'available' }, { label: 'Offline / Duty ended', value: 'offline' }]}
+                    onChange={(e) => {
+                      const val = e.value === 'available';
+                      const token = authContext?.token || localStorage.getItem('token');
+                      axios.put(`${backendUrl}/api/auth/updateprofile`, { isAvailable: val }, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
+                        if (res.data.success) {
+                          setProfileData(prev => prev ? { ...prev, isAvailable: val } : null);
+                          toast.current?.show({ severity: 'success', summary: 'Status Updated', detail: `Availability set to ${val ? 'Online' : 'Offline'}` });
+                        }
+                      });
+                    }}
+                    style={{ marginTop: '4px', width: '100%', borderRadius: '10px' }}
+                  />
+                </div>
+              </div>
+            </div>
+            {/* Right Security actions panel */}
+            <div className="profile-security-sidebar" style={{ flex: '1 1 300px', borderLeft: '1px solid #f3f4f6', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem' }}>Security & Account</h3>
+              <Button label="Change Password" icon="pi pi-key" severity="success" outlined onClick={() => setShowPasswordModal(true)} style={{ borderRadius: '8px', width: '100%' }} />
+              <Button label="Delete Account" icon="pi pi-trash" severity="danger" text onClick={() => setShowDeleteModal(true)} style={{ borderRadius: '8px', width: '100%' }} />
+            </div>
+          </div>
+        ) : (
+          /* CUSTOMER PROFILE WITH HORIZONTAL BUTTON TABS */
+          <div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+              {[
+                { label: 'Account Details', icon: 'pi pi-user', index: 0 },
+                { label: 'Order History', icon: 'pi pi-shopping-cart', index: 1 },
+                { label: 'Gift Cards', icon: 'pi pi-gift', index: 2 },
+                { label: 'Dynamic Coupons', icon: 'pi pi-bell', index: 3 }
+              ].map((tab) => {
+                const isActive = activeIndex === tab.index;
+                return (
+                  <button
+                    key={tab.index}
+                    type="button"
+                    onClick={() => setActiveIndex(tab.index)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '20px',
+                      fontSize: '0.85rem',
+                      fontWeight: isActive ? 800 : 600,
+                      cursor: 'pointer',
+                      border: isActive ? 'none' : '1px solid #cbd5e1',
+                      backgroundColor: isActive ? '#15803d' : '#ffffff',
+                      color: isActive ? '#ffffff' : '#475569',
+                      boxShadow: isActive ? '0 4px 12px rgba(21, 128, 61, 0.2)' : 'none',
+                      transition: 'all 0.2s ease',
+                      width: 'fit-content'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                        e.currentTarget.style.borderColor = '#94a3b8';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                        e.currentTarget.style.borderColor = '#cbd5e1';
+                      }
+                    }}
+                  >
+                    <i className={tab.icon} style={{ fontSize: '0.9rem' }} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: '1.5rem' }}>
+              {/* Panel 0: Account Details */}
+              {activeIndex === 0 && (
+                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                  {/* Left Address panel */}
+                  <div style={{ flex: '2 1 450px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <i className="pi pi-map-marker" style={{ color: '#15803d', fontSize: '1.25rem' }}></i>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>Shipping Details</h3>
+                      </div>
+                      {hasAddress && (
+                        <Button label="Edit Address" icon="pi pi-pencil" severity="success" text onClick={() => setShowAddressModal(true)} style={{ fontSize: '0.82rem', fontWeight: 600 }} />
+                      )}
                     </div>
-                    {hasAddress && (
-                      <Button label="Edit Address" icon="pi pi-pencil" severity="success" text onClick={() => setShowAddressModal(true)} style={{ fontSize: '0.82rem', fontWeight: 600 }} />
+
+                    {!hasAddress ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 1rem', border: '2px dashed #bbf7d0', borderRadius: '12px', backgroundColor: '#f0fdf4', color: '#15803d', gap: '1rem', textAlign: 'center' }}>
+                        <i className="pi pi-map" style={{ fontSize: '3rem', color: '#86efac' }}></i>
+                        <div>
+                          <h4 style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: '#166534' }}>No shipping address set yet</h4>
+                          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: '#15803d' }}>Add your coordinates now for rapid food delivery!</p>
+                        </div>
+                        <Button label="Add Shipping Address" icon="pi pi-plus" severity="success" onClick={() => setShowAddressModal(true)} style={{ borderRadius: '8px' }} />
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+                        <div style={styles.addressItem}>
+                          <span style={styles.addressLabel}>Recipient Name</span>
+                          <span style={styles.addressValue}>{profileData?.shippingAddress?.fullName}</span>
+                        </div>
+                        <div style={styles.addressItem}>
+                          <span style={styles.addressLabel}>Contact Phone</span>
+                          <span style={styles.addressValue}>{profileData?.shippingAddress?.phone}</span>
+                        </div>
+                        <div style={{ ...styles.addressItem, gridColumn: 'span 2' }}>
+                          <span style={styles.addressLabel}>Address Details</span>
+                          <span style={styles.addressValue}>{profileData?.shippingAddress?.addressLine1} {profileData?.shippingAddress?.addressLine2 && `, ${profileData.shippingAddress.addressLine2}`}</span>
+                        </div>
+                        <div style={styles.addressItem}>
+                          <span style={styles.addressLabel}>City</span>
+                          <span style={styles.addressValue}>{profileData?.shippingAddress?.city}</span>
+                        </div>
+                        <div style={styles.addressItem}>
+                          <span style={styles.addressLabel}>State</span>
+                          <span style={styles.addressValue}>{profileData?.shippingAddress?.state}</span>
+                        </div>
+                        <div style={styles.addressItem}>
+                          <span style={styles.addressLabel}>ZIP / Postal Code</span>
+                          <span style={styles.addressValue}>{profileData?.shippingAddress?.postalCode}</span>
+                        </div>
+                        <div style={styles.addressItem}>
+                          <span style={styles.addressLabel}>Country</span>
+                          <span style={styles.addressValue}>{profileData?.shippingAddress?.country}</span>
+                        </div>
+                      </div>
                     )}
                   </div>
 
-                  {!hasAddress ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 1rem', border: '2px dashed #bbf7d0', borderRadius: '12px', backgroundColor: '#f0fdf4', color: '#15803d', gap: '1rem', textAlign: 'center' }}>
-                      <i className="pi pi-map" style={{ fontSize: '3rem', color: '#86efac' }}></i>
-                      <div>
-                        <h4 style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: '#166534' }}>No shipping address set yet</h4>
-                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: '#15803d' }}>Add your coordinates now for rapid food delivery!</p>
-                      </div>
-                      <Button label="Add Shipping Address" icon="pi pi-plus" severity="success" onClick={() => setShowAddressModal(true)} style={{ borderRadius: '8px' }} />
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
-                      <div style={styles.addressItem}>
-                        <span style={styles.addressLabel}>Recipient Name</span>
-                        <span style={styles.addressValue}>{profileData?.shippingAddress?.fullName}</span>
-                      </div>
-                      <div style={styles.addressItem}>
-                        <span style={styles.addressLabel}>Contact Phone</span>
-                        <span style={styles.addressValue}>{profileData?.shippingAddress?.phone}</span>
-                      </div>
-                      <div style={{ ...styles.addressItem, gridColumn: 'span 2' }}>
-                        <span style={styles.addressLabel}>Address Details</span>
-                        <span style={styles.addressValue}>{profileData?.shippingAddress?.addressLine1} {profileData?.shippingAddress?.addressLine2 && `, ${profileData.shippingAddress.addressLine2}`}</span>
-                      </div>
-                      <div style={styles.addressItem}>
-                        <span style={styles.addressLabel}>City</span>
-                        <span style={styles.addressValue}>{profileData?.shippingAddress?.city}</span>
-                      </div>
-                      <div style={styles.addressItem}>
-                        <span style={styles.addressLabel}>State</span>
-                        <span style={styles.addressValue}>{profileData?.shippingAddress?.state}</span>
-                      </div>
-                      <div style={styles.addressItem}>
-                        <span style={styles.addressLabel}>ZIP / Postal Code</span>
-                        <span style={styles.addressValue}>{profileData?.shippingAddress?.postalCode}</span>
-                      </div>
-                      <div style={styles.addressItem}>
-                        <span style={styles.addressLabel}>Country</span>
-                        <span style={styles.addressValue}>{profileData?.shippingAddress?.country}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Admin configuration portal */}
-              {profileData?.role === 'admin' && (
-                <div style={{ flex: '2 1 450px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>Store & Delivery Configuration Panel</h3>
-                    <PrimeTag value={storeStatus === 'Open' ? 'ACCEPTING ORDERS' : 'PAUSED'} severity={storeStatus === 'Open' ? 'success' : 'danger'} />
-                  </div>
-                  <form onSubmit={handleSaveSettings} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Store Brand Name *</label>
-                      <InputText value={storeName} onChange={(e) => setStoreName(e.target.value)} required style={styles.formInput} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Restaurant Status *</label>
-                      <Dropdown value={storeStatus} options={[{ label: 'Open (Accept Orders)', value: 'Open' }, { label: 'Closed (Pause Orders)', value: 'Closed' }]} onChange={(e) => setStoreStatus(e.value as any)} style={{ width: '100%' }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Free Delivery Min amount (₹) *</label>
-                      <InputText type="number" value={String(freeDeliveryMin)} onChange={(e) => setFreeDeliveryMin(Number(e.target.value))} required style={styles.formInput} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Flat Delivery Fee (₹) *</label>
-                      <InputText type="number" value={String(deliveryFee)} onChange={(e) => setDeliveryFee(Number(e.target.value))} required style={styles.formInput} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Catering Support Email *</label>
-                      <InputText type="email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} required style={styles.formInput} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Support Contact Phone *</label>
-                      <InputText value={supportPhone} onChange={(e) => setSupportPhone(e.target.value)} required style={styles.formInput} />
-                    </div>
-                    <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
-                      <Button type="submit" label="Save Settings" icon="pi pi-check" severity="success" loading={savingSettings} />
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Delivery executive availability center */}
-              {profileData?.role === 'delivery_executive' && (
-                <div style={{ flex: '2 1 450px' }}>
-                  <div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937' }}>Delivery Partner Service Center</h3>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                    <div style={styles.addressItem}>
-                      <span style={styles.addressLabel}>Approval Status</span>
-                      <span style={{ fontWeight: 'bold', color: profileData?.deliveryStatus === 'Approved' ? '#16a34a' : '#ea580c', marginTop: '4px' }}>{profileData?.deliveryStatus?.toUpperCase()}</span>
-                    </div>
-                    <div style={styles.addressItem}>
-                      <span style={styles.addressLabel}>Availability status</span>
-                      <Dropdown
-                        value={profileData?.isAvailable ? 'available' : 'offline'}
-                        options={[{ label: 'Online / Available for Duty', value: 'available' }, { label: 'Offline / Duty ended', value: 'offline' }]}
-                        onChange={(e) => {
-                          const val = e.value === 'available';
-                          const token = authContext?.token || localStorage.getItem('token');
-                          axios.put(`${backendUrl}/api/auth/updateprofile`, { isAvailable: val }, { headers: { Authorization: `Bearer ${token}` } }).then(res => {
-                            if (res.data.success) {
-                              setProfileData(prev => prev ? { ...prev, isAvailable: val } : null);
-                              toast.current?.show({ severity: 'success', summary: 'Status Updated', detail: `Availability set to ${val ? 'Online' : 'Offline'}` });
-                            }
-                          });
-                        }}
-                        style={{ marginTop: '4px', width: '100%' }}
-                      />
-                    </div>
+                  {/* Right Security actions panel */}
+                  <div className="profile-security-sidebar" style={{ flex: '1 1 300px', borderLeft: '1px solid #f3f4f6', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem' }}>Security & Account</h3>
+                    <Button label="Change Password" icon="pi pi-key" severity="success" outlined onClick={() => setShowPasswordModal(true)} style={{ borderRadius: '8px', width: '100%' }} />
+                    <Button label="Delete Account" icon="pi pi-trash" severity="danger" text onClick={() => setShowDeleteModal(true)} style={{ borderRadius: '8px', width: '100%' }} />
                   </div>
                 </div>
               )}
 
-              {/* Right Security actions panel */}
-              <div style={{ flex: '1 1 300px', borderLeft: '1px solid #f3f4f6', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem' }}>Security & Account</h3>
-                <Button label="Change Password" icon="pi pi-key" severity="success" outlined onClick={() => setShowPasswordModal(true)} style={{ borderRadius: '8px', width: '100%' }} />
-                <Button label="Delete Account" icon="pi pi-trash" severity="danger" text onClick={() => setShowDeleteModal(true)} style={{ borderRadius: '8px', width: '100%' }} />
-              </div>
-            </div>
-          </TabPanel>
-
-          {/* Tab 2: Orders History (Customer Only) */}
-          {profileData?.role === 'user' && (
-            <TabPanel header={<span><i className="pi pi-shopping-cart" style={{ marginRight: '6px' }} /> Order History</span>}>
-              <div style={{ marginTop: '1.5rem' }}>
-                <div style={{ borderRadius: '12px', border: '1px solid #b7eb8f', padding: '1.5rem', backgroundColor: '#ffffff' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', fontSize: '18px', fontWeight: 700, color: '#15803d', marginBottom: '1.5rem' }}>
-                    <i className="pi pi-shopping-cart" style={{ marginRight: '8px' }} /> Personal dining Orders
-                  </div>
-                  {orders.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f0fdf4', borderRadius: '8px' }}>
-                      <i className="pi pi-shopping-cart" style={{ fontSize: '48px', color: '#16a34a', marginBottom: '12px' }} />
-                      <h4 style={{ color: '#16a34a', margin: 0, fontWeight: 700 }}>No orders placed yet</h4>
-                      <p style={{ color: '#8c8c8c', margin: '4px 0 0 0' }}>Your orders will appear here once you purchase gourmet dining credits.</p>
+              {/* Panel 1: Order History */}
+              {activeIndex === 1 && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <div style={{ borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', backgroundColor: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '1.5rem' }}>
+                      <i className="pi pi-shopping-cart" style={{ marginRight: '8px', color: '#15803d' }} /> Personal dining Orders
                     </div>
-                  ) : (
-                    <DataTable value={orders} loading={loadingOrders} paginator rows={6} responsiveLayout="scroll" style={{ fontSize: '13.5px' }}>
-                      <Column header="Order ID" body={(rowData) => (
-                        <PrimeTag 
-                          value={`${rowData._id.substring(0, 8)}...`} 
-                          severity="secondary" 
-                          style={{ borderRadius: '6px', border: '1px solid #d1d5db', padding: '4px 8px', fontWeight: 600, color: '#374151', backgroundColor: '#f3f4f6' }} 
-                        />
-                      )} style={{ width: '120px' }} />
-                      
-                      <Column header="Amount" body={(rowData) => (
-                        <span style={{ fontWeight: 'bold', color: '#16a34a', fontSize: '15px' }}>₹{rowData.totalAmount.toFixed(2)}</span>
-                      )} style={{ width: '120px' }} />
-                      
-                      <Column header="Payment" body={(rowData) => (
-                        <PrimeTag 
-                          value={rowData.paymentMethod ? rowData.paymentMethod.toUpperCase() : 'COD'} 
-                          severity="warning" 
-                          style={{ borderRadius: '6px', border: '1px dashed #f59e0b', padding: '4px 8px', fontWeight: 600 }} 
-                        />
-                      )} style={{ width: '120px' }} />
-                      
-                      <Column header="Status" body={(rowData) => {
-                        const statusColors: { [key: string]: 'success' | 'info' | 'warning' | 'danger' | 'secondary' } = {
-                          'Pending': 'warning',
-                          'Accepted': 'info',
-                          'Preparing': 'info',
-                          'Pickup': 'info',
-                          'Out for Delivery': 'success',
-                          'Shipped': 'success',
-                          'Delivered': 'success',
-                          'Cancelled': 'danger'
-                        };
-                        return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <PrimeTag 
-                              value={rowData.deliveryStatus} 
-                              severity={statusColors[rowData.deliveryStatus] || 'secondary'} 
-                              style={{ borderRadius: '6px', padding: '4px 8px', fontWeight: 600 }} 
-                            />
-                            {rowData.deliveryStatus !== 'Cancelled' && (
-                              <Button 
-                                icon="pi pi-map-marker" 
-                                className="p-button-text p-button-success p-button-sm" 
-                                style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto' }} 
-                                tooltip="Track Order"
-                                tooltipOptions={{ position: 'top' }}
-                                onClick={() => showStatusModal(rowData)} 
+
+                    {orders.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                        <i className="pi pi-shopping-cart" style={{ fontSize: '48px', color: '#94a3b8', marginBottom: '12px' }} />
+                        <h4 style={{ color: '#475569', margin: 0, fontWeight: 700 }}>No orders placed yet</h4>
+                        <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>Your orders will appear here once you purchase gourmet dining credits.</p>
+                      </div>
+                    ) : (
+                      <DataTable value={orders} loading={loadingOrders} paginator rows={5} rowsPerPageOptions={[5, 10, 20]} className="p-datatable-striped" responsiveLayout="scroll" style={{ fontSize: '13.5px' }}>
+                        <Column header="ORDER ID" body={(rowData) => (
+                          <PrimeTag 
+                            value={`${rowData._id.substring(0, 8)}...`} 
+                            severity="secondary" 
+                            style={{ borderRadius: '6px', border: '1px solid #d1d5db', padding: '4px 8px', fontWeight: 600, color: '#374151', backgroundColor: '#f3f4f6' }} 
+                          />
+                        )} style={{ width: '120px' }} />
+                        
+                        <Column header="AMOUNT" body={(rowData) => (
+                          <span style={{ fontWeight: 'bold', color: '#16a34a', fontSize: '15px' }}>₹{rowData.totalAmount.toFixed(2)}</span>
+                        )} style={{ width: '120px' }} />
+                        
+                        <Column header="PAYMENT" body={(rowData) => (
+                          <PrimeTag 
+                            value={rowData.paymentMethod ? rowData.paymentMethod.toUpperCase() : 'COD'} 
+                            severity="warning" 
+                            style={{ borderRadius: '6px', border: '1px dashed #f59e0b', padding: '4px 8px', fontWeight: 600 }} 
+                          />
+                        )} style={{ width: '120px' }} />
+                        
+                        <Column header="STATUS" body={(rowData) => {
+                          const statusColors: { [key: string]: 'success' | 'info' | 'warning' | 'danger' | 'secondary' } = {
+                            'Pending': 'warning',
+                            'Accepted': 'info',
+                            'Preparing': 'info',
+                            'Pickup': 'info',
+                            'Out for Delivery': 'success',
+                            'Shipped': 'success',
+                            'Delivered': 'success',
+                            'Cancelled': 'danger'
+                          };
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <PrimeTag 
+                                value={rowData.deliveryStatus} 
+                                severity={statusColors[rowData.deliveryStatus] || 'secondary'} 
+                                style={{ borderRadius: '6px', padding: '4px 8px', fontWeight: 600 }} 
                               />
-                            )}
-                          </div>
-                        );
-                      }} style={{ width: '190px' }} />
-                      
-                      <Column header="Order Date" body={(rowData) => (
-                        <span style={{ color: '#4b5563', fontSize: '13px', fontWeight: 500 }}>{new Date(rowData.createdAt).toLocaleDateString()}</span>
-                      )} style={{ width: '120px' }} />
-                      
-                      <Column header="Items" body={(rowData) => (
-                        <Button 
-                          label={`View (${rowData.items?.length || 0})`}
-                          icon="pi pi-eye" 
-                          className="p-button-outlined p-button-success p-button-sm" 
-                          style={{ borderRadius: '6px', fontWeight: 600, padding: '4px 12px' }} 
-                          onClick={() => showModal(rowData)} 
-                        />
-                      )} style={{ width: '140px' }} />
-                    </DataTable>
-                  )}
-                </div>
-              </div>
-            </TabPanel>
-          )}
+                            </div>
+                          );
+                        }} style={{ width: '120px' }} />
 
-          {/* Tab 3: Gift Cards Management */}
-          {profileData?.role === 'user' && (
-            <TabPanel header={<span><i className="pi pi-gift" style={{ marginRight: '6px' }} /> Gift Cards</span>}>
-              <div style={{ marginTop: '1.5rem', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                {/* Left Card: Purchase */}
-                <div style={{ flex: '1 1 450px', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem' }}>
-                  <h3 style={{ margin: '0 0 1.25rem 0', fontWeight: 800, color: '#1f2937', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem' }}>Purchase dining Gift Card</h3>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Select Denomination</label>
-                    <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
-                      <button type="button" onClick={() => { setSelectedPresetAmount(500); setCustomAmount(''); }} style={presetButtonStyle(500)}>₹500</button>
-                      <button type="button" onClick={() => { setSelectedPresetAmount(1000); setCustomAmount(''); }} style={presetButtonStyle(1000)}>₹1,000</button>
-                      <button type="button" onClick={() => { setSelectedPresetAmount(2000); setCustomAmount(''); }} style={presetButtonStyle(2000)}>₹2,000</button>
+                        <Column header="TRACK ORDER" body={(rowData) => {
+                          if (rowData.deliveryStatus === 'Cancelled') return <span style={{ color: '#9ca3af' }}>-</span>;
+                          return (
+                            <Button 
+                              icon="pi pi-map-marker" 
+                              label="Track"
+                              className="p-button-text p-button-success p-button-sm" 
+                              style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
+                              tooltip="Track Order"
+                              tooltipOptions={{ position: 'top' }}
+                              onClick={() => showStatusModal(rowData)} 
+                            />
+                          );
+                        }} style={{ width: '130px' }} />
+
+                        <Column header="RATE PRODUCTS" body={(rowData) => {
+                          if (rowData.deliveryStatus !== 'Delivered') return <span style={{ color: '#9ca3af' }}>-</span>;
+                          if (rowData.isProductRated) {
+                            return (
+                              <Button 
+                                icon="pi pi-check-circle" 
+                                label="Rated"
+                                className="p-button-text p-button-sm" 
+                                disabled
+                                style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto', color: '#9ca3af', opacity: 0.6 }} 
+                              />
+                            );
+                          }
+                          return (
+                            <Button 
+                              icon="pi pi-star" 
+                              label="Rate"
+                              className="p-button-text p-button-warning p-button-sm" 
+                              style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto', color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
+                              tooltip="Rate Products"
+                              tooltipOptions={{ position: 'top' }}
+                              onClick={() => openProductReviewModal(rowData)} 
+                            />
+                          );
+                        }} style={{ width: '120px' }} />
+
+                        <Column header="RATE DELIVERY" body={(rowData) => {
+                          if (rowData.deliveryStatus !== 'Delivered') return <span style={{ color: '#9ca3af' }}>-</span>;
+                          if (!rowData.deliveryExecutive) return <span style={{ color: '#9ca3af' }}>N/A</span>;
+                          if (rowData.isDeliveryRated) {
+                            return (
+                              <Button 
+                                icon="pi pi-check-circle" 
+                                label="Rated"
+                                className="p-button-text p-button-sm" 
+                                disabled
+                                style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto', color: '#9ca3af', opacity: 0.6 }} 
+                              />
+                            );
+                          }
+                          return (
+                            <Button 
+                              icon="pi pi-truck" 
+                              label="Rate"
+                              className="p-button-text p-button-info p-button-sm" 
+                              style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto', color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: '4px' }} 
+                              tooltip="Rate Delivery Partner"
+                              tooltipOptions={{ position: 'top' }}
+                              onClick={() => openDeliveryReviewModal(rowData)} 
+                            />
+                          );
+                        }} style={{ width: '120px' }} />
+                        
+                        <Column header="ORDER DATE" body={(rowData) => (
+                          <span style={{ color: '#4b5563', fontSize: '13px', fontWeight: 500 }}>{formatDate(rowData.createdAt)}</span>
+                        )} style={{ width: '120px' }} />
+                        
+                        <Column header="ITEMS" body={(rowData) => (
+                          <Button 
+                            label={`View (${rowData.items?.length || 0})`}
+                            icon="pi pi-eye" 
+                            className="p-button-outlined p-button-success p-button-sm" 
+                            style={{ borderRadius: '6px', fontWeight: 600, padding: '4px 12px' }} 
+                            onClick={() => showModal(rowData)} 
+                          />
+                        )} style={{ width: '140px' }} />
+                      </DataTable>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Panel 2: Gift Cards */}
+              {activeIndex === 2 && (
+                <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {/* Top Row: Actions */}
+                  <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                    {/* Purchase Action Card */}
+                    <div style={{ flex: '1 1 350px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                      <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, color: '#1f2937' }}>Prepaid Dining Gift Cards</h3>
+                      <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: '#64748b', lineHeight: 1.4 }}>Buy dining Gift Cards for yourself or send them directly to a friend's email address as a premium gift.</p>
+                      <Button label="Buy Gift Card" icon="pi pi-credit-card" severity="success" onClick={() => setPurchaseModalOpen(true)} style={{ borderRadius: '8px' }} />
+                    </div>
+
+                    {/* Redeem Action Card */}
+                    <div style={{ flex: '1 1 350px', border: '1px solid #b7eb8f', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#f0fdf4', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01)' }}>
+                      <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, color: '#166534' }}>Have a gift card code?</h3>
+                      <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: '#15803d', lineHeight: 1.4 }}>Redeem received gift card credentials instantly to top up your personal dining wallet balance.</p>
+                      <Button label="Redeem Gift Card to Wallet" icon="pi pi-wallet" severity="success" onClick={() => setRedeemModalOpen(true)} style={{ borderRadius: '8px' }} />
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Or Custom Value (₹)</label>
-                    <InputText type="number" value={customAmount} onChange={(e) => setCustomAmount(e.target.value)} placeholder="e.g. 1500" style={styles.formInput} />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.5rem' }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 700 }}>Recipient Email (Optional)</label>
-                    <InputText type="email" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} placeholder="friend@example.com" style={styles.formInput} />
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f9fafb', padding: '0.85rem 1.15rem', borderRadius: '10px', marginBottom: '1.25rem', border: '1px solid #f3f4f6' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Total Payable amount:</span>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#15803d' }}>₹{getPurchaseAmount()}</span>
-                  </div>
-
-                  <Button label={purchasing ? "Processing Secure Gateway..." : "Buy Gift Card with Razorpay"} icon="pi pi-credit-card" severity="success" loading={purchasing} onClick={handlePurchaseGiftCard} style={{ width: '100%', borderRadius: '8px' }} />
-                </div>
-
-                {/* Right Card: Redeem & History */}
-                <div style={{ flex: '1 1 450px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#f0fdf4' }}>
-                    <h3 style={{ margin: '0 0 1rem 0', fontWeight: 700, color: '#166534' }}>Have a gift card code?</h3>
-                    <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: '#15803d' }}>Redeem received gift cards instantly into your wallet balance.</p>
-                    <Button label="Redeem Gift Card to Wallet" icon="pi pi-wallet" severity="success" onClick={() => setRedeemModalOpen(true)} style={{ borderRadius: '8px' }} />
-                  </div>
-
-                  <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1rem', flex: 1 }}>
-                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', fontWeight: 700 }}>Personal Gift Cards Log</h4>
-                    <DataTable value={myGiftCards} loading={loadingGiftCards} paginator rows={3} style={{ fontSize: '0.8rem' }}>
-                      <Column header="CODE" body={(r: IGiftCard) => <code style={{ cursor: 'pointer', color: '#15803d', fontWeight: 'bold' }} onClick={() => handleCopyCode(r.code)}>{r.code}</code>} />
-                      <Column header="BALANCE" body={(r: IGiftCard) => <span style={{ fontWeight: 'bold', color: '#16a34a' }}>₹{r.balance.toFixed(2)}</span>} />
-                      <Column header="STATUS" body={(r: IGiftCard) => <PrimeTag severity={r.balance <= 0 ? 'danger' : 'success'} value={r.balance <= 0 ? 'Consumed' : 'Active'} />} />
+                  {/* Bottom Row: Logs Table */}
+                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.5rem', backgroundColor: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>Personal Gift Cards Log</h4>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#15803d', backgroundColor: '#dcfce7', padding: '4px 10px', borderRadius: '12px' }}>
+                        Total Balance: ₹{totalGiftCardBalance.toFixed(2)}
+                      </div>
+                    </div>
+                    <DataTable value={myGiftCards} loading={loadingGiftCards} paginator rows={5} rowsPerPageOptions={[5, 10, 20]} className="p-datatable-striped" style={{ fontSize: '0.82rem' }}>
+                      <Column header="GIFT CARD CODE" body={(r: IGiftCard) => <code style={{ cursor: 'pointer', color: '#15803d', fontWeight: 700, letterSpacing: '0.5px' }} onClick={() => handleCopyCode(r.code)}>{r.code}</code>} style={{ width: '180px' }} />
+                      <Column header="REMAINING BALANCE" body={(r: IGiftCard) => <span style={{ fontWeight: 'bold', color: '#16a34a' }}>₹{r.balance.toFixed(2)}</span>} style={{ width: '150px' }} />
+                      <Column header="STATUS" body={(r: IGiftCard) => <PrimeTag severity={r.balance <= 0 ? 'danger' : 'success'} value={r.balance <= 0 ? 'Consumed' : 'Active'} style={{ borderRadius: '4px' }} />} style={{ width: '120px' }} />
+                      <Column header="ISSUED ON" body={(r: IGiftCard) => formatDate(r.createdAt)} style={{ width: '140px' }} />
                     </DataTable>
                   </div>
-                </div>
-              </div>
-            </TabPanel>
-          )}
 
-          {/* Tab 5: Active Coupons Announcements */}
-          {profileData?.role === 'user' && (
-            <TabPanel header={<span><i className="pi pi-bell" style={{ marginRight: '6px' }} /> Dynamic Coupons</span>}>
-              <div style={{ marginTop: '1.5rem' }}>
-                <h3 style={{ margin: '0 0 1.25rem 0', fontWeight: 800, color: '#1f2937' }}>Available Coupon Codes Announcements</h3>
-                
-                {loadingCoupons ? (
-                  <div style={{ textAlign: 'center', padding: '2rem' }}><i className="pi pi-spin pi-spinner" style={{ fontSize: '2rem', color: '#15803d' }} /></div>
-                ) : coupons.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', background: '#f9fafb', borderRadius: '12px', color: '#6b7280' }}>
-                    <i className="pi pi-bell" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
-                    <div style={{ fontWeight: 600 }}>No promo codes running at this time</div>
-                    <div style={{ fontSize: '0.85rem' }}>Check back soon for festive culinary announcements!</div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                    {coupons.map((c) => (
-                      <div key={c._id} style={{ border: '2px dashed #86efac', backgroundColor: '#f0fdf4', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative', overflow: 'hidden' }}>
-                        <div style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#86efac', color: '#166534', fontSize: '0.7rem', padding: '0.2rem 0.6rem', fontWeight: 700, borderBottomLeftRadius: '8px' }}>ACTIVE</div>
-                        <h4 style={{ margin: 0, fontWeight: 800, fontSize: '1.3rem', color: '#166534' }}>{c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} OFF`}</h4>
-                        <div style={{ fontSize: '0.85rem', color: '#15803d' }}>Minimum Order Required: <strong>₹{c.minOrderAmount}</strong></div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #bbf7d0', marginTop: '0.5rem' }}>
-                          <code style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#111827' }}>{c.code}</code>
-                          <button
-                            type="button"
-                            style={{ backgroundColor: '#15803d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
-                            onClick={() => handleCopyCode(c.code)}
-                          >
-                            COPY
-                          </button>
+                  {/* Purchase Gift Card Modal */}
+                  <Dialog
+                    header={<div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803d', fontWeight: 'bold' }}><i className="pi pi-credit-card"></i><span>Purchase Dining Gift Card</span></div>}
+                    visible={purchaseModalOpen}
+                    style={{ width: '450px', borderRadius: '20px' }}
+                    modal
+                    onHide={() => setPurchaseModalOpen(false)}
+                  >
+                    <div style={{ padding: '0.5rem 0' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>Select Denomination</label>
+                          <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+                            <button type="button" onClick={() => { setSelectedPresetAmount(500); setCustomAmount(''); }} style={presetButtonStyle(500)}>₹500</button>
+                            <button type="button" onClick={() => { setSelectedPresetAmount(1000); setCustomAmount(''); }} style={presetButtonStyle(1000)}>₹1,000</button>
+                            <button type="button" onClick={() => { setSelectedPresetAmount(2000); setCustomAmount(''); }} style={presetButtonStyle(2000)}>₹2,000</button>
+                          </div>
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 'auto' }}>Valid until: {new Date(c.expiryDate).toLocaleDateString()}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </TabPanel>
-          )}
 
-        </TabView>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>Or Custom Value (₹)</label>
+                          <InputText type="number" value={customAmount} onChange={(e) => { setCustomAmount(e.target.value); setSelectedPresetAmount(0); }} style={styles.formInput} placeholder="e.g. 750" />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>Recipient Email address *</label>
+                          <InputText type="email" value={giftCardRecipientEmail} onChange={(e) => setGiftCardRecipientEmail(e.target.value)} style={styles.formInput} placeholder="friend@example.com" />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+                          <Button label="Cancel" type="button" className="p-button-outlined p-button-secondary" style={{ color: '#595959', border: '1px solid #d9d9d9' }} onClick={() => setPurchaseModalOpen(false)} />
+                          <Button label={purchasing ? "Processing Secure Gateway..." : "Buy Gift Card"} icon="pi pi-credit-card" severity="success" loading={purchasing} onClick={handlePurchaseGiftCard} />
+                        </div>
+                      </div>
+                    </div>
+                  </Dialog>
+                </div>
+              )}
+
+              {/* Panel 3: Dynamic Coupons */}
+              {activeIndex === 3 && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <h3 style={{ margin: '0 0 1.25rem 0', fontWeight: 800, color: '#1f2937' }}>Available Coupon Codes Announcements</h3>
+                  
+                  {loadingCoupons ? (
+                    <div style={{ textAlign: 'center', padding: '2rem' }}><i className="pi pi-spin pi-spinner" style={{ fontSize: '2rem', color: '#15803d' }} /></div>
+                  ) : coupons.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem', background: '#f9fafb', borderRadius: '12px', color: '#6b7280' }}>
+                      <i className="pi pi-bell" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                      <div style={{ fontWeight: 600 }}>No promo codes running at this time</div>
+                      <div style={{ fontSize: '0.85rem' }}>Check back soon for festive culinary announcements!</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                      {coupons.map((c) => (
+                        <div key={c._id} style={{ border: '2px dashed #86efac', backgroundColor: '#f0fdf4', borderRadius: '12px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative', overflow: 'hidden' }}>
+                          <div style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#86efac', color: '#166534', fontSize: '0.7rem', padding: '0.2rem 0.6rem', fontWeight: 700, borderBottomLeftRadius: '8px' }}>ACTIVE</div>
+                          <h4 style={{ margin: 0, fontWeight: 800, fontSize: '1.3rem', color: '#166534' }}>{c.discountType === 'percentage' ? `${c.discountValue}% OFF` : `₹${c.discountValue} OFF`}</h4>
+                          <div style={{ fontSize: '0.85rem', color: '#15803d' }}>Minimum Order Required: <strong>₹{c.minOrderAmount}</strong></div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #bbf7d0', marginTop: '0.5rem' }}>
+                            <code style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#111827' }}>{c.code}</code>
+                            <button
+                              type="button"
+                              style={{ backgroundColor: '#15803d', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600 }}
+                              onClick={() => handleCopyCode(c.code)}
+                            >
+                              COPY
+                            </button>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 'auto' }}>Valid until: {formatDate(c.expiryDate)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Migrated Order Details modal */}
@@ -1206,11 +1350,31 @@ const ProfilePage: React.FC = () => {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
                 <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Order Date</div>
-                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>{new Date(selectedOrder.createdAt).toLocaleString()}</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>{formatDate(selectedOrder.createdAt)}</div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
                 <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Status</div>
-                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>{getStatusTag(selectedOrder.deliveryStatus)}</div>
+                <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>
+                  {(() => {
+                    const statusColors: { [key: string]: 'success' | 'info' | 'warning' | 'danger' | 'secondary' } = {
+                      'Pending': 'warning',
+                      'Accepted': 'info',
+                      'Preparing': 'info',
+                      'Pickup': 'info',
+                      'Out for Delivery': 'success',
+                      'Shipped': 'success',
+                      'Delivered': 'success',
+                      'Cancelled': 'danger'
+                    };
+                    return (
+                      <PrimeTag 
+                        value={selectedOrder.deliveryStatus} 
+                        severity={statusColors[selectedOrder.deliveryStatus] || 'secondary'} 
+                        style={{ borderRadius: '6px', padding: '4px 8px', fontWeight: 600 }} 
+                      />
+                    );
+                  })()}
+                </div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Total Amount</div>
@@ -1246,7 +1410,7 @@ const ProfilePage: React.FC = () => {
                 </div>
                 <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
                 <p style={{ margin: '2px 0' }}><strong>Order ID:</strong> {selectedOrder._id}</p>
-                <p style={{ margin: '2px 0' }}><strong>Date:</strong> {new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                <p style={{ margin: '2px 0' }}><strong>Date:</strong> {formatDate(selectedOrder.createdAt)}</p>
                 <p style={{ margin: '2px 0' }}><strong>Customer:</strong> {selectedOrder.user?.name}</p>
                 <p style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></p>
                 <table style={{ width: '100%', fontSize: '12px' }}>

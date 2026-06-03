@@ -9,6 +9,7 @@ import { Paginator } from 'primereact/paginator';
 import { Dialog } from 'primereact/dialog';
 import { Rating } from 'primereact/rating';
 import { AuthContext } from '../../context/AuthContext';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface Coupon {
   _id: string;
@@ -313,7 +314,7 @@ export default function DealsDiscounts() {
                           style={{ fontSize: '0.8rem', fontWeight: 800, padding: '0.3rem 0.6rem', borderRadius: '6px' }}
                         />
                         <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
-                          Expires: {new Date(coupon.expiryDate).toLocaleDateString()}
+                          Expires: {formatDate(coupon.expiryDate)}
                         </span>
                       </div>
 

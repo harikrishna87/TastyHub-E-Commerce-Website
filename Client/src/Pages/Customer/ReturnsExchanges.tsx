@@ -21,8 +21,6 @@ const ReturnsExchanges: React.FC = () => {
   const shownotification = () => {
     if ((window as any).showToast) {
       (window as any).showToast('info', 'Upcoming Feature', 'This feature will be added in an upcoming update.');
-    } else {
-      alert('This feature will be added in an upcoming update.');
     }
   };
 

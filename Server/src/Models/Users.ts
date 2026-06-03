@@ -54,6 +54,10 @@ const UserSchema: Schema = new Schema<IUser>({
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' }],
     default: [],
   },
+  rating: {
+    rate: { type: Number, default: 0 },
+    count: { type: Number, default: 0 },
+  },
   googleId: {
     type: String,
     unique: true,

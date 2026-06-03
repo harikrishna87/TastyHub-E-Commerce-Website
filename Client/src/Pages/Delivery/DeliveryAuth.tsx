@@ -13,7 +13,7 @@ const customStyles = `
     justify-content: center;
     font-family: 'Inter', 'Outfit', sans-serif;
     padding: 20px 1rem;
-    min-height: calc(100vh - 120px);
+    min-height: 100vh;
   }
   .image-login-card {
     background: #ffffff !important;
@@ -56,6 +56,14 @@ const customStyles = `
     font-size: 0.92rem !important;
     height: 44px !important;
     outline: none;
+    box-sizing: border-box !important;
+  }
+  .image-text-input.has-left-icon {
+    padding-left: 44px !important;
+  }
+  .image-text-input.has-both-icons {
+    padding-left: 44px !important;
+    padding-right: 44px !important;
   }
   .image-text-input:focus, .image-text-input:hover {
     border-color: #22c55e !important;
@@ -237,9 +245,9 @@ const DeliveryAuth: React.FC = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="image-text-input" 
+                    className="image-text-input has-left-icon" 
                     placeholder="Enter your email"
-                    style={{ paddingLeft: '44px', width: '100%' }}
+                    style={{ width: '100%' }}
                     required
                   />
                 </div>
@@ -253,9 +261,9 @@ const DeliveryAuth: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="image-text-input" 
+                    className="image-text-input has-both-icons" 
                     placeholder="Enter your password"
-                    style={{ paddingLeft: '44px', paddingRight: '44px', width: '100%' }}
+                    style={{ width: '100%' }}
                     required
                   />
                   <i 
@@ -309,9 +317,9 @@ const DeliveryAuth: React.FC = () => {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="image-text-input" 
+                    className="image-text-input has-left-icon" 
                     placeholder="Enter your full name"
-                    style={{ paddingLeft: '44px', width: '100%' }}
+                    style={{ width: '100%' }}
                     required
                   />
                 </div>
@@ -325,9 +333,9 @@ const DeliveryAuth: React.FC = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="image-text-input" 
+                    className="image-text-input has-left-icon" 
                     placeholder="Enter your email"
-                    style={{ paddingLeft: '44px', width: '100%' }}
+                    style={{ width: '100%' }}
                     required
                   />
                 </div>
@@ -341,9 +349,9 @@ const DeliveryAuth: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="image-text-input" 
+                    className="image-text-input has-both-icons" 
                     placeholder="Create secure password"
-                    style={{ paddingLeft: '44px', paddingRight: '44px', width: '100%' }}
+                    style={{ width: '100%' }}
                     required
                     minLength={6}
                   />

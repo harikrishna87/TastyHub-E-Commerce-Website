@@ -17,7 +17,7 @@ interface Product {
   image: string;
   price: number;
   category: string;
-  rating?: number;
+  rating?: number | { rate: number; count: number };
   discountPercentage?: number;
   discountPrice?: number;
 }
@@ -144,7 +144,7 @@ export default function Homepage() {
           image: item.image || '',
           price: typeof item.price === 'number' ? item.price : 0,
           category: item.category || 'Uncategorized',
-          rating: typeof item.rating === 'number' ? item.rating : Math.round((3 + Math.random() * 2) * 10) / 10,
+          rating: item.rating ? item.rating : { rate: 0, count: 0 },
           discountPercentage: item.discountPercentage || 0,
           discountPrice: item.discountPrice || item.price
         }));

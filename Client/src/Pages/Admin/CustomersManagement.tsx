@@ -9,6 +9,7 @@ import { Avatar } from 'primereact/avatar';
 import { Tag } from 'primereact/tag';
 import { InputText } from 'primereact/inputtext';
 import { AuthContext } from '../../context/AuthContext';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface ICustomer {
   _id: string;
@@ -213,7 +214,7 @@ const CustomersManagement: React.FC = () => {
 
 
   const dateBodyTemplate = (rowData: ICustomer) => {
-    return <span>{new Date(rowData.createdAt).toLocaleDateString()}</span>;
+    return <span>{formatDate(rowData.createdAt)}</span>;
   };
 
   const statusBodyTemplate = (rowData: ICustomer) => {
@@ -371,7 +372,7 @@ const CustomersManagement: React.FC = () => {
                   <span style={{ fontSize: '0.85rem', color: '#4b5563' }}>Phone: {selectedCustomer.phone || 'N/A'}</span>
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', alignItems: 'center' }}>
                     <Tag severity={selectedCustomer.verified !== false ? 'success' : 'warning'} value={selectedCustomer.verified !== false ? 'Verified' : 'Unverified'} />
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Joined: {new Date(selectedCustomer.createdAt).toLocaleDateString()}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Joined: {formatDate(selectedCustomer.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -418,7 +419,7 @@ const CustomersManagement: React.FC = () => {
                   <Column
                     header="Date"
                     body={(rowData: IOrder) => (
-                      <span>{new Date(rowData.createdAt).toLocaleDateString()}</span>
+                      <span>{formatDate(rowData.createdAt)}</span>
                     )}
                   />
                   <Column

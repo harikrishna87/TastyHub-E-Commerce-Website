@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { Tag } from 'primereact/tag';
+import { Rating } from 'primereact/rating';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
+import { Toast } from 'primereact/toast';
+import { useSearchParams } from 'react-router-dom';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface Executive {
   _id: string;
@@ -15,6 +19,12 @@ interface Executive {
   createdAt: string;
   isActive?: boolean;
   image?: string;
+  rating?: {
+    rate: number;
+    count: number;
+  };
+  dailyOrderCount?: number;
+  performance?: 'High' | 'Medium' | 'Low';
 }
 
 interface WithdrawalRequest {
@@ -33,10 +43,15 @@ interface WithdrawalRequest {
 
 const DeliveryManagement: React.FC = () => {
   const auth = useContext(AuthContext);
+  const toast = useRef<Toast>(null);
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'profiles';
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
+  const [deliveryReviews, setDeliveryReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingWithdrawals, setLoadingWithdrawals] = useState<boolean>(false);
+  const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -94,10 +109,36 @@ const DeliveryManagement: React.FC = () => {
     }
   }, [auth?.token, backendUrl]);
 
+  const fetchDeliveryReviews = useCallback(async () => {
+    if (!auth?.token) return;
+
+    try {
+      setLoadingReviews(true);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${auth.token}`
+        },
+        withCredentials: true
+      };
+
+      const response = await axios.get(`${backendUrl}/api/reviews/delivery/admin/reviews`, config);
+      if (response.data.success) {
+        setDeliveryReviews(response.data.reviews || []);
+      } else {
+        console.warn(response.data.message || 'Failed to fetch reviews.');
+      }
+    } catch (err: any) {
+      console.error('Error fetching reviews:', err);
+    } finally {
+      setLoadingReviews(false);
+    }
+  }, [auth?.token, backendUrl]);
+
   useEffect(() => {
     fetchExecutives();
     fetchWithdrawalRequests();
-  }, [fetchExecutives, fetchWithdrawalRequests]);
+    fetchDeliveryReviews();
+  }, [fetchExecutives, fetchWithdrawalRequests, fetchDeliveryReviews]);
 
   const handleUpdateStatus = async (id: string, status: 'Approved' | 'Rejected') => {
     if (!auth?.token) return;
@@ -122,12 +163,25 @@ const DeliveryManagement: React.FC = () => {
         setExecutives(prev =>
           prev.map(exec => (exec._id === id ? { ...exec, deliveryStatus: status } : exec))
         );
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Status Updated',
+          detail: `Executive application successfully ${status.toLowerCase()}!`
+        });
       } else {
-        alert(response.data.message || 'Failed to update status.');
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failed',
+          detail: response.data.message || 'Failed to update status.'
+        });
       }
     } catch (err: any) {
       console.error('Status update failed:', err);
-      alert(err.response?.data?.message || 'Failed to update status.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || 'Failed to update status.'
+      });
     } finally {
       setActionLoading(null);
     }
@@ -157,12 +211,25 @@ const DeliveryManagement: React.FC = () => {
           prev.map(req => (req._id === id ? { ...req, status } : req))
         );
         fetchExecutives(); // Update executives listing in case balance changes
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Status Updated',
+          detail: `Withdrawal request successfully ${status.toLowerCase()}!`
+        });
       } else {
-        alert(response.data.message || 'Failed to update withdrawal request.');
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failed',
+          detail: response.data.message || 'Failed to update withdrawal request.'
+        });
       }
     } catch (err: any) {
       console.error('Withdrawal update failed:', err);
-      alert(err.response?.data?.message || 'Failed to update withdrawal request.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || 'Failed to update withdrawal request.'
+      });
     }
   };
 
@@ -191,15 +258,44 @@ const DeliveryManagement: React.FC = () => {
         setExecutives(prev =>
           prev.map(item => (item._id === exec._id ? { ...item, isActive: !isActive } : item))
         );
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Status Updated',
+          detail: `Executive successfully ${isActive ? 'deactivated' : 'activated'}!`
+        });
       } else {
-        alert(response.data.message || `Failed to ${actionText} delivery executive.`);
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failed',
+          detail: response.data.message || `Failed to ${actionText} delivery executive.`
+        });
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || `Failed to ${actionText} delivery executive.`);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || `Failed to ${actionText} delivery executive.`
+      });
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const ratingTemplate = (row: Executive) => {
+    const rate = row.rating?.rate || 0;
+    const count = row.rating?.count || 0;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <Rating disabled cancel={false} value={Math.round(rate)} stars={5} style={{ color: '#f59e0b', fontSize: '13px' }} />
+        <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#1e293b' }}>
+          {rate.toFixed(1)}
+        </span>
+        <span style={{ fontSize: '11px', color: '#64748b' }}>
+          ({count})
+        </span>
+      </div>
+    );
   };
 
   const executiveTemplate = (row: Executive) => {
@@ -252,7 +348,7 @@ const DeliveryManagement: React.FC = () => {
   const availabilityTemplate = (row: Executive) => (
     row.deliveryStatus === 'Approved' ? (
       <Tag
-        value={row.isAvailable ? 'Online / Free' : 'Busy / Offline'}
+        value={row.isAvailable ? 'Online' : 'Busy / Offline'}
         severity={row.isAvailable ? 'success' : 'secondary'}
         style={{ borderRadius: '6px' }}
       />
@@ -260,6 +356,27 @@ const DeliveryManagement: React.FC = () => {
       <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Not Approved</span>
     )
   );
+
+  const performanceTemplate = (row: Executive) => {
+    if (row.deliveryStatus !== 'Approved') {
+      return <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>-</span>;
+    }
+    
+    const count = row.dailyOrderCount || 0;
+    const perf = row.performance || 'Low';
+    
+    let severity: "success" | "warning" | "danger" = 'danger';
+    if (perf === 'High') severity = 'success';
+    else if (perf === 'Medium') severity = 'warning';
+    
+    return (
+      <Tag 
+        value={`${perf} (${count} daily)`} 
+        severity={severity} 
+        style={{ borderRadius: '6px', fontSize: '0.78rem', padding: '3px 8px', fontWeight: 700 }} 
+      />
+    );
+  };
 
   const actionsTemplate = (row: Executive) => {
     const isPending = row.deliveryStatus === 'Pending';
@@ -317,98 +434,167 @@ const DeliveryManagement: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Delivery Executives Management</h1>
-        <p style={styles.sub}>Review job applications, approve delivery partners, and monitor availability</p>
-      </div>
+      <Toast ref={toast} />
+      
+      {activeTab === 'profiles' && (
+        <>
+          <div style={styles.header}>
+            <h1 style={styles.title}>Delivery Executives Management</h1>
+            <p style={styles.sub}>Review job applications, approve delivery partners, and monitor availability</p>
+          </div>
 
-      <div style={styles.tablePanel}>
-        <DataTable
-          value={executives}
-          paginator
-          rows={10}
-          rowsPerPageOptions={[5, 10, 20]}
-          className="p-datatable-striped"
-          responsiveLayout="scroll"
-          emptyMessage={() => (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
-              <i className="pi pi-truck" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
-              <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No delivery executives registered yet.</div>
-              <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Pending or approved executive profiles will appear here.</div>
-            </div>
-          )}
-        >
-          <Column field="name" header="EXECUTIVE NAME" body={executiveTemplate} style={{ fontWeight: 600 }} sortable />
-          <Column field="email" header="EMAIL ADDRESS" sortable />
-          <Column field="deliveryStatus" header="APPLICATION STATUS" body={statusTemplate} sortable />
-          <Column header="ONLINE STATUS" body={availabilityTemplate} />
-          <Column field="createdAt" header="APPLIED ON" body={(r) => new Date(r.createdAt).toLocaleDateString()} sortable />
-          <Column header="DECISIONS" body={actionsTemplate} style={{ width: '220px' }} />
-        </DataTable>
-      </div>
+          <div style={styles.tablePanel}>
+            <DataTable
+              value={executives}
+              paginator
+              rows={10}
+              rowsPerPageOptions={[5, 10, 20]}
+              className="p-datatable-striped"
+              responsiveLayout="scroll"
+              emptyMessage={() => (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
+                  <i className="pi pi-truck" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                  <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No delivery executives registered yet.</div>
+                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Pending or approved executive profiles will appear here.</div>
+                </div>
+              )}
+            >
+              <Column field="name" header="EXECUTIVE NAME" body={executiveTemplate} style={{ fontWeight: 600 }} sortable />
+              <Column field="email" header="EMAIL ADDRESS" sortable />
+              <Column field="deliveryStatus" header="APPLICATION STATUS" body={statusTemplate} sortable />
+              <Column header="PARTNER RATING" body={ratingTemplate} sortable />
+              <Column header="ONLINE STATUS" body={availabilityTemplate} />
+              <Column field="performance" header="PERFORMANCE" body={performanceTemplate} sortable />
+              <Column field="createdAt" header="APPLIED ON" body={(r) => formatDate(r.createdAt)} sortable />
+              <Column header="DECISIONS" body={actionsTemplate} style={{ width: '220px' }} />
+            </DataTable>
+          </div>
+        </>
+      )}
 
-      <div style={{ ...styles.header, marginTop: '2rem' }}>
-        <h1 style={styles.title}>Withdrawal Requests Settlement</h1>
-        <p style={styles.sub}>Review partner payout requests and approve settlements</p>
-      </div>
+      {activeTab === 'payouts' && (
+        <>
+          <div style={styles.header}>
+            <h1 style={styles.title}>Withdrawal Requests Settlement</h1>
+            <p style={styles.sub}>Review partner payout requests and approve settlements</p>
+          </div>
 
-      <div style={styles.tablePanel}>
-        <DataTable
-          value={withdrawalRequests}
-          paginator
-          rows={10}
-          loading={loadingWithdrawals}
-          rowsPerPageOptions={[5, 10, 20]}
-          className="p-datatable-striped"
-          responsiveLayout="scroll"
-          emptyMessage={() => (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
-              <i className="pi pi-money-bill" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
-              <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No withdrawal requests submitted yet.</div>
-              <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Partner requests will appear here for payout clearance.</div>
-            </div>
-          )}
-        >
-          <Column field="deliveryExecutive.name" header="EXECUTIVE NAME" body={withdrawalExecutiveTemplate} style={{ fontWeight: 600 }} sortable />
-          <Column field="deliveryExecutive.email" header="EMAIL ADDRESS" sortable />
-          <Column field="amount" header="AMOUNT REQUESTED" body={(r) => <strong style={{ color: '#166534' }}>₹{r.amount.toFixed(2)}</strong>} sortable />
-          <Column field="paymentDetails" header="PAYMENT / UPI DETAILS" />
-          <Column field="requestDate" header="REQUESTED ON" body={(r) => new Date(r.requestDate).toLocaleDateString()} sortable />
-          <Column field="status" header="STATUS" body={(r) => (
-            <Tag 
-              value={r.status} 
-              severity={
-                r.status === 'Pending' ? 'warning' :
-                r.status === 'Approved' ? 'success' : 'danger'
-              } 
-              style={{ borderRadius: '6px' }} 
-            />
-          )} sortable />
-          <Column header="ACTIONS" body={(r) => {
-            const isPending = r.status === 'Pending';
-            return isPending ? (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <Button
-                  icon="pi pi-check"
-                  label="Approve"
-                  className="p-button-success p-button-sm p-button-outlined"
-                  style={{ borderRadius: '6px' }}
-                  onClick={() => handleUpdateWithdrawalStatus(r._id, 'Approved')}
+          <div style={styles.tablePanel}>
+            <DataTable
+              value={withdrawalRequests}
+              paginator
+              rows={10}
+              loading={loadingWithdrawals}
+              rowsPerPageOptions={[5, 10, 20]}
+              className="p-datatable-striped"
+              responsiveLayout="scroll"
+              emptyMessage={() => (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
+                  <i className="pi pi-money-bill" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                  <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No withdrawal requests submitted yet.</div>
+                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Partner requests will appear here for payout clearance.</div>
+                </div>
+              )}
+            >
+              <Column field="deliveryExecutive.name" header="EXECUTIVE NAME" body={withdrawalExecutiveTemplate} style={{ fontWeight: 600 }} sortable />
+              <Column field="deliveryExecutive.email" header="EMAIL ADDRESS" sortable />
+              <Column field="amount" header="AMOUNT REQUESTED" body={(r) => <strong style={{ color: '#166534' }}>₹{r.amount.toFixed(2)}</strong>} sortable />
+              <Column field="paymentDetails" header="PAYMENT / UPI DETAILS" />
+              <Column field="requestDate" header="REQUESTED ON" body={(r) => formatDate(r.requestDate)} sortable />
+              <Column field="status" header="STATUS" body={(r) => (
+                <Tag 
+                  value={r.status} 
+                  severity={
+                    r.status === 'Pending' ? 'warning' :
+                    r.status === 'Approved' ? 'success' : 'danger'
+                  } 
+                  style={{ borderRadius: '6px' }} 
                 />
-                <Button
-                  icon="pi pi-times"
-                  label="Reject"
-                  className="p-button-danger p-button-sm p-button-outlined"
-                  style={{ borderRadius: '6px' }}
-                  onClick={() => handleUpdateWithdrawalStatus(r._id, 'Rejected')}
+              )} sortable />
+              <Column header="ACTIONS" body={(r) => {
+                const isPending = r.status === 'Pending';
+                return isPending ? (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button
+                      icon="pi pi-check"
+                      label="Approve"
+                      className="p-button-success p-button-sm p-button-outlined"
+                      style={{ borderRadius: '6px' }}
+                      onClick={() => handleUpdateWithdrawalStatus(r._id, 'Approved')}
+                    />
+                    <Button
+                      icon="pi pi-times"
+                      label="Reject"
+                      className="p-button-danger p-button-sm p-button-outlined"
+                      style={{ borderRadius: '6px' }}
+                      onClick={() => handleUpdateWithdrawalStatus(r._id, 'Rejected')}
+                    />
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Processed</span>
+                );
+              }} style={{ width: '220px' }} />
+            </DataTable>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'feedback' && (
+        <>
+          <div style={styles.header}>
+            <h1 style={styles.title}>Delivery Feedback & Complaints Log</h1>
+            <p style={styles.sub}>Monitor customer feedback, ratings, and flagged delivery complaints</p>
+          </div>
+
+          <div style={styles.tablePanel}>
+            <DataTable
+              value={deliveryReviews}
+              paginator
+              rows={10}
+              loading={loadingReviews}
+              rowsPerPageOptions={[5, 10, 20]}
+              className="p-datatable-striped"
+              responsiveLayout="scroll"
+              emptyMessage={() => (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
+                  <i className="pi pi-comments" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                  <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No partner feedback submitted yet.</div>
+                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Customer review logs will appear here.</div>
+                </div>
+              )}
+            >
+              <Column header="PARTNER" body={(r) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img
+                    src={r.deliveryExecutive?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+                    alt="Executive"
+                    style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                    onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+                  />
+                  <span style={{ fontWeight: 600 }}>{r.deliveryExecutive?.name || 'N/A'}</span>
+                </div>
+              )} sortable />
+              <Column header="CUSTOMER" body={(r) => r.user?.name || 'N/A'} />
+              <Column header="ORDER ID" body={(r) => r.order?._id ? `${r.order._id.substring(0, 8)}...` : 'N/A'} />
+              <Column header="RATING" body={(r) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Rating disabled cancel={false} value={r.rating} stars={5} style={{ color: '#f59e0b', fontSize: '12px' }} />
+                  <span style={{ fontWeight: 'bold', fontSize: '12px' }}>({r.rating})</span>
+                </div>
+              )} sortable />
+              <Column field="feedback" header="FEEDBACK TEXT" style={{ maxWidth: '300px', whiteSpace: 'normal', wordBreak: 'break-word' }} />
+              <Column header="TYPE" body={(r) => (
+                <Tag 
+                  value={r.isComplaint ? 'COMPLAINT' : 'PRAISE'} 
+                  severity={r.isComplaint ? 'danger' : 'success'} 
+                  style={{ borderRadius: '6px' }} 
                 />
-              </div>
-            ) : (
-              <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Processed</span>
-            );
-          }} style={{ width: '220px' }} />
-        </DataTable>
-      </div>
+              )} sortable />
+              <Column header="SUBMITTED ON" body={(r) => formatDate(r.createdAt)} sortable />
+            </DataTable>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -16,7 +16,7 @@ const customStyles = `
     justify-content: center;
     font-family: 'Inter', 'Outfit', sans-serif;
     padding: 20px 1rem;
-    min-height: calc(100vh - 120px);
+    min-height: 100vh;
   }
   .dedicated-admin-auth-card {
     background: #ffffff;
@@ -118,6 +118,7 @@ const AdminAuth: React.FC = () => {
   const [password, setPassword] = useState<string>('');
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -214,13 +215,24 @@ const AdminAuth: React.FC = () => {
             <div style={{ position: 'relative' }}>
               <i className="pi pi-lock" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 className="image-text-input"
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ paddingLeft: '36px' }}
+                style={{ paddingLeft: '36px', paddingRight: '40px' }}
                 required
+              />
+              <i
+                className={showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'}
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '14px',
+                  color: '#94a3b8',
+                  cursor: 'pointer'
+                }}
               />
             </div>
           </div>

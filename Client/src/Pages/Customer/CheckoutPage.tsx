@@ -488,7 +488,7 @@ const CheckoutPage: React.FC = () => {
   const { subtotal, delivery, couponDiscount, giftCardDeduction, walletDeduction, finalPayable } = getTotals();
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="checkout-container">
       <Toast ref={toastRef} />
 
       <div style={styles.header}>
@@ -496,8 +496,8 @@ const CheckoutPage: React.FC = () => {
         <p style={styles.sub}>Review address details, apply live offers, and complete your order with confidence.</p>
       </div>
 
-      <div style={styles.mainGrid}>
-        <div style={styles.detailsColumn}>
+      <div style={styles.mainGrid} className="checkout-main-grid">
+        <div style={styles.detailsColumn} className="checkout-details-column">
           {comboDeal && (
             <div style={{ ...styles.cardPanel, background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', border: '1px solid #bbf7d0' }}>
               <h2 style={styles.cardTitle}>
@@ -557,7 +557,7 @@ const CheckoutPage: React.FC = () => {
 
         </div>
 
-        <div style={styles.summaryColumn}>
+        <div style={styles.summaryColumn} className="checkout-summary-column">
           {finalPayable > 0 && (
             <div style={{ ...styles.cardPanel, padding: '1.5rem', marginBottom: '0' }}>
               <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>

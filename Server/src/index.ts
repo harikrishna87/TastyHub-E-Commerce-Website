@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import connectDB from "./Config/Database_Connection";
 import router_cart_item from "./Routes/Routes_Cart_Items";
 import authRoutes from "./Routes/AuthRoutes";
@@ -12,18 +12,44 @@ import deliveryRouter from "./Routes/DeliveryRoutes";
 import promoRouter from "./Routes/PromoRoutes";
 import restaurantRouter from "./Routes/RestaurantRoutes";
 import offerRouter from "./Routes/OfferBannerRoutes";
+import reviewRouter from "./Routes/ReviewRoutes";
 import {sendScheduledDealsNotifications} from "./Controller/NotificationController"
 import cron from "node-cron"
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import passport from 'passport';
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
+
+// Enforce environment variables validation on startup for operations & resilience
+const requiredEnv = ["PORT", "MONGO_URI", "JWT_SECRET", "RAZORPAY_API_KEY", "RAZORPAY_SECRET_KEY"];
+requiredEnv.forEach((key) => {
+  if (!process.env[key]) {
+    console.error(`❌ CRITICAL CONFIG ERROR: Missing environment variable ${key}`);
+    process.exit(1);
+  }
+});
 
 const app = express();
 
 connectDB();
+
+// Apply security headers
+app.use(helmet());
+
+// Enable standard request rate limiter for API stability and DDoS prevention
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 requests per 15 minutes
+  message: { success: false, message: "Too many requests from this IP. Please try again after 15 minutes." },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+app.use("/api", apiLimiter);
 
 app.use(passport.initialize());
 
@@ -31,17 +57,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const allowedOrigins = [
+const isProduction = process.env.NODE_ENV === "production";
+
+const productionOrigins = [
   "https://tasty-hub-e-commerce-website.vercel.app",
   "https://tastyhub-admin-dashboard-sable-zeta.vercel.app",
   "https://tastyhubadmin.haritechinfo.online",
-  "https://tastyhub.haritechinfo.online",
+  "https://tastyhub.haritechinfo.online"
+];
+
+const developmentOrigins = [
   "http://localhost:5173",
   "http://localhost:4200",
   "http://localhost:57306",
   "http://localhost:3000",
   "http://localhost:3001"
 ];
+
+const allowedOrigins = isProduction ? productionOrigins : [...productionOrigins, ...developmentOrigins];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -184,6 +217,18 @@ app.use("/api/delivery", deliveryRouter);
 app.use("/api/promo", promoRouter);
 app.use("/api/restaurants", restaurantRouter);
 app.use("/api/offers", offerRouter);
+app.use("/api/reviews", reviewRouter);
+
+// Unified Global Error Handling Middleware for API stability and security
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("❌ Unhandled Application Error:", err.stack || err.message || err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: process.env.NODE_ENV === "production" 
+      ? "An unexpected internal server error occurred" 
+      : err.message || "Internal Server Error"
+  });
+});
 
 
 const PORT = process.env.PORT || 3000;

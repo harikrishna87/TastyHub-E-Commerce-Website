@@ -559,7 +559,7 @@ const logout = async (req: Request, res: Response, next: NextFunction): Promise<
     } else if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
-    if (token && process.env.JWT_SECRET) {
+    if (token && token !== 'none' && token !== 'null' && token !== 'undefined' && token.split('.').length === 3 && process.env.JWT_SECRET) {
       const decoded: any = jwt.verify(token, process.env.JWT_SECRET);
       await User.findByIdAndUpdate(decoded.id, { $set: { accessedCoupons: [] } });
     }

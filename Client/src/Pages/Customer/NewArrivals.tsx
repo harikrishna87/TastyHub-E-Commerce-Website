@@ -39,8 +39,6 @@ const NewArrivals = () => {
     const showToastMsg = (severity: 'success' | 'error' | 'info' | 'warn', summary: string, detail: string) => {
         if ((window as any).showToast) {
             (window as any).showToast(severity, summary, detail);
-        } else {
-            alert(`${summary}: ${detail}`);
         }
     };
 

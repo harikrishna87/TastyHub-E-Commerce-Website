@@ -9,6 +9,7 @@ import axios from 'axios';
 import { IOrder, OrderDeliveryStatus } from '../../types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { formatDate } from '../../utils/dateFormatter';
 
 const customStyles = `
   .orders-table .p-datatable-thead > tr > th {
@@ -551,7 +552,7 @@ const UserOrders: React.FC = () => {
               body={(rowData: IOrder) => (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <i className="pi pi-calendar" style={{ color: '#52c41a' }} />
-                  <span>{new Date(rowData.createdAt).toLocaleDateString('en-IN')}</span>
+                  <span>{formatDate(rowData.createdAt)}</span>
                 </span>
               )} 
               style={{ width: '140px' }} 
@@ -638,7 +639,7 @@ const UserOrders: React.FC = () => {
               <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>
                 <div style={{ flex: '1 1 200px', padding: '12px 16px', background: '#fafafa', fontWeight: 600, color: '#262626', borderRight: '1px solid #f0f0f0' }}>Order Date</div>
                 <div style={{ flex: '1 1 200px', padding: '12px 16px', color: '#595959' }}>
-                  {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                  {formatDate(selectedOrder.createdAt)}
                 </div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #f0f0f0' }}>

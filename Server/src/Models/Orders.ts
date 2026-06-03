@@ -56,6 +56,14 @@ const OrderSchema: Schema = new Schema<IOrder>({
   paymentId: {
     type: String,
   },
+  isProductRated: {
+    type: Boolean,
+    default: false,
+  },
+  isDeliveryRated: {
+    type: Boolean,
+    default: false,
+  },
 }, { timestamps: true });
 
 const Order = mongoose.model<IOrder>('Order', OrderSchema);

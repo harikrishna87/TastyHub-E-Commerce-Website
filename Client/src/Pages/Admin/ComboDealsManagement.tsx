@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
+import { Toast } from 'primereact/toast';
+import { Dialog } from 'primereact/dialog';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface Product {
   _id: string;
@@ -28,12 +31,14 @@ interface ComboDeal {
 const ComboDealsManagement: React.FC = () => {
   const auth = useContext(AuthContext);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const toast = useRef<Toast>(null);
 
   // State
   const [combos, setCombos] = useState<ComboDeal[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [comboDialogVisible, setComboDialogVisible] = useState<boolean>(false);
 
   // Form State
   const [name, setName] = useState('');
@@ -91,7 +96,11 @@ const ComboDealsManagement: React.FC = () => {
     if (!auth?.token) return;
 
     if (!name || selectedProductIds.length === 0 || comboPrice <= 0 || !totalLimit || !endTime) {
-      alert('Please fill in all required fields and select at least one product.');
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Validation Error',
+        detail: 'Please fill in all required fields and select at least one product.'
+      });
       return;
     }
 
@@ -118,19 +127,32 @@ const ComboDealsManagement: React.FC = () => {
       );
 
       if (response.data.success) {
-        alert('Combo deal created successfully!');
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Combo Created',
+          detail: 'Combo deal created successfully!'
+        });
         setName('');
         setSelectedProductIds([]);
         setComboPrice(0);
         setTotalLimit(100);
         setEndTime('');
+        setComboDialogVisible(false);
         fetchCombos();
       } else {
-        alert(response.data.message || 'Failed to create combo deal.');
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failure',
+          detail: response.data.message || 'Failed to create combo deal.'
+        });
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to create combo deal.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || 'Failed to create combo deal.'
+      });
     } finally {
       setSubmitting(false);
     }
@@ -168,7 +190,7 @@ const ComboDealsManagement: React.FC = () => {
     const isExpired = now > exp;
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span>{exp.toLocaleDateString()}</span>
+        <span>{formatDate(row.endTime)}</span>
         <span style={{ fontSize: '0.75rem', color: isExpired ? '#ef4444' : '#64748b', fontWeight: isExpired ? 600 : 400 }}>
           {isExpired ? 'Expired' : exp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
@@ -199,133 +221,153 @@ const ComboDealsManagement: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Combo Deals Management</h1>
-        <p style={styles.sub}>Bundle products together for promotional discount prices and usage limits</p>
+      <Toast ref={toast} />
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={styles.title}>Combo Deals Management</h1>
+          <p style={styles.sub}>Bundle products together for promotional discount prices and usage limits</p>
+        </div>
+        <Button
+          label="Create Combo Deal"
+          icon="pi pi-plus"
+          severity="success"
+          onClick={() => setComboDialogVisible(true)}
+          style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: 'bold' }}
+        />
       </div>
 
-      <div style={styles.splitGrid}>
-        {/* Combo deal creation card */}
-        <div style={styles.cardPanel}>
-          <h2 style={styles.cardTitle}>
-            <i className="pi pi-briefcase" style={styles.cardIcon('#22c55e')} />
-            <span>Create Combo Bundle</span>
-          </h2>
-          <p style={styles.cardSub}>Select items and set a promotional bundle pricing structure</p>
+      {/* Combos list */}
+      <div style={styles.tablePanel}>
+        <h2 style={{ ...styles.cardTitle, marginBottom: '1.5rem' }}>
+          <i className="pi pi-list" style={styles.cardIcon('#22c55e')} />
+          <span>Active Combo Bundles</span>
+        </h2>
+        <DataTable
+          value={combos}
+          paginator
+          rows={5}
+          rowsPerPageOptions={[5, 10]}
+          className="p-datatable-striped"
+          responsiveLayout="scroll"
+          emptyMessage={() => (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
+              <i className="pi pi-briefcase" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+              <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No combo deals created yet.</div>
+              <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Create bundles to showcase direct discount offers.</div>
+            </div>
+          )}
+        >
+          <Column field="name" header="BUNDLE NAME" style={{ fontWeight: 600 }} sortable />
+          <Column header="INCLUDED PRODUCTS" body={productsTemplate} style={{ minWidth: '220px' }} />
+          <Column field="comboPrice" header="BUNDLE PRICE" body={(r) => `₹${r.comboPrice.toFixed(2)}`} sortable />
+          <Column header="TIMES CLAIMED" body={limitTemplate} sortable />
+          <Column header="EXPIRY DATE" body={expiryTemplate} sortable />
+          <Column header="STATUS" body={statusTemplate} />
+        </DataTable>
+      </div>
 
-          <form onSubmit={handleCreateCombo} style={styles.form}>
+      {/* Create Combo Dialog */}
+      <Dialog
+        header="Create Combo Bundle"
+        visible={comboDialogVisible}
+        onHide={() => setComboDialogVisible(false)}
+        style={{ width: '600px', maxWidth: '95vw', borderRadius: '12px' }}
+        modal
+      >
+        <form onSubmit={handleCreateCombo} style={{ ...styles.form, marginTop: '1rem' }}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Combo Name *</label>
+            <input
+              type="text"
+              placeholder="e.g. Weekend Biryani Feasts"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <div style={styles.formRow}>
             <div style={styles.formGroup}>
-              <label style={styles.label}>Combo Name *</label>
+              <label style={styles.label}>Promo Price (₹) *</label>
               <input
-                type="text"
-                placeholder="e.g. Weekend Biryani Feasts"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                type="number"
+                placeholder="e.g. 499"
+                value={comboPrice || ''}
+                onChange={(e) => setComboPrice(Number(e.target.value))}
                 style={styles.input}
+                required
               />
             </div>
 
-            <div style={styles.formRow}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Promo Price (₹) *</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 499"
-                  value={comboPrice || ''}
-                  onChange={(e) => setComboPrice(Number(e.target.value))}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Max Usage Limit (Claims) *</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 100"
-                  value={totalLimit}
-                  onChange={(e) => setTotalLimit(Number(e.target.value))}
-                  style={styles.input}
-                />
-              </div>
-            </div>
-
             <div style={styles.formGroup}>
-              <label style={styles.label}>Expiration Date & Time *</label>
+              <label style={styles.label}>Max Usage Limit (Claims) *</label>
               <input
-                type="datetime-local"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+                type="number"
+                placeholder="e.g. 100"
+                value={totalLimit}
+                onChange={(e) => setTotalLimit(Number(e.target.value))}
                 style={styles.input}
+                required
               />
             </div>
+          </div>
 
-            {/* Product selection multi checkbox */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Select Bundled Products * (Choose multiple)</label>
-              <div style={styles.productSelectionBox}>
-                {products.map(prod => {
-                  const isChecked = selectedProductIds.includes(prod._id);
-                  return (
-                    <div
-                      key={prod._id}
-                      onClick={() => handleProductToggle(prod._id)}
-                      style={isChecked ? styles.selectedProductCard : styles.productCard}
-                    >
-                      <img src={prod.image} alt={prod.title} style={styles.prodImg} onError={(e)=>{(e.target as any).src='https://primefaces.org/cdn/primereact/images/logo.png'}} />
-                      <div style={styles.prodMeta}>
-                        <div style={styles.prodTitle}>{prod.title}</div>
-                        <div style={styles.prodPrice}>₹{prod.price.toFixed(2)}</div>
-                      </div>
-                      <div style={isChecked ? styles.checkCircleActive : styles.checkCircle}>
-                        {isChecked && <i className="pi pi-check" style={{ color: '#ffffff', fontSize: '0.75rem' }} />}
-                      </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Expiration Date & Time *</label>
+            <input
+              type="datetime-local"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          {/* Product selection multi checkbox */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Select Bundled Products * (Choose multiple)</label>
+            <div style={styles.productSelectionBox}>
+              {products.map(prod => {
+                const isChecked = selectedProductIds.includes(prod._id);
+                return (
+                  <div
+                    key={prod._id}
+                    onClick={() => handleProductToggle(prod._id)}
+                    style={isChecked ? styles.selectedProductCard : styles.productCard}
+                  >
+                    <img src={prod.image} alt={prod.title} style={styles.prodImg} onError={(e)=>{(e.target as any).src='https://primefaces.org/cdn/primereact/images/logo.png'}} />
+                    <div style={styles.prodMeta}>
+                      <div style={styles.prodTitle}>{prod.title}</div>
+                      <div style={styles.prodPrice}>₹{prod.price.toFixed(2)}</div>
                     </div>
-                  );
-                })}
-              </div>
+                    <div style={isChecked ? styles.checkCircleActive : styles.checkCircle}>
+                      {isChecked && <i className="pi pi-check" style={{ color: '#ffffff', fontSize: '0.75rem' }} />}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Cancel"
+              severity="secondary"
+              outlined
+              onClick={() => setComboDialogVisible(false)}
+            />
             <Button
               type="submit"
               label="Activate Combo Bundle"
-              icon="pi pi-check"
-              className="p-button-success"
-              style={{ width: '100%', marginTop: '0.5rem', borderRadius: '12px', padding: '0.75rem' }}
+              severity="success"
               loading={submitting}
             />
-          </form>
-        </div>
-
-        {/* Combos list */}
-        <div style={styles.tablePanel}>
-          <h2 style={{ ...styles.cardTitle, marginBottom: '1.5rem' }}>
-            <i className="pi pi-list" style={styles.cardIcon('#22c55e')} />
-            <span>Active Combo Bundles</span>
-          </h2>
-          <DataTable
-            value={combos}
-            paginator
-            rows={5}
-            rowsPerPageOptions={[5, 10]}
-            className="p-datatable-striped"
-            responsiveLayout="scroll"
-            emptyMessage={() => (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
-                <i className="pi pi-briefcase" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
-                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No combo deals created yet.</div>
-                <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Create bundles to showcase direct discount offers.</div>
-              </div>
-            )}
-          >
-            <Column field="name" header="BUNDLE NAME" style={{ fontWeight: 600 }} sortable />
-            <Column header="INCLUDED PRODUCTS" body={productsTemplate} style={{ minWidth: '220px' }} />
-            <Column field="comboPrice" header="BUNDLE PRICE" body={(r) => `₹${r.comboPrice.toFixed(2)}`} sortable />
-            <Column header="TIMES CLAIMED" body={limitTemplate} sortable />
-            <Column header="EXPIRY DATE" body={expiryTemplate} sortable />
-            <Column header="STATUS" body={statusTemplate} />
-          </DataTable>
-        </div>
-      </div>
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 };

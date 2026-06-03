@@ -414,6 +414,7 @@ select:disabled,
 /* Sidebar Logout Button Hover Micro-Transitions */
 .admin-logout-btn {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  justify-content: flex-start !important;
 }
 
 .admin-logout-btn:hover {
@@ -678,5 +679,114 @@ button,
 .hide-scrollbar {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
+}
+
+/* ==========================================================================
+   TastyHub E-Commerce Global Responsiveness Stylesheet
+   ========================================================================== */
+
+/* PrimeReact Dialog Responsive Adaptations */
+.p-dialog {
+  max-width: 95vw !important;
+}
+
+/* 1. Desktop & Small Laptop Layouts (<= 1024px) */
+@media (max-width: 1024px) {
+  /* Cart Page layout modifications */
+  .cart-main-grid {
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+  }
+  .cart-items-column {
+    flex: 1 1 100% !important;
+    max-height: none !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .cart-summary-column {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  /* Checkout Page layout modifications */
+  .checkout-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  .checkout-details-column, 
+  .checkout-summary-column {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* 2. Tablet & Mobile Layouts (<= 768px) */
+@media (max-width: 768px) {
+  /* Global containers spacing */
+  .cart-container,
+  .checkout-container {
+    padding: 1rem 4% !important;
+    gap: 1.25rem !important;
+  }
+
+  /* Cart Page compacting cards */
+  .cart-items-column {
+    grid-template-columns: 1fr !important;
+  }
+  .cart-item-card {
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+  .cart-item-card img {
+    width: 70px !important;
+    height: 70px !important;
+  }
+
+  /* Profile page responsive layout overrides */
+  .profile-security-sidebar {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid #f3f4f6 !important;
+    padding-top: 1.5rem !important;
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* 3. Small Mobile Devices (<= 480px) */
+@media (max-width: 480px) {
+  .cart-container h1,
+  .checkout-container h1 {
+    font-size: 1.6rem !important;
+  }
+  .cart-container p,
+  .checkout-container p {
+    font-size: 0.85rem !important;
+  }
+
+  /* Micro adjustments for elements inside cards */
+  .cart-item-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .cart-item-card img {
+    width: 100% !important;
+    height: 140px !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Buttons and dialog footer actions on micro screens */
+  .p-dialog-footer div {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  .p-dialog-footer button {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}
+
+/* Ensure PrimeReact Toast overlays always appear at the top above dialog overlays */
+.p-toast {
+  z-index: 9999 !important;
 }
 

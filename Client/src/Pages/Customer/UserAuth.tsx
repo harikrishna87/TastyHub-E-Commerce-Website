@@ -2,7 +2,7 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
 
 // PrimeReact Components
 import { Button } from 'primereact/button';
@@ -35,7 +35,7 @@ const customStyles = `
     justify-content: center;
     font-family: 'Inter', 'Outfit', sans-serif;
     padding: 20px 1rem;
-    min-height: calc(100vh - 120px);
+    min-height: calc(100vh - 75px);
   }
   .dedicated-auth-card {
     background: #ffffff;
@@ -142,7 +142,7 @@ const customStyles = `
   }
 `;
 
-const Auth: React.FC = () => {
+const UserAuth: React.FC = () => {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const toastRef = useRef<Toast>(null);
@@ -172,6 +172,11 @@ const Auth: React.FC = () => {
   const resetOtpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+
+  // Password toggle visibility states
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -555,7 +560,7 @@ const Auth: React.FC = () => {
       <div className="dedicated-auth-card">
         <div>
           <div className="image-login-title">
-            {mode === 'login' ? 'Customer Portal' : 'Create Account'}
+            {mode === 'login' ? 'Welcome to TastyHub' : 'Create Account'}
           </div>
           <div className="image-login-subtitle">
             {mode === 'login' ? 'Welcome back! Please login to your account' : 'Join us to enjoy seamless premium food ordering'}
@@ -599,12 +604,23 @@ const Auth: React.FC = () => {
               <div style={{ position: 'relative' }}>
                 <i className="pi pi-lock" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   className="image-text-input"
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  style={{ paddingLeft: '36px' }}
+                  style={{ paddingLeft: '36px', paddingRight: '40px' }}
+                />
+                <i
+                  className={showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'}
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '14px',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                  }}
                 />
               </div>
             </div>
@@ -693,14 +709,14 @@ const Auth: React.FC = () => {
             {mode === 'login' ? (
               <>
                 Don't have an account?
-                <span className="image-toggle-link" onClick={() => setMode('register')}>
+                <span className="image-toggle-link" onClick={() => { setMode('register'); setShowPassword(false); }}>
                   Create Account
                 </span>
               </>
             ) : (
               <>
                 Already have an account?
-                <span className="image-toggle-link" onClick={() => setMode('login')}>
+                <span className="image-toggle-link" onClick={() => { setMode('login'); setShowPassword(false); }}>
                   Sign In
                 </span>
               </>
@@ -759,7 +775,11 @@ const Auth: React.FC = () => {
         visible={showForgotPassword}
         style={{ width: '90%', maxWidth: '450px', borderRadius: '24px' }}
         modal
-        onHide={() => setShowForgotPassword(false)}
+        onHide={() => {
+          setShowForgotPassword(false);
+          setShowNewPassword(false);
+          setShowConfirmPassword(false);
+        }}
       >
         <div style={{ padding: '0.5rem 0' }}>
           {forgotPasswordStep === 0 && (
@@ -798,16 +818,20 @@ const Auth: React.FC = () => {
                 Code dispatched to <strong style={{ color: '#000000' }}>{forgotPasswordEmail}</strong>. Enter code below:
               </p>
               <div style={{ marginBottom: '1.5rem' }}>
+                <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
+                  Enter Verification OTP
+                </span>
                 {renderOtpInputs(resetOtpValues, setResetOtpValues, resetOtpInputRefs)}
               </div>
               <Button
                 label="Verify Code"
+                icon="pi pi-check"
                 loading={loading}
                 className="p-button-success"
-                style={{ width: '100%', borderRadius: '12px', height: '44px', fontWeight: 700, marginBottom: '1rem', background: '#22c55e', borderColor: '#22c55e' }}
+                style={{ width: '100%', borderRadius: '12px', height: '44px', fontWeight: 700, background: '#22c55e', borderColor: '#22c55e' }}
                 onClick={handleVerifyResetOTP}
               />
-              <div>
+              <div style={{ marginTop: '1rem', fontSize: '0.85rem' }}>
                 <Button
                   label="Resend OTP"
                   link
@@ -830,13 +854,24 @@ const Auth: React.FC = () => {
                 <div style={{ position: 'relative' }}>
                   <i className="pi pi-lock" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
                   <input
-                    type="password"
+                    type={showNewPassword ? 'text' : 'password'}
                     required
                     className="image-text-input"
                     placeholder="Minimum 8 characters"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    style={{ paddingLeft: '36px' }}
+                    style={{ paddingLeft: '36px', paddingRight: '40px' }}
+                  />
+                  <i
+                    className={showNewPassword ? 'pi pi-eye-slash' : 'pi pi-eye'}
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '14px',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                    }}
                   />
                 </div>
               </div>
@@ -845,13 +880,24 @@ const Auth: React.FC = () => {
                 <div style={{ position: 'relative' }}>
                   <i className="pi pi-lock" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     required
                     className="image-text-input"
                     placeholder="Confirm new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    style={{ paddingLeft: '36px' }}
+                    style={{ paddingLeft: '36px', paddingRight: '40px' }}
+                  />
+                  <i
+                    className={showConfirmPassword ? 'pi pi-eye-slash' : 'pi pi-eye'}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '14px',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                    }}
                   />
                 </div>
               </div>
@@ -870,4 +916,4 @@ const Auth: React.FC = () => {
   );
 };
 
-export default Auth;
+export default UserAuth;

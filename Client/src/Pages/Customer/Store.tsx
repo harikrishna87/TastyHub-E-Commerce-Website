@@ -10,6 +10,7 @@ import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface Product {
     _id: string;
@@ -588,31 +589,33 @@ const Store: React.FC = () => {
         setSearchTerm('');
     };
 
+    const [productReviews, setProductReviews] = useState<any[]>([]);
+    const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
+
     const handleKnowMore = async (product: Product) => {
         setModalLoading(true);
         setShowProductModal(true);
+        setProductReviews([]);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 800));
             setSelectedProduct(product);
+            setLoadingReviews(true);
+            const response = await axios.get(`${backendUrl}/api/reviews/products/${product._id}`);
+            if (response.data.success) {
+                setProductReviews(response.data.reviews || []);
+            }
         } catch (error) {
-            console.error('Error fetching product details:', error);
-            messageApi.error({
-                content: "Failed to load product details",
-                duration: 3,
-                style: {
-                    marginTop: '10vh',
-                },
-            });
-            setShowProductModal(false);
+            console.error('Error fetching product details/reviews:', error);
         } finally {
             setModalLoading(false);
+            setLoadingReviews(false);
         }
     };
 
     const handleModalClose = () => {
         setShowProductModal(false);
         setSelectedProduct(null);
+        setProductReviews([]);
         setModalLoading(false);
     };
 
@@ -1400,6 +1403,46 @@ const Store: React.FC = () => {
                                     <span>{selectedProduct.ageRecommendation}</span>
                                 </div>
                             )}
+
+                            <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '8px 0' }} />
+                            <div>
+                                <strong style={{ color: '#22c55e', display: 'block', marginBottom: '8px' }}>Customer Reviews & Ratings:</strong>
+                                {loadingReviews ? (
+                                    <div style={{ padding: '10px 0', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <i className="pi pi-spin pi-spinner" /> Loading customer reviews...
+                                    </div>
+                                ) : productReviews.length === 0 ? (
+                                    <div style={{ padding: '12px', background: '#f9fafb', borderRadius: '8px', color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' }}>
+                                        No customer reviews yet. Be the first to order and review!
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+                                        {productReviews.map((rev: any, idx: number) => (
+                                            <div key={idx} style={{ padding: '10px', border: '1px solid #f3f4f6', borderRadius: '8px', backgroundColor: '#fdfdfd' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <img
+                                                            src={rev.user?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+                                                            alt={rev.user?.name}
+                                                            style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
+                                                            onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+                                                        />
+                                                        <span style={{ fontWeight: 700, color: '#374151', fontSize: '13px' }}>{rev.user?.name || 'TastyHub User'}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Rating disabled cancel={false} value={rev.rating} stars={5} style={{ color: '#f59e0b', fontSize: '11px' }} />
+                                                        <span style={{ fontWeight: 800, fontSize: '12px', color: '#f59e0b' }}>({rev.rating})</span>
+                                                    </div>
+                                                </div>
+                                                <p style={{ margin: 0, fontSize: '13px', color: '#4b5563', lineHeight: '1.4' }}>{rev.review}</p>
+                                                <span style={{ fontSize: '10px', color: '#9ca3af', display: 'block', marginTop: '4px', textAlign: 'right' }}>
+                                                    {formatDate(rev.createdAt)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ) : null}

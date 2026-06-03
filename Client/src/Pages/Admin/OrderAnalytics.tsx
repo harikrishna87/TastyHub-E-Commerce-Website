@@ -9,6 +9,7 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import { AuthContext } from '../../context/AuthContext';
 import { IOrder } from '../../types';
+import { formatDate } from '../../utils/dateFormatter';
 
 const OrderAnalytics: React.FC = () => {
   const auth = useContext(AuthContext);
@@ -739,7 +740,7 @@ const OrderAnalytics: React.FC = () => {
           <Column field="user.name" header="Customer Name" body={txCustomerTemplate} />
           <Column field="user.email" header="Customer Email" body={(r) => typeof r.user === 'object' ? r.user?.email : r.user} />
           <Column field="totalAmount" header="Amount" body={txAmountTemplate} sortable />
-          <Column field="createdAt" header="Order Date" body={(r) => new Date(r.createdAt).toLocaleDateString()} sortable />
+          <Column field="createdAt" header="Order Date" body={(r) => formatDate(r.createdAt)} sortable />
           <Column field="status" header="Status" body={txStatusTemplate} />
         </DataTable>
       </Dialog>
@@ -779,7 +780,7 @@ const OrderAnalytics: React.FC = () => {
                   <span style={{ fontSize: '0.85rem', color: '#4b5563' }}>Phone: {selectedCustomer.phone || 'N/A'}</span>
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', alignItems: 'center' }}>
                     <Tag severity={selectedCustomer.verified !== false ? 'success' : 'warning'} value={selectedCustomer.verified !== false ? 'Verified' : 'Unverified'} />
-                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Joined: {new Date(selectedCustomer.createdAt).toLocaleDateString()}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Joined: {formatDate(selectedCustomer.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -826,7 +827,7 @@ const OrderAnalytics: React.FC = () => {
                   <Column
                     header="Date"
                     body={(rowData: IOrder) => (
-                      <span>{new Date(rowData.createdAt).toLocaleDateString()}</span>
+                      <span>{formatDate(rowData.createdAt)}</span>
                     )}
                   />
                   <Column

@@ -47,6 +47,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.setItem('logout_intentional', 'true');
     } catch (e) {
       console.error('Failed to clear localStorage:', e);
       setError('Failed to clear local data.');

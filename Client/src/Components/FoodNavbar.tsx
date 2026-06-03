@@ -43,6 +43,13 @@ const FoodNavbar: React.FC = () => {
   const [cartCount, setCartCount] = useState<number>(0);
   const [mobileMenuVisible, setMobileMenuVisible] = useState<boolean>(false);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [windowWidth, setWindowWidth] = useState<number>(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
@@ -100,7 +107,7 @@ const FoodNavbar: React.FC = () => {
   };
 
   const activeKey = getActiveKey(location.pathname);
-  const isLargeScreen = () => window.innerWidth > 900;
+  const isLargeScreen = () => windowWidth > 900;
 
   const fetchCartCount = async () => {
     if (!auth?.isAuthenticated || !auth?.token) {
@@ -276,7 +283,7 @@ const FoodNavbar: React.FC = () => {
             justifyContent: 'space-between',
             alignItems: 'center',
             width: '100%',
-            padding: window.innerWidth < 576 ? '10px 16px' : '10px 30px',
+            padding: windowWidth < 576 ? '10px 16px' : '10px 30px',
             boxSizing: 'border-box'
           }}
         >
@@ -284,9 +291,9 @@ const FoodNavbar: React.FC = () => {
             <img
               src="/logo.png"
               alt="Logo"
-              style={{ height: window.innerWidth < 576 ? '32px' : '40px', width: 'auto', objectFit: 'contain' }}
+              style={{ height: windowWidth < 576 ? '32px' : '40px', width: 'auto', objectFit: 'contain' }}
             />
-            <h3 style={{ margin: 0, color: '#52c41a', fontWeight: 'bold', fontSize: window.innerWidth < 576 ? '20px' : '28px' }}>
+            <h3 style={{ margin: 0, color: '#52c41a', fontWeight: 'bold', fontSize: windowWidth < 576 ? '20px' : '28px' }}>
               <NavLink to="/" style={{ color: '#52c41a', textDecoration: 'none' }}>
                 TastyHub
               </NavLink>
@@ -427,7 +434,7 @@ const FoodNavbar: React.FC = () => {
         visible={mobileMenuVisible}
         onHide={() => setMobileMenuVisible(false)}
         position="right"
-        style={{ width: window.innerWidth < 576 ? '80%' : '300px', fontFamily: 'Inter, sans-serif' }}
+        style={{ width: windowWidth < 576 ? '80%' : '300px', fontFamily: 'Inter, sans-serif' }}
       >
         <h3 style={{ margin: '0 0 20px 0', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px', color: '#52c41a', fontWeight: 'bold' }}>Menu</h3>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>

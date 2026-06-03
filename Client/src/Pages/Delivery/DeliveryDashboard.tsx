@@ -13,6 +13,7 @@ import { Tag } from 'primereact/tag';
 import { Dialog } from 'primereact/dialog';
 import { Divider } from 'primereact/divider';
 import { Toast } from 'primereact/toast';
+import { formatDate } from '../../utils/dateFormatter';
 
 const customStyles = `
   .delivery-layout-container {
@@ -449,12 +450,13 @@ const DeliveryDashboard: React.FC = () => {
   };
 
   // Wallet & Withdrawal states
-  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [loadingWithdrawals, setLoadingWithdrawals] = useState<boolean>(false);
   const [withdrawDialogVisible, setWithdrawDialogVisible] = useState<boolean>(false);
   const [withdrawAmount, setWithdrawAmount] = useState<number | ''>('');
-  const [withdrawPaymentDetails, setWithdrawPaymentDetails] = useState<string>('');
+  const [accountantName, setAccountantName] = useState<string>('');
+  const [accountNumber, setAccountNumber] = useState<string>('');
+  const [ifscCode, setIfscCode] = useState<string>('');
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState<boolean>(false);
 
   // Tracking Dialog states
@@ -495,10 +497,19 @@ const DeliveryDashboard: React.FC = () => {
         if (meRes.data.success) {
           setIsOnline(meRes.data.user.isAvailable || false);
           setProfileImage(meRes.data.user.image || 'https://primefaces.org/cdn/primereact/images/avatar/amyelsner.png');
-          setWalletBalance(meRes.data.user.walletBalance || 0);
         }
       } catch (err) {
         console.error('Failed to sync profile status:', err);
+      }
+
+      // Fetch withdrawals to sync withdrawable calculations
+      try {
+        const res = await axios.get(`${backendUrl}/api/delivery/withdrawals`, { headers, withCredentials: true });
+        if (res.data.success) {
+          setWithdrawals(res.data.requests || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch withdrawal requests:', err);
       }
 
       // Fetch Available Restaurant orders (Pending & Executive-less)
@@ -554,7 +565,7 @@ const DeliveryDashboard: React.FC = () => {
     const updateClock = () => {
       const now = new Date();
       setTimeStr(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
-      setDateStr(now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }));
+      setDateStr(formatDate(now));
       
       const hrs = now.getHours();
       if (hrs < 12) setGreeting('Good Morning');
@@ -729,25 +740,27 @@ const DeliveryDashboard: React.FC = () => {
 
   const handleRequestWithdrawalSubmit = async () => {
     const amountNum = Number(withdrawAmount);
-    if (!withdrawAmount || amountNum < 50) {
-      message.error({ content: 'Minimum withdrawal amount is ₹50.', duration: 4 });
+    if (!withdrawAmount || amountNum < 100) {
+      message.error({ content: 'Minimum withdrawal amount is ₹100.', duration: 4 });
       return;
     }
-    if (amountNum > walletBalance) {
-      message.error({ content: `Withdrawal amount cannot exceed available balance of ₹${walletBalance}.`, duration: 4 });
+    if (amountNum > withdrawableBalance) {
+      message.error({ content: `Withdrawal amount cannot exceed available balance of ₹${withdrawableBalance}.`, duration: 4 });
       return;
     }
-    if (!withdrawPaymentDetails.trim()) {
-      message.error({ content: 'Please enter payment/UPI details.', duration: 4 });
+    if (!accountantName.trim() || !accountNumber.trim() || !ifscCode.trim()) {
+      message.error({ content: 'Please fill in all bank details (Accountant Name, Account Number, and IFSC Code).', duration: 4 });
       return;
     }
+
+    const combinedDetails = `Accountant Name: ${accountantName.trim()}, A/C No: ${accountNumber.trim()}, IFSC Code: ${ifscCode.trim()}`;
 
     try {
       setSubmittingWithdrawal(true);
       const token = authContext?.token || localStorage.getItem('token');
       const res = await axios.post(
         `${backendUrl}/api/delivery/withdraw`,
-        { amount: amountNum, paymentDetails: withdrawPaymentDetails },
+        { amount: amountNum, paymentDetails: combinedDetails },
         { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
       );
 
@@ -758,7 +771,9 @@ const DeliveryDashboard: React.FC = () => {
         });
         setWithdrawDialogVisible(false);
         setWithdrawAmount('');
-        setWithdrawPaymentDetails('');
+        setAccountantName('');
+        setAccountNumber('');
+        setIfscCode('');
         await fetchDashboardData(true);
         await fetchWithdrawals();
       }
@@ -791,6 +806,14 @@ const DeliveryDashboard: React.FC = () => {
   // Calculate today's earnings sum based on standard 30 rupees flat commission rate
   const totalCompletedDeliveries = completedOrders.length;
   const totalEarnings = totalCompletedDeliveries * 30;
+
+  // Calculate withdrawable balance dynamically:
+  // Lifetime Earnings minus the sum of withdrawal requests that are Pending or Approved
+  const withdrawnOrPendingAmount = withdrawals
+    .filter((w: any) => w.status === 'Pending' || w.status === 'Approved')
+    .reduce((sum: number, w: any) => sum + (w.amount || 0), 0);
+
+  const withdrawableBalance = Math.max(0, totalEarnings - withdrawnOrPendingAmount);
 
   // Calculate percentage of progress in sequential stepper matching current active order's state
   const getStepperWidth = (status: string) => {
@@ -1198,12 +1221,14 @@ const DeliveryDashboard: React.FC = () => {
                 <Button 
                   label="Request Withdrawal" 
                   icon="pi pi-money-bill"
-                  disabled={walletBalance <= 0}
+                  disabled={withdrawableBalance <= 0}
                   className="p-button-success"
                   style={{ borderRadius: '10px', fontWeight: 700 }}
                   onClick={() => {
-                    setWithdrawAmount(walletBalance);
-                    setWithdrawPaymentDetails('');
+                    setWithdrawAmount(withdrawableBalance);
+                    setAccountantName('');
+                    setAccountNumber('');
+                    setIfscCode('');
                     setWithdrawDialogVisible(true);
                   }}
                 />
@@ -1230,8 +1255,8 @@ const DeliveryDashboard: React.FC = () => {
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <i className="pi pi-money-bill" style={{ fontSize: '2rem', color: '#22c55e', background: '#f0fdf4', padding: '10px', borderRadius: '8px' }} />
                   <div>
-                    <span style={{ color: '#64748b', fontSize: '0.78rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>Wallet Balance</span>
-                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#166534' }}>₹{walletBalance.toFixed(2)}</span>
+                    <span style={{ color: '#64748b', fontSize: '0.78rem', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>Available to Withdraw</span>
+                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#166534' }}>₹{withdrawableBalance.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1256,7 +1281,7 @@ const DeliveryDashboard: React.FC = () => {
                       />
                       <Column 
                         header="Delivered Date" 
-                        body={(o) => <span>{new Date(o.updatedAt || o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>} 
+                        body={(o) => <span>{formatDate(o.updatedAt || o.createdAt)}</span>} 
                       />
                       <Column 
                         header="Bill" 
@@ -1285,7 +1310,7 @@ const DeliveryDashboard: React.FC = () => {
                     >
                       <Column 
                         header="Date" 
-                        body={(w) => <span>{new Date(w.requestDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>} 
+                        body={(w) => <span>{formatDate(w.requestDate)}</span>} 
                       />
                       <Column 
                         header="Payment Details" 
@@ -1485,7 +1510,7 @@ const DeliveryDashboard: React.FC = () => {
             <div>
               <span style={{ fontWeight: 800, color: '#166534', fontSize: '0.9rem', display: 'block' }}>Wallet Withdrawal Rules</span>
               <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: '#15803d', lineHeight: 1.4 }}>
-                You can withdraw your earnings instantly. Requests will be processed by operations administration within 24 hours. Minimum withdrawal limit is <strong>₹50.00</strong>.
+                You can withdraw your earnings instantly. Requests will be processed by operations administration within 24 hours. Minimum withdrawal limit is <strong>₹100.00</strong>.
               </p>
             </div>
           </div>
@@ -1500,17 +1525,40 @@ const DeliveryDashboard: React.FC = () => {
                 style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.88rem' }}
               />
               <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                Maximum Available: <strong>₹{walletBalance.toFixed(2)}</strong>
+                Maximum Available: <strong>₹{withdrawableBalance.toFixed(2)}</strong>
               </span>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>UPI ID or Bank Account Details *</label>
-              <textarea 
-                placeholder="e.g. partner@upi or Bank Name, A/C No, IFSC Code"
-                value={withdrawPaymentDetails} 
-                onChange={(e) => setWithdrawPaymentDetails(e.target.value)}
-                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.88rem', minHeight: '80px', resize: 'vertical' }}
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Accountant Name *</label>
+              <input 
+                type="text" 
+                placeholder="Enter accountant/account holder name"
+                value={accountantName} 
+                onChange={(e) => setAccountantName(e.target.value)}
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.88rem' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Account Number *</label>
+              <input 
+                type="text" 
+                placeholder="Enter bank account number"
+                value={accountNumber} 
+                onChange={(e) => setAccountNumber(e.target.value)}
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.88rem' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>IFSC Code *</label>
+              <input 
+                type="text" 
+                placeholder="Enter bank IFSC code"
+                value={ifscCode} 
+                onChange={(e) => setIfscCode(e.target.value)}
+                style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.88rem' }}
               />
             </div>
           </div>

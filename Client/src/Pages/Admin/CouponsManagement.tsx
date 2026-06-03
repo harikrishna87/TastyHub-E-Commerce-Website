@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 import { Button } from 'primereact/button';
@@ -6,6 +6,10 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
 import { Dropdown } from 'primereact/dropdown';
+import { Toast } from 'primereact/toast';
+import { Dialog } from 'primereact/dialog';
+import { useSearchParams } from 'react-router-dom';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface Product {
   _id: string;
@@ -38,6 +42,13 @@ interface Discount {
 const CouponsManagement: React.FC = () => {
   const auth = useContext(AuthContext);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const toast = useRef<Toast>(null);
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'coupons';
+
+  // Dialog visibility states
+  const [couponDialogVisible, setCouponDialogVisible] = useState(false);
+  const [discountDialogVisible, setDiscountDialogVisible] = useState(false);
 
   // Coupon form state
   const [couponCode, setCouponCode] = useState('');
@@ -153,12 +164,13 @@ const CouponsManagement: React.FC = () => {
       const response = await axios.delete(`${backendUrl}/api/promo/coupons/${id}`, config);
       if (response.data.success) {
         setCoupons(prev => prev.filter(c => c._id !== id));
+        toast.current?.show({ severity: 'success', summary: 'Success', detail: 'Coupon deleted successfully.' });
       } else {
-        alert(response.data.message || 'Failed to delete coupon.');
+        toast.current?.show({ severity: 'error', summary: 'Failed', detail: response.data.message || 'Failed to delete coupon.' });
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to delete coupon.');
+      toast.current?.show({ severity: 'error', summary: 'Error', detail: err.response?.data?.message || 'Failed to delete coupon.' });
     }
   };
 
@@ -175,12 +187,13 @@ const CouponsManagement: React.FC = () => {
       const response = await axios.delete(`${backendUrl}/api/promo/discounts/${id}`, config);
       if (response.data.success) {
         setDiscounts(prev => prev.filter(d => d._id !== id));
+        toast.current?.show({ severity: 'success', summary: 'Success', detail: 'Discount deleted successfully.' });
       } else {
-        alert(response.data.message || 'Failed to delete discount.');
+        toast.current?.show({ severity: 'error', summary: 'Failed', detail: response.data.message || 'Failed to delete discount.' });
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to delete discount.');
+      toast.current?.show({ severity: 'error', summary: 'Error', detail: err.response?.data?.message || 'Failed to delete discount.' });
     }
   };
 
@@ -190,7 +203,11 @@ const CouponsManagement: React.FC = () => {
     if (!auth?.token) return;
 
     if (!couponCode || discountValue <= 0 || !expiryDate) {
-      alert('Please fill in all required fields');
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Validation Error',
+        detail: 'Please fill in all required fields'
+      });
       return;
     }
 
@@ -218,18 +235,31 @@ const CouponsManagement: React.FC = () => {
       );
 
       if (response.data.success) {
-        alert('Coupon created successfully!');
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Coupon created successfully!'
+        });
         setCouponCode('');
         setDiscountValue(0);
         setMinOrder(0);
         setExpiryDate('');
+        setCouponDialogVisible(false);
         fetchCoupons();
       } else {
-        alert(response.data.message || 'Failed to create coupon.');
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failed',
+          detail: response.data.message || 'Failed to create coupon.'
+        });
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to create coupon.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || 'Failed to create coupon.'
+      });
     } finally {
       setLoadingCoupon(false);
     }
@@ -241,7 +271,11 @@ const CouponsManagement: React.FC = () => {
     if (!auth?.token) return;
 
     if (!discName || !targetVal || discPercent <= 0 || discPercent > 100) {
-      alert('Please fill in all required fields. Percentage must be between 1 and 100.');
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Validation Error',
+        detail: 'Please fill in all required fields. Percentage must be between 1 and 100.'
+      });
       return;
     }
 
@@ -267,17 +301,30 @@ const CouponsManagement: React.FC = () => {
       );
 
       if (response.data.success) {
-        alert('Direct Catalog Discount created successfully!');
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Direct Catalog Discount created successfully!'
+        });
         setDiscName('');
         setTargetVal('');
         setDiscPercent(0);
+        setDiscountDialogVisible(false);
         fetchDiscounts();
       } else {
-        alert(response.data.message || 'Failed to create discount.');
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Failed',
+          detail: response.data.message || 'Failed to create discount.'
+        });
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Failed to create discount.');
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.response?.data?.message || 'Failed to create discount.'
+      });
     } finally {
       setLoadingDiscount(false);
     }
@@ -311,7 +358,7 @@ const CouponsManagement: React.FC = () => {
     const expired = new Date() > new Date(row.expiryDate);
     return (
       <span style={{ color: expired ? '#ef4444' : '#475569', fontWeight: expired ? 600 : 400 }}>
-        {new Date(row.expiryDate).toLocaleDateString('en-IN')}
+        {formatDate(row.expiryDate)}
       </span>
     );
   };
@@ -335,273 +382,309 @@ const CouponsManagement: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Coupons & Catalog Discounts</h1>
-        <p style={styles.sub}>Create checkout promotions, announcement bars, and direct category markdown rules</p>
-      </div>
-
-      <div style={styles.splitGrid}>
-        {/* Coupon creation card */}
-        <div style={styles.cardPanel}>
-          <h2 style={styles.cardTitle}>
-            <i className="pi pi-ticket" style={styles.cardIcon('#3b82f6')} />
-            <span>Create Coupon Code</span>
-          </h2>
-          <p style={styles.cardSub}>Generate checkout codes or home screen session announcements</p>
-
-          <form onSubmit={handleCreateCoupon} style={styles.form}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Coupon Code *</label>
-              <input
-                type="text"
-                placeholder="e.g. WELCOME20, FLATSAVE50"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.formRow}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Discount Type *</label>
-                <Dropdown
-                  value={discountType}
-                  options={[
-                    { label: 'Percentage (%)', value: 'percentage' },
-                    { label: 'Fixed Flat Amount (₹)', value: 'fixed' }
-                  ]}
-                  onChange={(e) => setDiscountType(e.value as any)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Discount Value *</label>
-                <input
-                  type="number"
-                  value={discountValue || ''}
-                  onChange={(e) => setDiscountValue(Number(e.target.value))}
-                  style={styles.input}
-                />
-              </div>
-            </div>
-
-            <div style={styles.formRow}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Min Order Amount (₹)</label>
-                <input
-                  type="number"
-                  value={minOrder || ''}
-                  onChange={(e) => setMinOrder(Number(e.target.value))}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Expiry Date *</label>
-                <input
-                  type="date"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  style={styles.input}
-                />
-              </div>
-            </div>
-
-            <div style={styles.checkboxGroup}>
-              <input
-                type="checkbox"
-                id="isAnnounce"
-                checked={isAnnounce}
-                onChange={(e) => setIsAnnounce(e.target.checked)}
-                style={styles.checkbox}
-              />
-              <label htmlFor="isAnnounce" style={styles.checkboxLabel}>
-                Show Coupon as Announcement modal on website Home screen
-              </label>
-            </div>
-
-            <Button
-              type="submit"
-              label="Generate Coupon"
-              icon="pi pi-check"
-              className="p-button-success"
-              style={{ width: '100%', marginTop: '1rem', borderRadius: '12px', padding: '0.75rem' }}
-              loading={loadingCoupon}
-            />
-          </form>
+      <Toast ref={toast} />
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={styles.title}>{activeTab === 'coupons' ? 'Coupon Codes' : 'Catalog Discounts'}</h1>
+          <p style={styles.sub}>{activeTab === 'coupons' ? 'Create checkout promotions, announcement bars, and home banners' : 'Apply direct category and product markdown rules'}</p>
         </div>
-
-        {/* Dynamic discount rule card */}
-        <div style={styles.cardPanel}>
-          <h2 style={styles.cardTitle}>
-            <i className="pi pi-percentage" style={styles.cardIcon('#22c55e')} />
-            <span>Create Direct Markdown Discount</span>
-          </h2>
-          <p style={styles.cardSub}>Apply direct catalog percentage discounts on matching products automatically</p>
-
-          <form onSubmit={handleCreateDiscount} style={styles.form}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Discount Rule Name *</label>
-              <input
-                type="text"
-                placeholder="e.g. Summer Biryani Bonanza, Appetizers Deal"
-                value={discName}
-                onChange={(e) => setDiscName(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.formRow}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Target Type *</label>
-                <Dropdown
-                  value={targetType}
-                  options={[
-                    { label: 'Category-wide', value: 'category' },
-                    { label: 'Specific Product Title', value: 'product' }
-                  ]}
-                  onChange={(e) => setTargetType(e.value as any)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Discount Percentage (%) *</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={discPercent || ''}
-                  onChange={(e) => setDiscPercent(Number(e.target.value))}
-                  style={styles.input}
-                />
-              </div>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>
-                Target {targetType === 'category' ? 'Category' : 'Product'} Value *
-              </label>
-              {loadingProducts ? (
-                <div style={{ padding: '0.65rem', color: '#64748b', fontSize: '0.85rem' }}>Loading selections...</div>
-              ) : targetType === 'category' ? (
-                <Dropdown
-                  value={targetVal}
-                  options={uniqueCategories.map(cat => ({ label: cat, value: cat }))}
-                  onChange={(e) => setTargetVal(e.value)}
-                  placeholder="Select Category"
-                  style={{ width: '100%' }}
-                />
-              ) : (
-                <Dropdown
-                  value={targetVal}
-                  options={products.map(prod => ({ label: prod.title, value: prod.title }))}
-                  onChange={(e) => setTargetVal(e.value)}
-                  placeholder="Select Product"
-                  style={{ width: '100%' }}
-                />
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              label="Activate Discount Rule"
-              icon="pi pi-check"
-              className="p-button-success"
-              style={{ width: '100%', marginTop: '1.2rem', borderRadius: '12px', padding: '0.75rem' }}
-              loading={loadingDiscount}
-            />
-          </form>
-        </div>
+        <Button
+          label={activeTab === 'coupons' ? 'Create Coupon' : 'Create Discount'}
+          icon="pi pi-plus"
+          severity="success"
+          onClick={() => {
+            if (activeTab === 'coupons') {
+              setCouponDialogVisible(true);
+            } else {
+              setDiscountDialogVisible(true);
+            }
+          }}
+          style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: 'bold' }}
+        />
       </div>
 
       {/* Stacked Tables Display Section */}
       <div style={styles.tablesBlock}>
-        {/* Active Coupons List */}
-        <div style={styles.tablePanel}>
-          <h2 style={{ ...styles.cardTitle, marginBottom: '1rem' }}>
-            <i className="pi pi-list" style={styles.cardIcon('#3b82f6')} />
-            <span>Active Promotion Coupons</span>
-          </h2>
-          <DataTable
-            value={coupons}
-            paginator
-            rows={5}
-            rowsPerPageOptions={[5, 10]}
-            className="p-datatable-striped"
-            responsiveLayout="scroll"
-            emptyMessage={() => (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
-                <i className="pi pi-ticket" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
-                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No promotion coupons found.</div>
-                <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Generate coupon codes to allow checkout discounts.</div>
-              </div>
-            )}
-          >
-            <Column field="code" header="COUPON CODE" style={{ fontWeight: 700 }} sortable />
-            <Column header="DISCOUNT TYPE" body={couponTypeTemplate} />
-            <Column header="VALUE" body={couponValueTemplate} />
-            <Column field="minOrderAmount" header="MIN ORDER" body={(r)=><span>₹{r.minOrderAmount}</span>} sortable />
-            <Column header="EXPIRY" body={expiryTemplate} sortable />
-            <Column header="DISTRIBUTION" body={couponAnnouncementTemplate} />
-            <Column 
-              header="ACTIONS" 
-              body={(row: Coupon) => (
-                <Button 
-                  icon="pi pi-trash" 
-                  className="p-button-text p-button-plain p-button-sm"
-                  style={{ color: '#ef4444', padding: '4px', minWidth: 'auto', background: 'transparent', border: 'none', boxShadow: 'none' }}
-                  onClick={() => handleDeleteCoupon(row._id)}
-                  tooltip="Delete Coupon"
-                />
-              )} 
-              style={{ width: '80px' }} 
-            />
-          </DataTable>
-        </div>
-
-        {/* Active Catalog Discounts List */}
-        <div style={styles.tablePanel}>
-          <h2 style={{ ...styles.cardTitle, marginBottom: '1rem' }}>
-            <i className="pi pi-percentage" style={styles.cardIcon('#22c55e')} />
-            <span>Catalog Discount Rules</span>
-          </h2>
-          <DataTable
-            value={discounts}
-            paginator
-            rows={5}
-            rowsPerPageOptions={[5, 10]}
-            className="p-datatable-striped"
-            responsiveLayout="scroll"
-            emptyMessage={() => (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
-                <i className="pi pi-percentage" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
-                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No markdown discount rules active.</div>
-                <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Create category or product direct markdowns.</div>
-              </div>
-            )}
-          >
-            <Column field="name" header="RULE NAME" style={{ fontWeight: 600 }} sortable />
-            <Column header="TARGET AREA" body={discountTargetTemplate} />
-            <Column field="targetValue" header="TARGET ITEM/CAT" style={{ fontWeight: 600, color: '#475569' }} sortable />
-            <Column field="discountPercentage" header="MARKDOWN %" body={(r)=><strong>{r.discountPercentage}% OFF</strong>} sortable />
-            <Column 
-              header="ACTIONS" 
-              body={(row: Discount) => (
-                <Button 
-                  icon="pi pi-trash" 
-                  className="p-button-text p-button-plain p-button-sm"
-                  style={{ color: '#ef4444', padding: '4px', minWidth: 'auto', background: 'transparent', border: 'none', boxShadow: 'none' }}
-                  onClick={() => handleDeleteDiscount(row._id)}
-                  tooltip="Delete Discount"
-                />
-              )} 
-              style={{ width: '80px' }} 
-            />
-          </DataTable>
-        </div>
+        {activeTab === 'coupons' ? (
+          /* Active Coupons List */
+          <div style={styles.tablePanel}>
+            <h2 style={{ ...styles.cardTitle, marginBottom: '1rem' }}>
+              <i className="pi pi-list" style={styles.cardIcon('#3b82f6')} />
+              <span>Active Promotion Coupons</span>
+            </h2>
+            <DataTable
+              value={coupons}
+              paginator
+              rows={5}
+              rowsPerPageOptions={[5, 10]}
+              className="p-datatable-striped"
+              responsiveLayout="scroll"
+              emptyMessage={() => (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
+                  <i className="pi pi-ticket" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                  <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No promotion coupons found.</div>
+                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Generate coupon codes to allow checkout discounts.</div>
+                </div>
+              )}
+            >
+              <Column field="code" header="COUPON CODE" style={{ fontWeight: 700 }} sortable />
+              <Column header="DISCOUNT TYPE" body={couponTypeTemplate} />
+              <Column header="VALUE" body={couponValueTemplate} />
+              <Column field="minOrderAmount" header="MIN ORDER" body={(r)=><span>₹{r.minOrderAmount}</span>} sortable />
+              <Column header="EXPIRY" body={expiryTemplate} sortable />
+              <Column header="DISTRIBUTION" body={couponAnnouncementTemplate} />
+              <Column 
+                header="ACTIONS" 
+                body={(row: Coupon) => (
+                  <Button 
+                    icon="pi pi-trash" 
+                    className="p-button-text p-button-plain p-button-sm"
+                    style={{ color: '#ef4444', padding: '4px', minWidth: 'auto', background: 'transparent', border: 'none', boxShadow: 'none' }}
+                    onClick={() => handleDeleteCoupon(row._id)}
+                    tooltip="Delete Coupon"
+                  />
+                )} 
+                style={{ width: '80px' }} 
+              />
+            </DataTable>
+          </div>
+        ) : (
+          /* Active Catalog Discounts List */
+          <div style={styles.tablePanel}>
+            <h2 style={{ ...styles.cardTitle, marginBottom: '1rem' }}>
+              <i className="pi pi-percentage" style={styles.cardIcon('#22c55e')} />
+              <span>Catalog Discount Rules</span>
+            </h2>
+            <DataTable
+              value={discounts}
+              paginator
+              rows={5}
+              rowsPerPageOptions={[5, 10]}
+              className="p-datatable-striped"
+              responsiveLayout="scroll"
+              emptyMessage={() => (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
+                  <i className="pi pi-percentage" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
+                  <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No markdown discount rules active.</div>
+                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Create category or product direct markdowns.</div>
+                </div>
+              )}
+            >
+              <Column field="name" header="RULE NAME" style={{ fontWeight: 600 }} sortable />
+              <Column header="TARGET AREA" body={discountTargetTemplate} />
+              <Column field="targetValue" header="TARGET ITEM/CAT" style={{ fontWeight: 600, color: '#475569' }} sortable />
+              <Column field="discountPercentage" header="MARKDOWN %" body={(r)=><strong>{r.discountPercentage}% OFF</strong>} sortable />
+              <Column 
+                header="ACTIONS" 
+                body={(row: Discount) => (
+                  <Button 
+                    icon="pi pi-trash" 
+                    className="p-button-text p-button-plain p-button-sm"
+                    style={{ color: '#ef4444', padding: '4px', minWidth: 'auto', background: 'transparent', border: 'none', boxShadow: 'none' }}
+                    onClick={() => handleDeleteDiscount(row._id)}
+                    tooltip="Delete Discount"
+                  />
+                )} 
+                style={{ width: '80px' }} 
+              />
+            </DataTable>
+          </div>
+        )}
       </div>
+
+      {/* Create Coupon Modal */}
+      <Dialog
+        header="Create Coupon Code"
+        visible={couponDialogVisible}
+        onHide={() => setCouponDialogVisible(false)}
+        style={{ width: '480px', maxWidth: '95vw', borderRadius: '12px' }}
+        modal
+      >
+        <form onSubmit={handleCreateCoupon} style={{ ...styles.form, marginTop: '1rem' }}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Coupon Code *</label>
+            <input
+              type="text"
+              placeholder="e.g. WELCOME20, FLATSAVE50"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <div style={styles.formRow}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Discount Type *</label>
+              <Dropdown
+                value={discountType}
+                options={[
+                  { label: 'Percentage (%)', value: 'percentage' },
+                  { label: 'Fixed Flat Amount (₹)', value: 'fixed' }
+                ]}
+                onChange={(e) => setDiscountType(e.value as any)}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Discount Value *</label>
+              <input
+                type="number"
+                value={discountValue || ''}
+                onChange={(e) => setDiscountValue(Number(e.target.value))}
+                style={styles.input}
+                required
+              />
+            </div>
+          </div>
+
+          <div style={styles.formRow}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Min Order Amount (₹)</label>
+              <input
+                type="number"
+                value={minOrder || ''}
+                onChange={(e) => setMinOrder(Number(e.target.value))}
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Expiry Date *</label>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                style={styles.input}
+                required
+              />
+            </div>
+          </div>
+
+          <div style={styles.checkboxGroup}>
+            <input
+              type="checkbox"
+              id="isAnnounce"
+              checked={isAnnounce}
+              onChange={(e) => setIsAnnounce(e.target.checked)}
+              style={styles.checkbox}
+            />
+            <label htmlFor="isAnnounce" style={styles.checkboxLabel}>
+              Show Coupon as Announcement modal on website Home screen
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Cancel"
+              severity="secondary"
+              outlined
+              onClick={() => setCouponDialogVisible(false)}
+            />
+            <Button
+              type="submit"
+              label="Generate Coupon"
+              severity="success"
+              loading={loadingCoupon}
+            />
+          </div>
+        </form>
+      </Dialog>
+
+      {/* Create Catalog Discount Modal */}
+      <Dialog
+        header="Create Direct Markdown Discount"
+        visible={discountDialogVisible}
+        onHide={() => setDiscountDialogVisible(false)}
+        style={{ width: '480px', maxWidth: '95vw', borderRadius: '12px' }}
+        modal
+      >
+        <form onSubmit={handleCreateDiscount} style={{ ...styles.form, marginTop: '1rem' }}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Discount Rule Name *</label>
+            <input
+              type="text"
+              placeholder="e.g. Summer Biryani Bonanza, Appetizers Deal"
+              value={discName}
+              onChange={(e) => setDiscName(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
+
+          <div style={styles.formRow}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Target Type *</label>
+              <Dropdown
+                value={targetType}
+                options={[
+                  { label: 'Category-wide', value: 'category' },
+                  { label: 'Specific Product Title', value: 'product' }
+                ]}
+                onChange={(e) => setTargetType(e.value as any)}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Discount Percentage (%) *</label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={discPercent || ''}
+                onChange={(e) => setDiscPercent(Number(e.target.value))}
+                style={styles.input}
+                required
+              />
+            </div>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>
+              Target {targetType === 'category' ? 'Category' : 'Product'} Value *
+            </label>
+            {loadingProducts ? (
+              <div style={{ padding: '0.65rem', color: '#64748b', fontSize: '0.85rem' }}>Loading selections...</div>
+            ) : targetType === 'category' ? (
+              <Dropdown
+                value={targetVal}
+                options={uniqueCategories.map(cat => ({ label: cat, value: cat }))}
+                onChange={(e) => setTargetVal(e.value)}
+                placeholder="Select Category"
+                style={{ width: '100%' }}
+              />
+            ) : (
+              <Dropdown
+                value={targetVal}
+                options={products.map(prod => ({ label: prod.title, value: prod.title }))}
+                onChange={(e) => setTargetVal(e.value)}
+                placeholder="Select Product"
+                style={{ width: '100%' }}
+              />
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Cancel"
+              severity="secondary"
+              outlined
+              onClick={() => setDiscountDialogVisible(false)}
+            />
+            <Button
+              type="submit"
+              label="Activate Discount Rule"
+              severity="success"
+              loading={loadingDiscount}
+            />
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 };

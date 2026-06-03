@@ -177,7 +177,7 @@ const CartPage: React.FC = () => {
   }
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="cart-container">
       <Toast ref={toastRef} />
 
       {/* Glassmorphic header section */}
@@ -186,10 +186,10 @@ const CartPage: React.FC = () => {
         <p style={styles.sub}>Review selected items and proceed to secure checkout</p>
       </div>
 
-      <div style={styles.mainGrid}>
+      <div style={styles.mainGrid} className="cart-main-grid">
         
         {/* Left column: Cart Items list */}
-        <div style={styles.itemsColumn} className="hide-scrollbar">
+        <div style={styles.itemsColumn} className="cart-items-column hide-scrollbar">
           {cartItems.map((item) => (
             <div key={item._id} style={styles.itemCard} className="cart-item-card">
               <img
@@ -244,7 +244,7 @@ const CartPage: React.FC = () => {
         </div>
 
         {/* Right column: Totals summary card */}
-        <div style={styles.summaryColumn}>
+        <div style={styles.summaryColumn} className="cart-summary-column">
           <div style={styles.summaryCard}>
             <h2 style={styles.summaryTitle}>
               <i className="pi pi-shopping-bag" style={{ color: '#22c55e', fontSize: '1.25rem' }} />

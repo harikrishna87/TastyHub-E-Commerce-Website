@@ -3,6 +3,8 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Sidebar } from 'primereact/sidebar';
 import axios from 'axios';
+import { formatDate } from '../utils/dateFormatter';
+
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -115,6 +117,28 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     }
   };
 
+  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
+    delivery: location.pathname.includes('/admin/delivery'),
+    promotions: location.pathname.includes('/admin/coupons') || location.pathname.includes('/admin/combodeals'),
+    dining: location.pathname.includes('/admin/restaurants') || location.pathname.includes('/admin/giftcards')
+  });
+
+  useEffect(() => {
+    setExpandedSections(prev => ({
+      ...prev,
+      delivery: prev.delivery || location.pathname.includes('/admin/delivery'),
+      promotions: prev.promotions || location.pathname.includes('/admin/coupons') || location.pathname.includes('/admin/combodeals'),
+      dining: prev.dining || location.pathname.includes('/admin/restaurants') || location.pathname.includes('/admin/giftcards')
+    }));
+  }, [location.pathname]);
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -126,14 +150,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         hour12: true
       };
       setTimeStr(now.toLocaleTimeString('en-US', timeOptions));
-      
-      const dateOptions: Intl.DateTimeFormatOptions = {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      };
-      setDateStr(now.toLocaleDateString('en-US', dateOptions));
+      setDateStr(formatDate(now));
 
       const hrs = now.getHours();
       if (hrs < 12) setGreeting('Good Morning');
@@ -150,19 +167,88 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const adminEmail = auth?.user?.email || 'admin@tastyhub.com';
   const adminImage = auth?.user?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
 
-  const menuItems = [
+  interface SubMenuItem {
+    label: string;
+    path: string;
+    tab?: string;
+  }
+
+  interface MenuItem {
+    label: string;
+    icon: string;
+    path?: string;
+    groupKey?: string;
+    children?: SubMenuItem[];
+  }
+
+  const menuItems: MenuItem[] = [
     { label: 'Home', icon: 'pi pi-home', path: '/admin/home' },
     { label: 'Orders', icon: 'pi pi-shopping-bag', path: '/admin/ordermanagement' },
     { label: 'Products', icon: 'pi pi-box', path: '/admin/productspage' },
     { label: 'Payments', icon: 'pi pi-credit-card', path: '/admin/paymentoverview' },
     { label: 'Customers', icon: 'pi pi-users', path: '/admin/customers' },
-    { label: 'Delivery Executives', icon: 'pi pi-truck', path: '/admin/delivery' },
-    { label: 'Coupons & Discounts', icon: 'pi pi-tags', path: '/admin/coupons' },
-    { label: 'Restaurants & Offers', icon: 'pi pi-shop', path: '/admin/restaurants' },
-    { label: 'Combo Deals', icon: 'pi pi-briefcase', path: '/admin/combodeals' },
-    { label: 'Gift Cards', icon: 'pi pi-gift', path: '/admin/giftcards' },
+    {
+      label: 'Delivery Management',
+      icon: 'pi pi-truck',
+      groupKey: 'delivery',
+      children: [
+        { label: 'Executive Profiles', path: '/admin/delivery', tab: 'profiles' },
+        { label: 'Payout Requests', path: '/admin/delivery', tab: 'payouts' },
+        { label: 'Feedback Logs', path: '/admin/delivery', tab: 'feedback' },
+      ]
+    },
+    {
+      label: 'Promotions & Offers',
+      icon: 'pi pi-tags',
+      groupKey: 'promotions',
+      children: [
+        { label: 'Coupon Codes', path: '/admin/coupons', tab: 'coupons' },
+        { label: 'Catalog Discounts', path: '/admin/coupons', tab: 'discounts' },
+        { label: 'Combo Deals', path: '/admin/combodeals' },
+      ]
+    },
+    {
+      label: 'Dining & Gifting',
+      icon: 'pi pi-shop',
+      groupKey: 'dining',
+      children: [
+        { label: 'Active Restaurants', path: '/admin/restaurants', tab: 'restaurants' },
+        { label: 'Promo Banners', path: '/admin/restaurants', tab: 'banners' },
+        { label: 'Prepaid Gift Cards', path: '/admin/giftcards' },
+      ]
+    },
     { label: 'Profile', icon: 'pi pi-user', path: '/admin/profilepage' },
   ];
+
+  const isGroupActive = (item: MenuItem) => {
+    if (!item.children) return false;
+    return item.children.some(child => {
+      const isPathMatch = location.pathname === child.path;
+      if (!isPathMatch) return false;
+      if (child.tab) {
+        const searchParams = new URLSearchParams(location.search);
+        return searchParams.get('tab') === child.tab;
+      }
+      return true;
+    });
+  };
+
+  const isSubItemActive = (child: SubMenuItem) => {
+    const isPathMatch = location.pathname === child.path;
+    if (!isPathMatch) return false;
+    if (child.tab) {
+      const searchParams = new URLSearchParams(location.search);
+      return searchParams.get('tab') === child.tab;
+    }
+    return true;
+  };
+
+  const isItemActive = (item: MenuItem) => {
+    if (item.path) {
+      return location.pathname === item.path || (item.path === '/admin/home' && location.pathname === '/admin/orderanalytics');
+    }
+    return false;
+  };
 
   const handleLogout = async () => {
     if (auth?.logout) {
@@ -190,20 +276,113 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </div>
         
         <nav style={styles.navSection} className="admin-sidebar-nav">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path === '/admin/home' && location.pathname === '/admin/orderanalytics');
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                style={isActive ? styles.activeNavLink : styles.navLink}
-              >
-                <i className={item.icon} style={styles.navIcon(isActive)} />
-                <span style={styles.linkLabel(isActive)}>{item.label}</span>
-              </NavLink>
-            );
+          {menuItems.map((item, idx) => {
+            if (item.children && item.groupKey) {
+              const children = item.children;
+              const isExpanded = expandedSections[item.groupKey];
+              const isParentActive = isGroupActive(item);
+              return (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div
+                    onClick={() => toggleSection(item.groupKey!)}
+                    style={{
+                      ...(isParentActive ? styles.activeNavLink : styles.navLink),
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '0.15rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                      <i className={item.icon} style={styles.navIcon(isParentActive)} />
+                      <span style={styles.linkLabel(isParentActive)}>{item.label}</span>
+                    </div>
+                    <i
+                      className={isExpanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'}
+                      style={{ fontSize: '0.75rem', color: isParentActive ? '#15803d' : '#94a3b8', transition: 'transform 0.2s' }}
+                    />
+                  </div>
+                  
+                  <div
+                    style={{
+                      maxHeight: isExpanded ? `${children.length * 45}px` : '0px',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.2rem',
+                      paddingLeft: '1.25rem',
+                      marginLeft: '1.5rem',
+                      marginTop: isExpanded ? '0.2rem' : '0px',
+                      marginBottom: isExpanded ? '0.4rem' : '0px',
+                      position: 'relative'
+                    }}
+                  >
+                    {children.map((child, cIdx) => {
+                      const isChildActive = isSubItemActive(child);
+                      const targetPath = child.tab ? `${child.path}?tab=${child.tab}` : child.path;
+                      const isLast = cIdx === children.length - 1;
+                      return (
+                        <NavLink
+                          key={cIdx}
+                          to={targetPath}
+                          style={{
+                            ...(isChildActive ? styles.activeSubNavLink : styles.subNavLink),
+                            position: 'relative',
+                            paddingLeft: '1.5rem',
+                          }}
+                        >
+                          {/* Curved Connector Line */}
+                          <div style={{
+                            position: 'absolute',
+                            left: '-20px',
+                            top: 0,
+                            width: '20px',
+                            height: '50%',
+                            borderLeft: '1.5px solid #cbd5e1',
+                            borderBottom: '1.5px solid #cbd5e1',
+                            borderBottomLeftRadius: '6px',
+                            pointerEvents: 'none'
+                          }} />
+                          
+                          {/* Straight Vertical Line to continue to the next child */}
+                          {!isLast && (
+                            <div style={{
+                              position: 'absolute',
+                              left: '-20px',
+                              top: '50%',
+                              bottom: '-6px', // bridges the 0.2rem gap to the next item
+                              width: '20px',
+                              borderLeft: '1.5px solid #cbd5e1',
+                              pointerEvents: 'none'
+                            }} />
+                          )}
+
+                          <span style={styles.subLinkLabel(isChildActive)}>{child.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            } else if (item.path) {
+              const isActive = isItemActive(item);
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  style={isActive ? styles.activeNavLink : styles.navLink}
+                >
+                  <i className={item.icon} style={styles.navIcon(isActive)} />
+                  <span style={styles.linkLabel(isActive)}>{item.label}</span>
+                </NavLink>
+              );
+            }
+            return null;
           })}
         </nav>
+
 
         <button onClick={handleLogout} style={styles.logoutBtn} className="admin-logout-btn">
           <i className="pi pi-sign-out" style={styles.logoutIcon} />
@@ -367,7 +546,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       )}
                       <div style={{ fontSize: '0.7rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.35rem' }}>
                         <i className="pi pi-calendar" style={{ fontSize: '0.65rem' }}></i>
-                        {new Date(notif.createdAt).toLocaleString()}
+                        {formatDate(notif.createdAt)}
                       </div>
                     </div>
                   </div>
@@ -479,6 +658,32 @@ const styles = {
     boxShadow: '0 4px 12px rgba(34, 197, 94, 0.08)',
     transform: 'translateY(-1px)',
   },
+  subNavLink: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '0.55rem 0.85rem',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    color: '#64748b',
+    fontSize: '0.85rem',
+    fontWeight: 500,
+    transition: 'all 0.2s ease',
+  },
+  activeSubNavLink: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '0.55rem 0.85rem',
+    borderRadius: '8px',
+    textDecoration: 'none',
+    color: '#15803d',
+    backgroundColor: '#f0fdf4', // Soft green background
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    boxShadow: '0 2px 6px rgba(34, 197, 94, 0.04)',
+  },
+  subLinkLabel: (isActive: boolean) => ({
+    color: isActive ? '#15803d' : '#475569',
+  }),
   navIcon: (isActive: boolean) => ({
     fontSize: '1.1rem',
     color: isActive ? '#15803d' : '#94a3b8',

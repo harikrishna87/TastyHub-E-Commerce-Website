@@ -246,6 +246,7 @@ const getAllOrders = async (req: Request, res: Response, next: NextFunction) => 
   try {
     const orders = await Order.find()
       .populate('user', 'name email image')
+      .populate('deliveryExecutive', 'name email image rating')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -268,6 +269,7 @@ const getUserOrders = async (req: Request, res: Response, next: NextFunction) =>
 
     const orders = await Order.find({ user: userId })
       .populate('user', 'name email image')
+      .populate('deliveryExecutive', 'name email image rating')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -297,7 +299,8 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
     }
 
     const order = await Order.findById(id)
-      .populate('user', 'name email image') as IOrderPopulated | null;
+      .populate('user', 'name email image')
+      .populate('deliveryExecutive', 'name email image rating') as IOrderPopulated | null;
 
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
@@ -447,7 +450,10 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
       console.log('⚠️ User not found for order');
     }
 
-    await order.populate('user', 'name email image');
+    await order.populate([
+      { path: 'user', select: 'name email image' },
+      { path: 'deliveryExecutive', select: 'name email image rating' }
+    ]);
 
     res.status(200).json({
       success: true,
