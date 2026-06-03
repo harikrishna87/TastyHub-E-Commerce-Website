@@ -103,8 +103,8 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
         <div style={{
           position: 'absolute',
           top: '20px',
-          left: '20px',
-          right: '20px',
+          left: '16.67%',
+          right: '16.67%',
           height: '4px',
           backgroundColor: '#e8e8e8',
           borderRadius: '2px',

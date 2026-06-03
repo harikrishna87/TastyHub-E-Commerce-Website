@@ -253,7 +253,7 @@ export default function DealsDiscounts() {
             display: 'inline-block',
             marginBottom: '1rem'
           }}>
-            🎉 Mega Offers Page
+            Mega Offers Page
           </span>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#854d0e', margin: '0 0 1rem 0', letterSpacing: '-1px' }}>
             Deals, Coupons & Catalog Discounts
@@ -273,7 +273,7 @@ export default function DealsDiscounts() {
             {/* Active Coupon Codes Section */}
             <div style={{ marginBottom: '4rem' }}>
               <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '1.5rem', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🎟️ Active Coupon Codes
+                Active Coupon Codes
               </h2>
               
               {activeCoupons.length === 0 ? (
@@ -357,7 +357,7 @@ export default function DealsDiscounts() {
             {/* Catalog Discounts Section */}
             <div style={{ marginBottom: '3rem' }}>
               <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '1.5rem', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🔥 Direct Catalog Price Cuts
+                Direct Catalog Price Cuts
               </h2>
 
               {discountedProducts.length === 0 ? (

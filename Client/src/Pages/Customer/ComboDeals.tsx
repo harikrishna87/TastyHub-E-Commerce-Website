@@ -172,7 +172,7 @@ export default function ComboDeals() {
             display: 'inline-block',
             marginBottom: '1rem'
           }}>
-            ⚡ Limited Feast Offers
+            Limited Feast Offers
           </span>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#14532d', margin: '0 0 1rem 0', letterSpacing: '-1px' }}>
             Exclusive Feast Combo Deals
@@ -252,7 +252,7 @@ export default function ComboDeals() {
                       marginBottom: '1.5rem',
                       boxShadow: '0 4px 10px rgba(34, 197, 94, 0.15)'
                     }}>
-                      ⚡ INSTANT SAVINGS: ₹{savings.toFixed(2)}
+                      INSTANT SAVINGS: ₹{savings.toFixed(2)}
                     </div>
                   )}
 
@@ -287,7 +287,7 @@ export default function ComboDeals() {
                   {/* Checkout buttons */}
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginTop: 'auto' }}>
                     <Button 
-                      label={isAlreadyClaimed ? 'Already Claimed ✓' : isExpired ? 'Deal Expired' : 'Buy Feast Combo 🎁'} 
+                      label={isAlreadyClaimed ? 'Already Claimed ✓' : isExpired ? 'Deal Expired' : 'Buy Feast Combo'} 
                       icon="pi pi-shopping-bag" 
                       className="w-full p-button-success" 
                       disabled={isAlreadyClaimed || isExpired || buyingCombo[combo._id]}

@@ -151,7 +151,7 @@ class EmailService {
               <div class="logo-text">TastyHub</div>
             </div>
 
-            <h1 class="page-title">Order Created Successfully 🎉</h1>
+            <h1 class="page-title">Order Created Successfully</h1>
             <p class="page-subtitle">Thank you for your order</p>
             
             <p class="greeting">Hello ${order.user.name},</p>
@@ -225,31 +225,31 @@ class EmailService {
 
     const statusMessages: { [key: string]: { title: string; message: string; icon: string } } = {
       'Processing': {
-        title: 'Order is Being Prepared 🔄',
+        title: 'Order is Being Prepared',
         message: 'Your order is currently being processed and will be shipped soon.',
-        icon: '🔄'
+        icon: ''
       },
       'Shipped': {
-        title: 'Order Has Been Shipped 🚚',
+        title: 'Order Has Been Shipped',
         message: 'Great news! Your order is on its way and will arrive soon.',
-        icon: '🚚'
+        icon: ''
       },
       'Delivered': {
-        title: 'Order Delivered Successfully 🎉',
+        title: 'Order Delivered Successfully',
         message: 'Your order has been delivered. We hope you enjoy your meal!',
-        icon: '🎉'
+        icon: ''
       },
       'Cancelled': {
-        title: 'Order Cancelled ❌',
+        title: 'Order Cancelled',
         message: 'Your order has been cancelled as requested. If you have questions, please contact support.',
-        icon: '❌'
+        icon: ''
       }
     };
 
     const statusInfo = statusMessages[newStatus] || {
-      title: `Order Status Updated 📦`,
+      title: `Order Status Updated`,
       message: `Your order status has been updated to: ${newStatus}`,
-      icon: '📦'
+      icon: ''
     };
 
     const sendSmtpEmail = new brevo.SendSmtpEmail();
@@ -318,7 +318,7 @@ class EmailService {
               <div class="logo-text">TastyHub</div>
             </div>
 
-            <h1 class="page-title">Order Status Update 📦</h1>
+            <h1 class="page-title">Order Status Update</h1>
             <p class="page-subtitle">Your order has been updated</p>
 
             <div class="status-card">
@@ -473,7 +473,7 @@ class EmailService {
       email: process.env.BREVO_FROM_EMAIL || '',
       name: process.env.BREVO_FROM_NAME || 'TastyHub'
     };
-    sendSmtpEmail.subject = 'You Received a TastyHub Gift Card! 🎁';
+    sendSmtpEmail.subject = 'You Received a TastyHub Gift Card!';
     sendSmtpEmail.htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -488,7 +488,7 @@ class EmailService {
       </head>
       <body>
         <div class="container">
-          <h2>TastyHub Gift Card 🎁</h2>
+          <h2>TastyHub Gift Card</h2>
           <p>Hello,</p>
           <p>You have received a TastyHub Gift Card purchased by <strong>${buyer.name}</strong> (${buyer.email})!</p>
           <div class="value">Value: ₹${giftCard.originalValue.toFixed(2)}</div>
@@ -515,7 +515,7 @@ class EmailService {
       email: process.env.BREVO_FROM_EMAIL || '',
       name: process.env.BREVO_FROM_NAME || 'TastyHub'
     };
-    sendSmtpEmail.subject = 'Gift Card Successfully Redeemed! 💳';
+    sendSmtpEmail.subject = 'Gift Card Successfully Redeemed!';
     sendSmtpEmail.htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -556,7 +556,7 @@ class EmailService {
       email: process.env.BREVO_FROM_EMAIL || '',
       name: process.env.BREVO_FROM_NAME || 'TastyHub'
     };
-    sendSmtpEmail.subject = `Combo Deal Claimed Successfully! 🍔🥤`;
+    sendSmtpEmail.subject = `Combo Deal Claimed Successfully!`;
     sendSmtpEmail.htmlContent = `
       <!DOCTYPE html>
       <html>

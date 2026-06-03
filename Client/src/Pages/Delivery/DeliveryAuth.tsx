@@ -187,7 +187,7 @@ const DeliveryAuth: React.FC = () => {
           if (user.deliveryStatus === 'Pending') {
             message.warning('Login approved! However, your executive profile is waiting for administrator authorization to accept deliveries.');
           } else {
-            message.success(`Welcome back, Partner ${user.name}! 🛵`);
+            message.success(`Welcome back, Partner ${user.name}!`);
           }
 
           if (authContext?.login) {
@@ -368,7 +368,7 @@ const DeliveryAuth: React.FC = () => {
                   <span><i className="pi pi-spin pi-spinner" style={{ marginRight: '8px' }} /> Submitting...</span>
                 ) : (
                   <>
-                    <i className="pi pi-send" style={{ marginRight: '8px' }} /> Submit Application 🚀
+                    <i className="pi pi-send" style={{ marginRight: '8px' }} /> Submit Application
                   </>
                 )}
               </button>

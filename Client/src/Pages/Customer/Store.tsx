@@ -772,7 +772,7 @@ const Store: React.FC = () => {
                                         boxShadow: filters.category === 'Veg' ? '0 2px 8px rgba(34, 197, 94, 0.15)' : 'none'
                                     }}
                                 >
-                                    <span>Pure Veg 🟢</span>
+                                    <span>Pure Veg</span>
                                 </button>
                                 <button
                                     onClick={() => handleFilterChange('minRating', filters.minRating === 4.5 ? 0 : 4.5)}
@@ -818,7 +818,7 @@ const Store: React.FC = () => {
                                         boxShadow: filters.maxPrice === 300 ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none'
                                     }}
                                 >
-                                    <span>Under ₹300 💰</span>
+                                    <span>Under ₹300</span>
                                 </button>
                                 <button
                                     style={{
@@ -1247,7 +1247,7 @@ const Store: React.FC = () => {
                                                 ) : isExpired ? (
                                                     'Deal Expired'
                                                 ) : (
-                                                    'Claim Combo Deal 🎁'
+                                                    'Claim Combo Deal'
                                                 )}
                                             </button>
                                             <span style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center' }}>

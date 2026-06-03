@@ -17,7 +17,7 @@ TastyHub uses a robust, modern full-stack architecture to ensure security, visua
 |---|---|---|
 | **Frontend Core** | **React.js** (v19) | Powers the responsive Single Page Application (SPA), utilizing hook-based global states (`useContext` for Auth/Cart) and modular components. |
 | **Type Safety** | **TypeScript** | Enforces strict compiler rules (`noUnusedLocals`, `noUnusedParameters`) across the entire repository to ensure stable builds and eliminate run-time type exceptions. |
-| **UI Design System** | **PrimeReact & PrimeIcons** | The design foundation of TastyHub. Fully replaces Ant Design. Leverages lightweight, modern PrimeReact `<Card>`, `<DataTable>`, `<Dialog>`, `<Paginator>`, `<Tag>`, and `<Rating>` components styled with custom CSS for maximum flexibility and glassmorphic micro-animations. |
+| **UI Design System** | **PrimeReact & PrimeIcons** | The design foundation of TastyHub. Fully replaces Ant Design. Leverages lightweight, modern PrimeReact `<Card>`, `<DataTable>`, `<Dialog>`, `<Paginator>`, `<Tag>`, and `<Rating>` components styled with custom CSS for maximum flexibility and glassmorphic micro-animations. Cleaned up typography by removing keyboard emojis/emoticons throughout the client SPA and Brevo transactional email templates. |
 | **Backend API** | **Node.js & Express.js** | Handles MVC architecture, cookie parsing, secure CORS configurations, error-handling middleware, and structured RESTful routing. |
 | **Database** | **MongoDB & Mongoose** | Holds structured document schemas for Users, Carts, Orders, Gift Cards, Combos, and System Settings. Employs Mongoose pre-save hooks for bcrypt password hashing and population methods for database references. |
 | **Authentication** | **JWT & Axios** | Implements cookie-based JSON Web Tokens (JWT) for secure authentication. Axios client interceptors pass credentials, handle session timeouts, and verify token authorization. Prevents console warnings by filtering out malformed JWT keys during logouts. |
@@ -41,7 +41,7 @@ TastyHub uses a robust, modern full-stack architecture to ensure security, visua
     *   Feast packages at highly discounted prices.
     *   Integrated claims tracking and real-time expiration countdown limits.
 *   **Order History & Delivery Stepper Progress**:
-    *   **Visual Tracker Stepper**: Beautiful horizontal stepper utilizing PrimeReact `<Timeline>` with green-toned markers, active spin-loaders for active cooking or transit steps (`pi pi-spin pi-spinner`), progress bar gradients, and custom action cards.
+    *   **Visual Tracker Stepper**: Beautiful horizontal stepper utilizing PrimeReact `<Timeline>` with green-toned markers, active spin-loaders for active cooking or transit steps (`pi pi-spin pi-spinner`), progress bar gradients, and custom action cards. Fixed horizontal progress line constraints using precise percentages (`8.33%` and `16.67%`) to align exactly with circle centers.
     *   **History DataTable**: Premium admin-style DataTable matching the executive layout, styled with a soft grey border card, striped table rows, uppercase column headers (e.g. `ORDER ID`, `AMOUNT`, `STATUS`), and page size selection dropdowns.
 *   **Secure Wallet & Gift Card Redemption**:
     *   Pre-fund personal balances or purchase custom gift cards with secure Razorpay checkouts.
@@ -87,6 +87,8 @@ TastyHub uses a robust, modern full-stack architecture to ensure security, visua
 *   **Secure Payout Submissions**:
     *   A clean payout dialog splits account entries into three structured fields: "Accountant Name", "Account Number", and "IFSC Code".
     *   Enforces a strict minimum withdrawal limit of **₹100.00** per request.
+*   **Active Transits Operations**:
+    *   Restructured the active transit tracking dialog to automatically dismiss and clean the local tracking state immediately upon advancing order delivery statuses.
 *   **Status Indicators**:
     *   Consolidated executive availability statuses down to a clean `'Online'` badge.
 

@@ -8,6 +8,7 @@ import { Tag as PrimeTag } from 'primereact/tag';
 import { Dropdown } from 'primereact/dropdown';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
+import { Rating } from 'primereact/rating';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDate } from '../../utils/dateFormatter';
@@ -101,7 +102,7 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
   return (
     <div style={{ padding: '28px 20px', backgroundColor: '#f0fdf4', borderRadius: '16px', margin: '8px 0', border: '1px solid #bbf7d0', boxShadow: 'inset 0 2px 8px rgba(34, 197, 94, 0.03)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', width: '100%', maxWidth: '780px', margin: '0 auto', paddingBottom: '16px' }}>
-        <div style={{ position: 'absolute', top: '22px', left: '30px', right: '30px', height: '4px', backgroundColor: '#e5e7eb', borderRadius: '4px', zIndex: 1 }}>
+        <div style={{ position: 'absolute', top: '22px', left: '8.33%', right: '8.33%', height: '4px', backgroundColor: '#e5e7eb', borderRadius: '4px', zIndex: 1 }}>
           <div style={{ height: '100%', background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)', borderRadius: '4px', width: `${(currentIndex / 5) * 100}%`, transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 8px rgba(34, 197, 94, 0.4)' }} />
         </div>
 
@@ -152,12 +153,12 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
       <div style={{ textAlign: 'center', marginTop: '24px', padding: '12px 16px', backgroundColor: 'white', borderRadius: '10px', border: '1.5px dashed #bbf7d0', boxShadow: '0 2px 10px rgba(0,0,0,0.01)' }}>
         <span style={{ color: '#16a34a', fontWeight: '700', fontSize: '14.5px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           <i className={currentIndex < 5 ? "pi pi-spin pi-cog" : "pi pi-check-circle"} />
-          {currentStatus === 'Pending' && 'Your order has been placed and is being prepared with love 🍕'}
-          {currentStatus === 'Accepted' && 'Your order has been accepted by our chef 🍳'}
-          {currentStatus === 'Preparing' && 'Our kitchen team is cooking your fresh food 🍳'}
-          {currentStatus === 'Pickup' && 'The delivery partner has picked up your hot food 🛵'}
-          {(currentStatus === 'Out for Delivery' || currentStatus === 'Shipped') && 'Your order is out for delivery 🛵'}
-          {currentStatus === 'Delivered' && 'Your order has been successfully delivered! Enjoy your meal 🍔'}
+          {currentStatus === 'Pending' && 'Your order has been placed and is being prepared with love'}
+          {currentStatus === 'Accepted' && 'Your order has been accepted by our chef'}
+          {currentStatus === 'Preparing' && 'Our kitchen team is cooking your fresh food'}
+          {currentStatus === 'Pickup' && 'The delivery partner has picked up your hot food'}
+          {(currentStatus === 'Out for Delivery' || currentStatus === 'Shipped') && 'Your order is out for delivery'}
+          {currentStatus === 'Delivered' && 'Your order has been successfully delivered! Enjoy your meal'}
         </span>
       </div>
     </div>
@@ -241,6 +242,15 @@ const ProfilePage: React.FC = () => {
   const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const receiptContentRef = useRef<HTMLDivElement>(null);
+
+  // Review Modals states
+  const [isProductReviewVisible, setIsProductReviewVisible] = useState<boolean>(false);
+  const [isDeliveryReviewVisible, setIsDeliveryReviewVisible] = useState<boolean>(false);
+  const [selectedOrderForReview, setSelectedOrderForReview] = useState<any>(null);
+  const [productReviews, setProductReviews] = useState<{ [productId: string]: { rating: number; review: string; name: string; image: string } }>({});
+  const [deliveryRating, setDeliveryRating] = useState<number>(5);
+  const [deliveryFeedback, setDeliveryFeedback] = useState<string>('');
+  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
   const resolvedProfileImage =
     imageUrl ||
     profileData?.image ||
@@ -729,8 +739,144 @@ const ProfilePage: React.FC = () => {
     setIsStatusModalVisible(true);
   };
 
-  const openProductReviewModal = (_order: any) => { /* logic */ };
-  const openDeliveryReviewModal = (_order: any) => { /* logic */ };
+  const openProductReviewModal = async (order: any) => {
+    setSelectedOrderForReview(order);
+    setSubmittingReview(true);
+    try {
+      const response = await axios.get(`${backendUrl}/api/products/getallproducts`);
+      if (response.data.success) {
+        const allProducts = response.data.data;
+        const initialReviews: { [productId: string]: { rating: number; review: string; name: string; image: string } } = {};
+        
+        order.items?.forEach((item: any) => {
+          const matchingProduct = allProducts.find(
+            (p: any) => (p.title || p.name || '').toLowerCase() === (item.name || '').toLowerCase()
+          );
+          if (matchingProduct) {
+            initialReviews[matchingProduct._id] = {
+              rating: 5,
+              review: '',
+              name: item.name,
+              image: item.image
+            };
+          }
+        });
+        
+        setProductReviews(initialReviews);
+        setIsProductReviewVisible(true);
+      } else {
+        toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to retrieve product details for reviews' });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.current?.show({ severity: 'error', summary: 'Error', detail: 'Could not load product details' });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const submitProductReviews = async () => {
+    const productIds = Object.keys(productReviews);
+    if (productIds.length === 0) {
+      toast.current?.show({ severity: 'warn', summary: 'Warning', detail: 'No products found to rate' });
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const token = authContext?.token || localStorage.getItem('token');
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      };
+
+      const promises = productIds.map(productId => {
+        const { rating, review } = (productReviews as any)[productId];
+        return axios.post(
+          `${backendUrl}/api/reviews/products/${productId}`,
+          {
+            rating,
+            review: review.trim() || 'Excellent food and taste!',
+            orderId: selectedOrderForReview._id
+          },
+          config
+        );
+      });
+
+      await Promise.all(promises);
+
+      toast.current?.show({ severity: 'success', summary: 'Success', detail: 'Thank you! Product reviews submitted successfully.' });
+      setIsProductReviewVisible(false);
+      setSelectedOrderForReview(null);
+      fetchOrdersList();
+    } catch (err: any) {
+      console.error(err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Failed',
+        detail: err.response?.data?.message || 'Failed to submit product reviews'
+      });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const openDeliveryReviewModal = (order: any) => {
+    setSelectedOrderForReview(order);
+    setDeliveryRating(5);
+    setDeliveryFeedback('');
+    setIsDeliveryReviewVisible(true);
+  };
+
+  const submitDeliveryReview = async () => {
+    if (!selectedOrderForReview?.deliveryExecutive) {
+      toast.current?.show({ severity: 'error', summary: 'Error', detail: 'No delivery partner assigned to this order' });
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const token = authContext?.token || localStorage.getItem('token');
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      };
+
+      const executiveId = typeof selectedOrderForReview.deliveryExecutive === 'object'
+        ? selectedOrderForReview.deliveryExecutive._id
+        : selectedOrderForReview.deliveryExecutive;
+
+      const response = await axios.post(
+        `${backendUrl}/api/reviews/delivery/${executiveId}`,
+        {
+          rating: deliveryRating,
+          feedback: deliveryFeedback.trim() || 'Great delivery service!',
+          orderId: selectedOrderForReview._id
+        },
+        config
+      );
+
+      if (response.data.success) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Feedback Submitted',
+          detail: response.data.message || 'Thank you for rating your delivery partner!'
+        });
+        setIsDeliveryReviewVisible(false);
+        setSelectedOrderForReview(null);
+        fetchOrdersList();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Failed',
+        detail: err.response?.data?.message || 'Failed to submit delivery feedback'
+      });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const handleDownloadReceipt = async () => {
     if (!receiptContentRef.current || !selectedOrder) {
@@ -1540,6 +1686,121 @@ const ProfilePage: React.FC = () => {
           </div>
         </form>
       </Dialog>
+
+      {/* Rate Products Dialog Modal */}
+      {selectedOrderForReview && isProductReviewVisible && (
+        <Dialog 
+          visible={isProductReviewVisible} 
+          onHide={() => { setIsProductReviewVisible(false); setSelectedOrderForReview(null); }} 
+          header={<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem', width: '100%' }}><i className="pi pi-star" style={{ color: '#eab308', fontSize: '1.2rem' }}></i><span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1f2937' }}>Rate Order Products</span></div>} 
+          style={{ width: '550px', maxWidth: '95vw', borderRadius: '12px' }} 
+          modal
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
+            <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>Please share your feedback for each item in your order:</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+              {Object.keys(productReviews).map((productId) => {
+                const item = productReviews[productId];
+                return (
+                  <div key={productId} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', backgroundColor: '#f8fafc' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <img src={item.image} alt={item.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb' }} />
+                      <h4 style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: '#1e293b' }}>{item.name}</h4>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Your Rating:</span>
+                      <Rating 
+                        value={item.rating} 
+                        onChange={(e) => {
+                          setProductReviews(prev => ({
+                            ...prev,
+                            [productId]: { ...prev[productId], rating: e.value || 5 }
+                          }));
+                        }} 
+                        cancel={false} 
+                        stars={5} 
+                        style={{ color: '#f59e0b', fontSize: '18px' }} 
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>Review Description</label>
+                      <textarea
+                        value={item.review}
+                        onChange={(e) => {
+                          setProductReviews(prev => ({
+                            ...prev,
+                            [productId]: { ...prev[productId], review: e.target.value }
+                          }));
+                        }}
+                        placeholder="e.g. Delicious and cooked to perfection!"
+                        style={{ ...styles.formInput, resize: 'vertical', minHeight: '60px', fontFamily: 'inherit' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>
+              <Button type="button" label="Cancel" severity="secondary" outlined onClick={() => { setIsProductReviewVisible(false); setSelectedOrderForReview(null); }} />
+              <Button type="button" label="Submit Reviews" severity="success" loading={submittingReview} onClick={submitProductReviews} />
+            </div>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Rate Delivery Partner Dialog Modal */}
+      {selectedOrderForReview && isDeliveryReviewVisible && (
+        <Dialog 
+          visible={isDeliveryReviewVisible} 
+          onHide={() => { setIsDeliveryReviewVisible(false); setSelectedOrderForReview(null); }} 
+          header={<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem', width: '100%' }}><i className="pi pi-truck" style={{ color: '#3b82f6', fontSize: '1.2rem' }}></i><span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1f2937' }}>Rate Delivery Partner</span></div>} 
+          style={{ width: '450px', maxWidth: '95vw', borderRadius: '12px' }} 
+          modal
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', backgroundColor: '#eff6ff', padding: '1rem', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
+              <div style={{ backgroundColor: '#3b82f6', color: 'white', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                <i className="pi pi-user"></i>
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontWeight: 700, color: '#1e3a8a' }}>
+                  {typeof selectedOrderForReview.deliveryExecutive === 'object'
+                    ? selectedOrderForReview.deliveryExecutive.name
+                    : 'Delivery Executive'}
+                </h4>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#3b82f6', fontWeight: 600 }}>TastyHub Delivery Partner</p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#4b5563' }}>How was your delivery service?</label>
+              <Rating 
+                value={deliveryRating} 
+                onChange={(e) => setDeliveryRating(e.value || 5)} 
+                cancel={false} 
+                stars={5} 
+                style={{ color: '#f59e0b', fontSize: '24px' }} 
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#4b5563' }}>Feedback Description</label>
+              <textarea
+                value={deliveryFeedback}
+                onChange={(e) => setDeliveryFeedback(e.target.value)}
+                placeholder="e.g. Prompt delivery, food arrived hot and friendly rider!"
+                style={{ ...styles.formInput, resize: 'vertical', minHeight: '80px', fontFamily: 'inherit' }}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem', marginTop: '0.5rem' }}>
+              <Button type="button" label="Cancel" severity="secondary" outlined onClick={() => { setIsDeliveryReviewVisible(false); setSelectedOrderForReview(null); }} />
+              <Button type="button" label="Submit Feedback" severity="success" loading={submittingReview} onClick={submitDeliveryReview} />
+            </div>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 };

@@ -80,8 +80,8 @@ const FeaturedRestaurants: React.FC<FeaturedRestaurantsProps> = ({
 
   const filterOptions = [
     { label: 'All Cuisines', value: 'all' },
-    { label: 'Pure Veg 🟢', value: 'veg' },
-    { label: 'Non-Veg 🔴', value: 'nonveg' },
+    { label: 'Pure Veg', value: 'veg' },
+    { label: 'Non-Veg', value: 'nonveg' },
     { label: '★ 4.7+ Highly-Rated', value: 'highly-rated' }
   ];
 
@@ -178,7 +178,7 @@ const FeaturedRestaurants: React.FC<FeaturedRestaurantsProps> = ({
 
               <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 2 }}>
                 <Tag 
-                  value={restaurant.isVeg ? 'Veg 🟢' : 'Non-Veg 🔴'} 
+                  value={restaurant.isVeg ? 'Veg' : 'Non-Veg'} 
                   severity={restaurant.isVeg ? 'success' : 'danger'} 
                   style={{ fontWeight: 600 }}
                 />

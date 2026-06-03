@@ -352,7 +352,7 @@ export default function Homepage() {
           boxShadow: '0 12px 30px rgba(0, 0, 0, 0.08)'
         }}>
           <div style={{ position: 'relative', zIndex: 1, maxWidth: '800px', margin: '0 auto' }}>
-            <Tag value="🟢 GOURMET PARTNER" severity="success" style={{ marginBottom: '1rem', borderRadius: '20px' }} />
+            <Tag value="GOURMET PARTNER" severity="success" style={{ marginBottom: '1rem', borderRadius: '20px' }} />
             <h1 style={{ color: 'white', fontSize: '3.2rem', fontWeight: 800, margin: '16px 0', letterSpacing: '-1px' }}>
               Craving Delicious Food?
             </h1>

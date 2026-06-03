@@ -63,7 +63,7 @@ export default function DeliveryLandingPage() {
             marginBottom: '2rem',
             letterSpacing: '0.5px'
           }}>
-            🚀 WE ARE HIRING FOR 2026
+            WE ARE HIRING FOR 2026
           </div>
           
           <h1 style={{

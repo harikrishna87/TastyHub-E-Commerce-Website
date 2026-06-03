@@ -335,6 +335,9 @@ const DeliveryDashboard: React.FC = () => {
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // Profile data
+  const [profileData, setProfileData] = useState<any>(null);
+
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<'overview' | 'new-orders' | 'active-transits' | 'earnings' | 'profile'>('overview');
 
@@ -427,7 +430,7 @@ const DeliveryDashboard: React.FC = () => {
       );
       if (res.data.success) {
         message.success({
-          content: 'Profile image updated successfully! 📸',
+          content: 'Profile image updated successfully!',
           duration: 4
         });
         
@@ -497,6 +500,7 @@ const DeliveryDashboard: React.FC = () => {
         if (meRes.data.success) {
           setIsOnline(meRes.data.user.isAvailable || false);
           setProfileImage(meRes.data.user.image || 'https://primefaces.org/cdn/primereact/images/avatar/amyelsner.png');
+          setProfileData(meRes.data.user);
         }
       } catch (err) {
         console.error('Failed to sync profile status:', err);
@@ -598,7 +602,7 @@ const DeliveryDashboard: React.FC = () => {
       if (res.data.success) {
         setIsOnline(checked);
         message.success({
-          content: `Status updated! You are now ${checked ? 'ONLINE and ready for carrier duties 🟢' : 'OFFLINE 🔴'}`,
+          content: `Status updated! You are now ${checked ? 'ONLINE and ready for carrier duties' : 'OFFLINE'}`,
           duration: 4
         });
         fetchDashboardData(true);
@@ -623,7 +627,7 @@ const DeliveryDashboard: React.FC = () => {
 
       if (res.data.success) {
         message.success({
-          content: 'Order accepted! Navigating to kitchen dispatch immediately 🛵',
+          content: 'Order accepted! Navigating to kitchen dispatch immediately',
           duration: 4
         });
         
@@ -692,7 +696,7 @@ const DeliveryDashboard: React.FC = () => {
 
       if (res.data.success) {
         message.success({
-          content: `Status advanced to: ${status} successfully! 🎉`,
+          content: `Status advanced to: ${status} successfully!`,
           duration: 4
         });
         
@@ -766,7 +770,7 @@ const DeliveryDashboard: React.FC = () => {
 
       if (res.data.success) {
         message.success({
-          content: 'Withdrawal request submitted successfully! 💸',
+          content: 'Withdrawal request submitted successfully!',
           duration: 4
         });
         setWithdrawDialogVisible(false);
@@ -824,6 +828,98 @@ const DeliveryDashboard: React.FC = () => {
     if (status === 'Delivered') return '100%';
     return '0%';
   };
+
+  if (profileData && profileData.deliveryStatus !== 'Approved') {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        backgroundColor: '#f8fafc',
+        fontFamily: 'Inter, Outfit, sans-serif',
+        padding: '2rem',
+        textAlign: 'center'
+      }}>
+        <Toast ref={toastRef} />
+        <div style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '24px',
+          padding: '3rem 2rem',
+          maxWidth: '500px',
+          width: '100%',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.5rem'
+        }}>
+          <img src="/logo.png" alt="TastyHub Logo" style={{ height: '60px', objectFit: 'contain' }} onError={(e)=>{(e.target as any).src='https://primefaces.org/cdn/primereact/images/logo.png'}} />
+          
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            backgroundColor: profileData.deliveryStatus === 'Rejected' ? '#fef2f2' : '#fef9c3',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: profileData.deliveryStatus === 'Rejected' ? '#ef4444' : '#eab308',
+            fontSize: '2.5rem',
+            boxShadow: `0 8px 20px ${profileData.deliveryStatus === 'Rejected' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(234, 179, 8, 0.15)'}`
+          }}>
+            <i className={profileData.deliveryStatus === 'Rejected' ? "pi pi-times-circle" : "pi pi-clock pi-spin"} />
+          </div>
+
+          <div>
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              {profileData.deliveryStatus === 'Rejected' ? 'Application Rejected' : 'Waiting for Admin Approval'}
+            </h2>
+            <p style={{ fontSize: '0.92rem', color: '#64748b', marginTop: '0.75rem', lineHeight: 1.6 }}>
+              {profileData.deliveryStatus === 'Rejected' 
+                ? `Dear ${profileData.name}, unfortunately your application for a delivery partner account has been rejected by the administrator. Please contact our support team for details.`
+                : `Dear ${profileData.name}, your delivery partner account is currently pending verification. Once the TastyHub administrator approves your profile, you will automatically receive access to logistics dispatch and commission operations.`
+              }
+            </p>
+          </div>
+
+          <div style={{
+            backgroundColor: profileData.deliveryStatus === 'Rejected' ? '#fef2f2' : '#fef9c3',
+            color: profileData.deliveryStatus === 'Rejected' ? '#ef4444' : '#ca8a04',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            letterSpacing: '0.5px',
+            border: `1px solid ${profileData.deliveryStatus === 'Rejected' ? '#fecaca' : '#fef08a'}`
+          }}>
+            {profileData.deliveryStatus === 'Rejected' ? 'STATUS: REJECTED' : 'STATUS: PENDING VERIFICATION'}
+          </div>
+
+          <Divider style={{ margin: '1rem 0', width: '100%' }} />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+            <Button 
+              label="Refresh Status" 
+              icon="pi pi-refresh" 
+              className="p-button-success"
+              style={{ borderRadius: '10px', width: '100%', fontWeight: 700 }}
+              onClick={() => fetchDashboardData(false)} 
+            />
+            <Button 
+              label="Log Out / End Duty" 
+              icon="pi pi-sign-out" 
+              className="p-button-danger p-button-outlined" 
+              style={{ borderRadius: '10px', width: '100%', fontWeight: 700 }}
+              onClick={handleLogout} 
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="delivery-layout-container">
@@ -1642,7 +1738,7 @@ const DeliveryDashboard: React.FC = () => {
                 <p style={{ margin: 0, fontSize: '0.88rem', color: '#0f172a', lineHeight: 1.5 }}>
                   <strong>{trackingOrder.shippingAddress?.fullName || trackingOrder.user?.name}</strong><br />
                   {trackingOrder.shippingAddress?.addressLine1}, {trackingOrder.shippingAddress?.city}, {trackingOrder.shippingAddress?.postalCode}<br />
-                  📞 Phone: <span style={{ fontWeight: 700, color: '#15803d' }}>{trackingOrder.shippingAddress?.phone || 'N/A'}</span>
+                  Phone: <span style={{ fontWeight: 700, color: '#15803d' }}>{trackingOrder.shippingAddress?.phone || 'N/A'}</span>
                 </p>
               </div>
 
@@ -1689,7 +1785,7 @@ const DeliveryDashboard: React.FC = () => {
                       'Confirm Order Delivered'
                     }
                     icon={
-                      trackingOrder.deliveryStatus === 'Accepted' ? 'pi pi-spinner pi-spin' :
+                      trackingOrder.deliveryStatus === 'Accepted' ? 'pi pi-play' :
                       trackingOrder.deliveryStatus === 'Preparing' ? 'pi pi-check' :
                       trackingOrder.deliveryStatus === 'Pickup' ? 'pi pi-directions' :
                       'pi pi-home'
@@ -1709,8 +1805,8 @@ const DeliveryDashboard: React.FC = () => {
                         trackingOrder.totalAmount, 
                         trackingOrder.user?.name || 'Customer'
                       );
-                      const updated = allOrders.find(o => o._id === trackingOrder._id) || trackingOrder;
-                      setTrackingOrder(updated);
+                      setTrackingVisible(false);
+                      setTrackingOrder(null);
                     }}
                   />
                 )}

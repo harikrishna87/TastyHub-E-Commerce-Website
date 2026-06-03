@@ -256,7 +256,7 @@ const CartPage: React.FC = () => {
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '6px', fontWeight: 600 }}>
                 {freeDelivery ? (
-                  <span style={{ color: '#166534' }}>You qualified for FREE delivery! 🚚</span>
+                  <span style={{ color: '#166534' }}>You qualified for FREE delivery!</span>
                 ) : (
                   <span style={{ color: '#b45309' }}>Add ₹{(freeDeliveryThreshold - subtotal).toFixed(0)} more for FREE delivery</span>
                 )}
@@ -281,7 +281,7 @@ const CartPage: React.FC = () => {
             <div style={styles.summaryRow}>
               <span>Delivery Fee</span>
               {freeDelivery ? (
-                <span style={{ color: '#22c55e', fontWeight: 700 }}>FREE 🚚</span>
+                <span style={{ color: '#22c55e', fontWeight: 700 }}>FREE</span>
               ) : (
                 <span style={{ fontWeight: 600, color: '#1e293b' }}>₹{deliveryCharge.toFixed(2)}</span>
               )}
@@ -289,7 +289,7 @@ const CartPage: React.FC = () => {
 
             {savings > 0 && (
               <div style={{ ...styles.summaryRow, color: '#22c55e' }}>
-                <span>Catalog Discounts 🎉</span>
+                <span>Catalog Discounts</span>
                 <span style={{ fontWeight: 700 }}>-₹{savings.toFixed(2)}</span>
               </div>
             )}

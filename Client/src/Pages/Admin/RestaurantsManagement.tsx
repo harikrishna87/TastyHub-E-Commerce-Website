@@ -311,7 +311,7 @@ const RestaurantsManagement: React.FC = () => {
 
   const vegTemplate = (rowData: Restaurant) => (
     <Tag 
-      value={rowData.isVeg ? 'VEG🟢' : 'NON-VEG🔴'} 
+      value={rowData.isVeg ? 'VEG' : 'NON-VEG'} 
       severity={rowData.isVeg ? 'success' : 'danger'} 
       style={{ fontSize: '11px', padding: '4px 8px' }}
     />
@@ -501,7 +501,7 @@ const RestaurantsManagement: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
             <Checkbox inputId="restIsVeg" checked={restIsVeg} onChange={(e) => setRestIsVeg(e.checked || false)} />
-            <label htmlFor="restIsVeg" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>Is Pure Vegetarian Kitchen? 🟢</label>
+            <label htmlFor="restIsVeg" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>Is Pure Vegetarian Kitchen?</label>
           </div>
 
           <Button type="submit" label="Save Restaurant Profile" icon="pi pi-check" className="p-button-success" style={{ width: '100%', marginTop: '10px', background: '#15803d', border: 'none', padding: '0.75rem', borderRadius: '8px' }} />
@@ -551,7 +551,7 @@ const RestaurantsManagement: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
             <Checkbox inputId="bannerIsActive" checked={bannerIsActive} onChange={(e) => setBannerIsActive(e.checked || false)} />
-            <label htmlFor="bannerIsActive" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>Active Banner (Enable Display) 🟢</label>
+            <label htmlFor="bannerIsActive" style={{ fontSize: '0.88rem', fontWeight: 600, cursor: 'pointer' }}>Active Banner (Enable Display)</label>
           </div>
 
           <Button type="submit" label="Save Promo Banner Slide" icon="pi pi-check" className="p-button-success" style={{ width: '100%', marginTop: '10px', background: '#15803d', border: 'none', padding: '0.75rem', borderRadius: '8px' }} />
