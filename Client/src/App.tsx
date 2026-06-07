@@ -88,8 +88,9 @@ const AppContent: React.FC = () => {
 
   return (
     <>
-      {!isDeliveryRoute && !isAdminRoute && <FoodNavbar />}
+      {!isDeliveryRoute && !isAdminRoute && !isAuthRoute && <FoodNavbar />}
       <div
+        className={isDeliveryRoute || isAdminRoute || isAuthRoute ? "" : "customer-content-wrapper"}
         style={
           isDeliveryRoute || isAdminRoute || isAuthRoute
             ? {}

@@ -35,7 +35,8 @@ const customStyles = `
     justify-content: center;
     font-family: 'Inter', 'Outfit', sans-serif;
     padding: 20px 1rem;
-    min-height: calc(100vh - 75px);
+    min-height: 100vh;
+    box-sizing: border-box;
   }
   .dedicated-auth-card {
     background: #ffffff;
@@ -146,9 +147,32 @@ const UserAuth: React.FC = () => {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const toastRef = useRef<Toast>(null);
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState<boolean>(false);
+  const [cachedSession, setCachedSession] = useState<{
+    user: any;
+  } | null>(null);
+  const [useDifferentAccount, setUseDifferentAccount] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchLastLogin = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/api/auth/last-login`, {
+          withCredentials: true
+        });
+        if (response.data.success) {
+          setCachedSession({
+            user: response.data.user
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch last login from backend:', err);
+      }
+    };
+    fetchLastLogin();
+  }, [backendUrl]);
   const [guestLoading, setGuestLoading] = useState<boolean>(false);
   const [resendLoading, setResendLoading] = useState<boolean>(false);
 
@@ -177,8 +201,6 @@ const UserAuth: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
-
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -557,173 +579,298 @@ const UserAuth: React.FC = () => {
     <div className="dedicated-auth-container">
       <Toast ref={toastRef} />
 
-      <div className="dedicated-auth-card">
-        <div>
-          <div className="image-login-title">
-            {mode === 'login' ? 'Welcome to TastyHub' : 'Create Account'}
-          </div>
-          <div className="image-login-subtitle">
-            {mode === 'login' ? 'Welcome back! Please login to your account' : 'Join us to enjoy seamless premium food ordering'}
+      {cachedSession && !useDifferentAccount ? (
+        <div className="dedicated-auth-card" style={{ textAlign: 'center' }}>
+          <h2 className="image-login-title">Welcome Back!</h2>
+          <p className="image-login-subtitle">Continue with your previous session</p>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '1.5rem',
+            backgroundColor: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '16px',
+            marginBottom: '1.5rem',
+            position: 'relative'
+          }}>
+            <img
+              src={cachedSession.user.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+              alt={cachedSession.user.name}
+              style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '3px solid #22c55e',
+                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)'
+              }}
+              onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+            />
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
+                {cachedSession.user.name}
+              </h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                {cachedSession.user.email}
+              </p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            {mode === 'register' && (
+          <button
+            onClick={async () => {
+              try {
+                setLoading(true);
+                const response = await axios.post(`${backendUrl}/api/auth/continue-login`, {}, {
+                  withCredentials: true
+                });
+                if (response.data.success) {
+                  auth.login(response.data.user, response.data.token);
+                  toastRef.current?.show({ severity: 'success', summary: 'Success', detail: `Welcome back ${response.data.user.name}!` });
+                  if (response.data.user.role === 'delivery_executive') {
+                    navigate('/delivery/home');
+                  } else if (response.data.user.role === 'admin') {
+                    navigate('/admin/home');
+                  } else {
+                    navigate('/user/home');
+                  }
+                } else {
+                  toastRef.current?.show({ severity: 'error', summary: 'Login Failed', detail: response.data.message || 'Could not restore session' });
+                  setCachedSession(null);
+                }
+              } catch (err: any) {
+                toastRef.current?.show({ severity: 'error', summary: 'Login Error', detail: err.response?.data?.message || 'Server error during auto-login' });
+                setCachedSession(null);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            className="image-submit-btn"
+            disabled={loading}
+          >
+            <i className="pi pi-sign-in" />
+            <span>Continue as {cachedSession.user.name}</span>
+          </button>
+
+          <button
+            onClick={() => setUseDifferentAccount(true)}
+            style={{
+              background: 'transparent',
+              border: '1.5px solid #e2e8f0',
+              color: '#475569',
+              height: '44px',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease',
+              marginTop: '0.5rem'
+            }}
+          >
+            <i className="pi pi-user-plus" />
+            <span>Use another account</span>
+          </button>
+
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Back to Home"
+              icon="pi pi-arrow-left"
+              link
+              className="p-button-success back-to-home-btn"
+              style={{ color: '#22c55e', fontWeight: 700, padding: 0 }}
+              onClick={() => navigate('/user/home')}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="dedicated-auth-card">
+          <div>
+            <div className="image-login-title">
+              {mode === 'login' ? 'Welcome to TastyHub' : 'Create Account'}
+            </div>
+            <div className="image-login-subtitle">
+              {mode === 'login' ? 'Welcome back! Please login to your account' : 'Join us to enjoy seamless premium food ordering'}
+            </div>
+
+            <form onSubmit={handleSubmit}>
+              {mode === 'register' && (
+                <div style={{ marginBottom: '14px' }}>
+                  <label className="image-input-label">Full Name</label>
+                  <div style={{ position: 'relative' }}>
+                    <i className="pi pi-user" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
+                    <input
+                      type="text"
+                      className="image-text-input"
+                      placeholder="Enter your full name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      style={{ paddingLeft: '36px' }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div style={{ marginBottom: '14px' }}>
-                <label className="image-input-label">Full Name</label>
+                <label className="image-input-label">Email Address</label>
                 <div style={{ position: 'relative' }}>
-                  <i className="pi pi-user" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
+                  <i className="pi pi-envelope" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
                   <input
-                    type="text"
+                    type="email"
                     className="image-text-input"
-                    placeholder="Enter your full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     style={{ paddingLeft: '36px' }}
                   />
                 </div>
               </div>
-            )}
 
-            <div style={{ marginBottom: '14px' }}>
-              <label className="image-input-label">Email Address</label>
-              <div style={{ position: 'relative' }}>
-                <i className="pi pi-envelope" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
-                <input
-                  type="email"
-                  className="image-text-input"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={{ paddingLeft: '36px' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '14px' }}>
-              <label className="image-input-label">Password</label>
-              <div style={{ position: 'relative' }}>
-                <i className="pi pi-lock" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="image-text-input"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{ paddingLeft: '36px', paddingRight: '40px' }}
-                />
-                <i
-                  className={showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'}
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '14px',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                  }}
-                />
-              </div>
-            </div>
-
-            {mode === 'login' && (
-              <div className="image-form-footer">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Checkbox
-                    inputId="rememberMe"
-                    onChange={(e) => setRememberMe(e.checked || false)}
-                    checked={rememberMe}
+              <div style={{ marginBottom: '14px' }}>
+                <label className="image-input-label">Password</label>
+                <div style={{ position: 'relative' }}>
+                  <i className="pi pi-lock" style={{ position: 'absolute', left: '12px', top: '14px', color: '#94a3b8' }} />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="image-text-input"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{ paddingLeft: '36px', paddingRight: '40px' }}
                   />
-                  <label htmlFor="rememberMe" style={{ fontWeight: 600, color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
-                    Remember me
-                  </label>
+                  <i
+                    className={showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'}
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '14px',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                    }}
+                  />
                 </div>
-                <span onClick={() => { setShowForgotPassword(true); setForgotPasswordStep(0); }} className="image-forgot-link">
-                  Forgot password?
-                </span>
               </div>
-            )}
 
-            <button type="submit" disabled={loading} className="image-submit-btn">
-              {loading ? (
-                <i className="pi pi-spin pi-spinner" />
-              ) : (
-                <>
-                  <i className="pi pi-sign-in" />
-                  <span>{mode === 'login' ? 'Sign In' : 'Sign Up'}</span>
-                </>
+              {mode === 'login' && (
+                <div className="image-form-footer">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Checkbox
+                      inputId="rememberMe"
+                      onChange={(e) => setRememberMe(e.checked || false)}
+                      checked={rememberMe}
+                    />
+                    <label htmlFor="rememberMe" style={{ fontWeight: 600, color: '#475569', cursor: 'pointer', userSelect: 'none' }}>
+                      Remember me
+                    </label>
+                  </div>
+                  <span onClick={() => { setShowForgotPassword(true); setForgotPasswordStep(0); }} className="image-forgot-link">
+                    Forgot password?
+                  </span>
+                </div>
               )}
-            </button>
-          </form>
 
-          <Divider align="center">
-            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>or continue with</span>
-          </Divider>
+              <button type="submit" disabled={loading} className="image-submit-btn">
+                {loading ? (
+                  <i className="pi pi-spin pi-spinner" />
+                ) : (
+                  <>
+                    <i className="pi pi-sign-in" />
+                    <span>{mode === 'login' ? 'Sign In' : 'Sign Up'}</span>
+                  </>
+                )}
+              </button>
+            </form>
 
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-            <Button
-              onClick={() => googleLogin()}
-              outlined
-              className="p-button-secondary"
-              style={{
-                height: '44px',
-                borderRadius: '12px',
-                fontSize: '0.92rem',
-                fontWeight: 600,
-                width: '100%',
-                justifyContent: 'center',
-                gap: '8px',
-                borderColor: '#e2e8f0',
-                color: '#1e293b'
-              }}
-            >
-              <GoogleIcon />
-              <span>{mode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
-            </Button>
-          </div>
+            <Divider align="center">
+              <span style={{ fontSize: '0.85rem', color: '#64748b' }}>or continue with</span>
+            </Divider>
 
-          {mode === 'login' && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
               <Button
-                onClick={handleGuestLogin}
-                loading={guestLoading}
-                className="p-button-success"
+                onClick={() => googleLogin()}
+                outlined
+                className="p-button-secondary"
                 style={{
                   height: '44px',
                   borderRadius: '12px',
                   fontSize: '0.92rem',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   width: '100%',
                   justifyContent: 'center',
                   gap: '8px',
-                  background: '#e8f5e9',
-                  color: '#2e7d32',
-                  border: '1.5px dashed #2e7d32'
+                  borderColor: '#e2e8f0',
+                  color: '#1e293b'
                 }}
-                icon="pi pi-user"
-                label="Login as Guest Customer"
-              />
+              >
+                <GoogleIcon />
+                <span>{mode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
+              </Button>
             </div>
-          )}
 
-          <div className="image-toggle-footer">
-            {mode === 'login' ? (
-              <>
-                Don't have an account?
-                <span className="image-toggle-link" onClick={() => { setMode('register'); setShowPassword(false); }}>
-                  Create Account
-                </span>
-              </>
-            ) : (
-              <>
-                Already have an account?
-                <span className="image-toggle-link" onClick={() => { setMode('login'); setShowPassword(false); }}>
-                  Sign In
-                </span>
-              </>
+            {mode === 'login' && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                <Button
+                  onClick={handleGuestLogin}
+                  loading={guestLoading}
+                  className="p-button-success"
+                  style={{
+                    height: '44px',
+                    borderRadius: '12px',
+                    fontSize: '0.92rem',
+                    fontWeight: 700,
+                    width: '100%',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: '#e8f5e9',
+                    color: '#2e7d32',
+                    border: '1.5px dashed #2e7d32'
+                  }}
+                  icon="pi pi-user"
+                  label="Login as Guest Customer"
+                />
+              </div>
             )}
+
+            <div className="image-toggle-footer">
+              {mode === 'login' ? (
+                <>
+                  Don't have an account?
+                  <span className="image-toggle-link" onClick={() => { setMode('register'); setShowPassword(false); }}>
+                    Create Account
+                  </span>
+                </>
+              ) : (
+                <>
+                  Already have an account?
+                  <span className="image-toggle-link" onClick={() => { setMode('login'); setShowPassword(false); }}>
+                    Sign In
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Back to Home"
+              icon="pi pi-arrow-left"
+              link
+              className="p-button-success back-to-home-btn"
+              style={{ color: '#22c55e', fontWeight: 700, padding: 0 }}
+              onClick={() => navigate('/user/home')}
+            />
           </div>
         </div>
-      </div>
+      )}
 
       {/* OTP Dialog Overlay */}
       <Dialog

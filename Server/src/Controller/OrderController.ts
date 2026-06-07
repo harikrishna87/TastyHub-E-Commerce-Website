@@ -8,6 +8,8 @@ import Coupon from '../Models/Coupon';
 import GiftCard from '../Models/GiftCard';
 import Transaction from '../Models/Transaction';
 import ComboDeal from '../Models/ComboDeal';
+import ProductReview from '../Models/ProductReview';
+import DeliveryReview from '../Models/DeliveryReview';
 import { OrderDeliveryStatus, IOrderPopulated, IOrder } from '../Types';
 import { Types } from 'mongoose';
 import EmailService from '../Utils/EmailService';
@@ -272,9 +274,53 @@ const getUserOrders = async (req: Request, res: Response, next: NextFunction) =>
       .populate('deliveryExecutive', 'name email image rating')
       .sort({ createdAt: -1 });
 
+    // Fetch all reviews by this user to enrich the orders dynamically
+    const productReviews = await ProductReview.find({ user: userId });
+    const deliveryReviews = await DeliveryReview.find({ user: userId });
+
+    // Map orderId -> list of product review ratings
+    const productReviewsMap = new Map<string, number[]>();
+    productReviews.forEach((r) => {
+      if (r.order) {
+        const orderIdStr = r.order.toString();
+        if (!productReviewsMap.has(orderIdStr)) {
+          productReviewsMap.set(orderIdStr, []);
+        }
+        productReviewsMap.get(orderIdStr)!.push(r.rating);
+      }
+    });
+
+    // Map orderId -> delivery review rating
+    const deliveryReviewsMap = new Map<string, number>();
+    deliveryReviews.forEach((r) => {
+      if (r.order) {
+        deliveryReviewsMap.set(r.order.toString(), r.rating);
+      }
+    });
+
+    const enrichedOrders = orders.map((order) => {
+      const orderObj = order.toObject();
+      const orderIdStr = (orderObj._id as any).toString();
+      
+      // Calculate average product rating for this order
+      const productRatings = productReviewsMap.get(orderIdStr) || [];
+      const avgProductRating = productRatings.length > 0
+        ? Math.round(productRatings.reduce((sum, val) => sum + val, 0) / productRatings.length)
+        : (orderObj.isProductRated ? 5 : 0); // fallback to 5 stars if marked as rated but review details missing
+
+      // Get delivery rating for this order
+      const deliveryRating = deliveryReviewsMap.get(orderIdStr) || (orderObj.isDeliveryRated ? 5 : 0);
+
+      return {
+        ...orderObj,
+        productRating: avgProductRating,
+        deliveryRating: deliveryRating,
+      };
+    });
+
     res.status(200).json({
       success: true,
-      orders,
+      orders: enrichedOrders,
     });
   } catch (error: any) {
     console.error('Error fetching user orders:', error);

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import { Toast } from 'primereact/toast';
+import { Button } from 'primereact/button';
 
 const customStyles = `
   .auth-page-container {
@@ -380,6 +381,18 @@ const DeliveryAuth: React.FC = () => {
             </div>
           </div>
         )}
+
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+          <Button
+            type="button"
+            label="Back to Home"
+            icon="pi pi-arrow-left"
+            link
+            className="p-button-success back-to-home-btn"
+            style={{ color: '#22c55e', fontWeight: 700, padding: 0 }}
+            onClick={() => navigate('/user/home')}
+          />
+        </div>
       </div>
     </div>
   );

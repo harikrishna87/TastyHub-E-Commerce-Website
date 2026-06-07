@@ -7,6 +7,7 @@ import { Rating } from 'primereact/rating';
 import { AuthContext } from '../../context/AuthContext';
 import axios from 'axios';
 import { Toast } from 'primereact/toast';
+import { Dialog } from 'primereact/dialog';
 import { useSearchParams } from 'react-router-dom';
 import { formatDate } from '../../utils/dateFormatter';
 
@@ -44,8 +45,9 @@ interface WithdrawalRequest {
 const DeliveryManagement: React.FC = () => {
   const auth = useContext(AuthContext);
   const toast = useRef<Toast>(null);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'profiles';
+  const [partnerFilter, setPartnerFilter] = useState<string | null>(null);
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [deliveryReviews, setDeliveryReviews] = useState<any[]>([]);
@@ -53,6 +55,9 @@ const DeliveryManagement: React.FC = () => {
   const [loadingWithdrawals, setLoadingWithdrawals] = useState<boolean>(false);
   const [loadingReviews, setLoadingReviews] = useState<boolean>(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [selectedPayout, setSelectedPayout] = useState<WithdrawalRequest | null>(null);
+  const [payoutDialogVisible, setPayoutDialogVisible] = useState<boolean>(false);
+  const [expandedRows, setExpandedRows] = useState<any>(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -284,17 +289,39 @@ const DeliveryManagement: React.FC = () => {
 
   const ratingTemplate = (row: Executive) => {
     const rate = row.rating?.rate || 0;
-    const count = row.rating?.count || 0;
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <Rating disabled cancel={false} value={Math.round(rate)} stars={5} style={{ color: '#f59e0b', fontSize: '13px' }} />
-        <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#1e293b' }}>
-          {rate.toFixed(1)}
-        </span>
-        <span style={{ fontSize: '11px', color: '#64748b' }}>
-          ({count})
+        <Rating disabled cancel={false} value={Math.round(rate)} stars={5} style={{ color: '#f59e0b', fontSize: '12px' }} />
+        <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e293b' }}>
+          {rate > 0 ? rate.toFixed(1) : '0.0'}
         </span>
       </div>
+    );
+  };
+
+  const complaintCountTemplate = (row: Executive) => {
+    const count = row.rating?.count || 0;
+    if (count === 0) {
+      return <span style={{ color: '#94a3b8', fontWeight: 500, paddingLeft: '8px' }}>0</span>;
+    }
+    return (
+      <span
+        style={{
+          color: '#ef4444',
+          fontWeight: 700,
+          fontSize: '0.9rem',
+          cursor: 'pointer',
+          textDecoration: 'underline',
+          paddingLeft: '8px'
+        }}
+        title="Click to view complaints"
+        onClick={() => {
+          setPartnerFilter(row._id);
+          setSearchParams({ tab: 'feedback' });
+        }}
+      >
+        {count}
+      </span>
     );
   };
 
@@ -336,13 +363,211 @@ const DeliveryManagement: React.FC = () => {
     else if (row.deliveryStatus === 'Pending') severity = 'warning';
     else if (row.deliveryStatus === 'Rejected') severity = 'danger';
     
+    return <Tag value={row.deliveryStatus} severity={severity} style={{ borderRadius: '6px' }} />;
+  };
+
+  const accountStatusTemplate = (row: Executive) => {
     const isActive = row.isActive !== false;
     return (
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <Tag value={row.deliveryStatus} severity={severity} style={{ borderRadius: '6px' }} />
-        <Tag value={isActive ? 'Active' : 'Deactivated'} severity={isActive ? 'success' : 'danger'} style={{ borderRadius: '6px' }} />
+      <Tag value={isActive ? 'Active' : 'Deactivated'} severity={isActive ? 'success' : 'danger'} style={{ borderRadius: '6px' }} />
+    );
+  };
+
+  const parsePaymentDetails = (details: string) => {
+    if (!details) return null;
+    return details.split(',').map((part, i) => {
+      const parts = part.split(':');
+      if (parts.length >= 2) {
+        const label = parts[0].trim();
+        const value = parts.slice(1).join(':').trim();
+        return (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0', borderBottom: '1px solid #f1f5f9' }}>
+            <span style={{ color: '#64748b', fontWeight: 600, fontSize: '0.85rem' }}>{label}</span>
+            <span style={{ color: '#0f172a', fontWeight: 700, fontSize: '0.85rem' }}>{value}</span>
+          </div>
+        );
+      }
+      return (
+        <div key={i} style={{ padding: '0.65rem 0', color: '#0f172a', fontWeight: 600, fontSize: '0.85rem' }}>
+          {part.trim()}
+        </div>
+      );
+    });
+  };
+
+  const getGroupedReviews = () => {
+    // 1. Filter: rating < 3 (strictly below 3 stars)
+    let filtered = deliveryReviews.filter(r => r.rating < 3);
+
+    // 2. Filter by selected partner if set
+    if (partnerFilter) {
+      filtered = filtered.filter(r => r.deliveryExecutive?._id === partnerFilter);
+    }
+
+    // 3. Group by user._id
+    const groups: { [key: string]: any[] } = {};
+    filtered.forEach(r => {
+      const userId = r.user?._id || 'unknown';
+      if (!groups[userId]) {
+        groups[userId] = [];
+      }
+      groups[userId].push(r);
+    });
+
+    // 4. Build displayedRows
+    const displayedRows: any[] = [];
+    Object.keys(groups).forEach(userId => {
+      const userReviews = groups[userId];
+      if (userReviews.length === 1) {
+        // Flat row
+        displayedRows.push({
+          ...userReviews[0],
+          isGroup: false
+        });
+      } else {
+        // Group row
+        const latest = userReviews[0]; // reviews are sorted by createdAt desc in backend
+        displayedRows.push({
+          _id: `group-${userId}`,
+          isGroup: true,
+          user: latest.user,
+          feedbacks: userReviews,
+          rating: Number((userReviews.reduce((sum, r) => sum + r.rating, 0) / userReviews.length).toFixed(1)),
+          feedback: `Has submitted ${userReviews.length} complaints. Click to expand.`,
+          isComplaint: true,
+          createdAt: latest.createdAt,
+          deliveryExecutive: { name: 'Multiple Partners' }
+        });
+      }
+    });
+
+    return displayedRows;
+  };
+
+  const rowExpansionTemplate = (data: any) => {
+    return (
+      <div style={{
+        padding: '1.25rem 1.5rem 1.25rem 2.5rem',
+        backgroundColor: '#f8fafc',
+        borderRadius: '12px',
+        border: '1px solid #e2e8f0',
+        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)',
+        position: 'relative'
+      }}>
+        <h4 style={{
+          margin: '0 0 1.25rem 0',
+          color: '#1e293b',
+          fontSize: '0.9rem',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          <i className="pi pi-history" style={{ color: '#ef4444' }} />
+          <span>Feedback History for {data.user?.name} ({data.feedbacks?.length} Complaints)</span>
+        </h4>
+
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {data.feedbacks?.map((r: any, idx: number) => {
+            const isLast = idx === data.feedbacks.length - 1;
+            return (
+              <div key={idx} style={{ position: 'relative', paddingLeft: '1.25rem' }}>
+                
+                {/* Curved Connector Line */}
+                <div style={{
+                  position: 'absolute',
+                  left: '-15px',
+                  top: '0px',
+                  width: '15px',
+                  height: '24px', // connects to the middle of the child row
+                  borderLeft: '1.5px dashed #cbd5e1',
+                  borderBottom: '1.5px dashed #cbd5e1',
+                  borderBottomLeftRadius: '6px',
+                  pointerEvents: 'none'
+                }} />
+
+                {/* Straight Vertical Line to continue to the next child */}
+                {!isLast && (
+                  <div style={{
+                    position: 'absolute',
+                    left: '-15px',
+                    top: '24px',
+                    bottom: '-12px', // bridges the gap to the next child item
+                    width: '15px',
+                    borderLeft: '1.5px dashed #cbd5e1',
+                    pointerEvents: 'none'
+                  }} />
+                )}
+
+                {/* Child Row Panel */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.85rem 1.25rem',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  gap: '1.5rem',
+                  flexWrap: 'wrap'
+                }}>
+                  {/* Delivery Partner */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '180px' }}>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginRight: '4px' }}>Partner:</span>
+                    <img
+                      src={r.deliveryExecutive?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+                      alt="Partner"
+                      style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #22c55e' }}
+                      onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+                    />
+                    <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>{r.deliveryExecutive?.name || 'N/A'}</span>
+                  </div>
+
+                  {/* Order Reference */}
+                  <div style={{ minWidth: '110px' }}>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Order ID</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#475569', fontWeight: 600 }}>
+                      {r.order?._id ? `${r.order._id.substring(0, 8)}...` : 'N/A'}
+                    </span>
+                  </div>
+
+                  {/* Star Rating */}
+                  <div style={{ minWidth: '120px' }}>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Rating</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Rating disabled cancel={false} value={r.rating} stars={5} style={{ color: '#f59e0b', fontSize: '10px' }} />
+                      <span style={{ fontWeight: 'bold', fontSize: '11px', color: '#1e293b' }}>({r.rating})</span>
+                    </div>
+                  </div>
+
+                  {/* Feedback Text comment */}
+                  <div style={{ flex: '1 1 250px', minWidth: '220px' }}>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Feedback Description</span>
+                    <span style={{ fontSize: '0.82rem', color: '#334155', fontStyle: 'italic', lineHeight: '1.4' }}>
+                      "{r.feedback || 'No feedback details.'}"
+                    </span>
+                  </div>
+
+                  {/* Submitted Date */}
+                  <div style={{ minWidth: '120px', textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Submitted On</span>
+                    <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 500 }}>
+                      {formatDate(r.createdAt)}
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
+  };
+
+  const feedbackRowClassName = (data: any) => {
+    return data.isGroup ? 'expandable-row' : 'non-expandable-row';
   };
 
   const availabilityTemplate = (row: Executive) => (
@@ -414,9 +639,6 @@ const DeliveryManagement: React.FC = () => {
               onClick={() => handleToggleDEStatus(row)}
               disabled={isBusy}
             />
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>
-              {row.deliveryStatus}
-            </span>
           </>
         )}
       </div>
@@ -442,6 +664,10 @@ const DeliveryManagement: React.FC = () => {
         .p-datatable-wrapper {
           -ms-overflow-style: none !important;  /* IE and Edge */
           scrollbar-width: none !important;  /* Firefox */
+        }
+        .non-expandable-row .p-row-toggler {
+          display: none !important;
+          pointer-events: none !important;
         }
       `}</style>
       <Toast ref={toast} />
@@ -472,7 +698,9 @@ const DeliveryManagement: React.FC = () => {
               <Column field="name" header="EXECUTIVE NAME" body={executiveTemplate} style={{ fontWeight: 600 }} sortable />
               <Column field="email" header="EMAIL ADDRESS" sortable />
               <Column field="deliveryStatus" header="APPLICATION STATUS" body={statusTemplate} sortable />
+              <Column field="isActive" header="ACCOUNT STATUS" body={accountStatusTemplate} sortable />
               <Column header="PARTNER RATING" body={ratingTemplate} sortable />
+              <Column header="COMPLAINT COUNT" body={complaintCountTemplate} sortable field="rating.count" />
               <Column header="ONLINE STATUS" body={availabilityTemplate} />
               <Column field="performance" header="PERFORMANCE" body={performanceTemplate} sortable />
               <Column field="createdAt" header="APPLIED ON" body={(r) => formatDate(r.createdAt)} sortable />
@@ -506,11 +734,26 @@ const DeliveryManagement: React.FC = () => {
                 </div>
               )}
             >
-              <Column field="deliveryExecutive.name" header="EXECUTIVE NAME" body={withdrawalExecutiveTemplate} style={{ fontWeight: 600 }} sortable />
-              <Column field="deliveryExecutive.email" header="EMAIL ADDRESS" sortable />
-              <Column field="amount" header="AMOUNT REQUESTED" body={(r) => <strong style={{ color: '#166534' }}>₹{r.amount.toFixed(2)}</strong>} sortable />
-              <Column field="paymentDetails" header="PAYMENT / UPI DETAILS" />
-              <Column field="requestDate" header="REQUESTED ON" body={(r) => formatDate(r.requestDate)} sortable />
+              <Column field="deliveryExecutive.name" header="EXECUTIVE NAME" body={withdrawalExecutiveTemplate} style={{ fontWeight: 600, minWidth: '150px' }} sortable />
+              <Column field="deliveryExecutive.email" header="EMAIL ADDRESS" sortable style={{ minWidth: '200px' }} />
+              <Column field="amount" header="AMOUNT REQUESTED" body={(r) => <strong style={{ color: '#166534' }}>₹{r.amount.toFixed(2)}</strong>} sortable style={{ minWidth: '130px' }} />
+              <Column 
+                header="PAYMENT DETAILS" 
+                style={{ minWidth: '140px' }}
+                body={(r: WithdrawalRequest) => (
+                  <Button 
+                    label="View Details" 
+                    icon="pi pi-info-circle" 
+                    className="p-button-text p-button-link p-button-sm" 
+                    style={{ background: 'transparent', border: 'none', color: '#15803d', fontWeight: 600, padding: 0, boxShadow: 'none' }} 
+                    onClick={() => {
+                      setSelectedPayout(r);
+                      setPayoutDialogVisible(true);
+                    }}
+                  />
+                )} 
+              />
+              <Column field="requestDate" header="REQUESTED ON" body={(r) => formatDate(r.requestDate)} sortable style={{ minWidth: '130px' }} />
               <Column field="status" header="STATUS" body={(r) => (
                 <Tag 
                   value={r.status} 
@@ -520,7 +763,7 @@ const DeliveryManagement: React.FC = () => {
                   } 
                   style={{ borderRadius: '6px' }} 
                 />
-              )} sortable />
+              )} sortable style={{ minWidth: '100px' }} />
               <Column header="ACTIONS" body={(r) => {
                 const isPending = r.status === 'Pending';
                 return isPending ? (
@@ -543,7 +786,7 @@ const DeliveryManagement: React.FC = () => {
                 ) : (
                   <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Processed</span>
                 );
-              }} style={{ width: '220px' }} />
+              }} style={{ minWidth: '200px' }} />
             </DataTable>
           </div>
         </>
@@ -556,9 +799,41 @@ const DeliveryManagement: React.FC = () => {
             <p style={styles.sub}>Monitor customer feedback, ratings, and flagged delivery complaints</p>
           </div>
 
+          {partnerFilter && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.75rem 1.25rem',
+              backgroundColor: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '8px',
+              marginBottom: '1rem',
+              color: '#1e40af',
+              fontSize: '0.88rem',
+              fontWeight: 500
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <i className="pi pi-filter" style={{ color: '#2563eb' }} />
+                <span>Showing complaints for delivery partner: <strong>{executives.find(e => e._id === partnerFilter)?.name || 'Selected Partner'}</strong></span>
+              </div>
+              <Button
+                label="Clear Filter"
+                icon="pi pi-filter-slash"
+                className="p-button-text p-button-sm"
+                style={{ color: '#2563eb', padding: '2px 8px', fontWeight: 600, background: 'transparent', border: 'none', boxShadow: 'none' }}
+                onClick={() => setPartnerFilter(null)}
+              />
+            </div>
+          )}
+
           <div style={styles.tablePanel}>
             <DataTable
-              value={deliveryReviews}
+              value={getGroupedReviews()}
+              expandedRows={expandedRows}
+              onRowToggle={(e) => setExpandedRows(e.data)}
+              rowExpansionTemplate={rowExpansionTemplate}
+              rowClassName={feedbackRowClassName}
               paginator
               rows={10}
               loading={loadingReviews}
@@ -568,43 +843,171 @@ const DeliveryManagement: React.FC = () => {
               emptyMessage={() => (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
                   <i className="pi pi-comments" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
-                  <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No partner feedback submitted yet.</div>
-                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Customer review logs will appear here.</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#374151' }}>No partner feedback / negative complaints logged.</div>
+                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.25rem' }}>Only feedbacks with rating below 3 stars will display here.</div>
                 </div>
               )}
             >
-              <Column header="PARTNER" body={(r) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <img
-                    src={r.deliveryExecutive?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
-                    alt="Executive"
-                    style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
-                    onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
-                  />
-                  <span style={{ fontWeight: 600 }}>{r.deliveryExecutive?.name || 'N/A'}</span>
-                </div>
-              )} sortable />
-              <Column header="CUSTOMER" body={(r) => r.user?.name || 'N/A'} />
-              <Column header="ORDER ID" body={(r) => r.order?._id ? `${r.order._id.substring(0, 8)}...` : 'N/A'} />
+              <Column expander style={{ width: '3rem' }} />
+              <Column header="CUSTOMER" body={(r) => {
+                const userImg = r.user?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <img
+                      src={userImg}
+                      alt={r.user?.name || 'Customer'}
+                      referrerPolicy="no-referrer"
+                      style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #3b82f6' }}
+                      onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+                    />
+                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{r.user?.name || 'N/A'}</span>
+                  </div>
+                );
+              }} />
+              <Column header="ORDER ID" body={(r) => {
+                if (r.isGroup) {
+                  return <span style={{ color: '#64748b', fontWeight: 600 }}>{r.feedbacks?.length} Orders</span>;
+                }
+                return r.order?._id ? `${r.order._id.substring(0, 8)}...` : 'N/A';
+              }} />
               <Column header="RATING" body={(r) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Rating disabled cancel={false} value={r.rating} stars={5} style={{ color: '#f59e0b', fontSize: '12px' }} />
+                  <Rating disabled cancel={false} value={Math.round(r.rating)} stars={5} style={{ color: '#f59e0b', fontSize: '12px' }} />
                   <span style={{ fontWeight: 'bold', fontSize: '12px' }}>({r.rating})</span>
                 </div>
-              )} sortable />
-              <Column field="feedback" header="FEEDBACK TEXT" style={{ maxWidth: '300px', whiteSpace: 'normal', wordBreak: 'break-word' }} />
-              <Column header="TYPE" body={(r) => (
+              )} />
+              <Column header="FEEDBACK TEXT" style={{ maxWidth: '300px', whiteSpace: 'normal', wordBreak: 'break-word' }} body={(r) => {
+                if (r.isGroup) {
+                  return <div style={{ fontWeight: 500, color: '#475569' }}>{r.feedback}</div>;
+                }
+                const partnerImg = r.deliveryExecutive?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ color: '#334155', fontStyle: 'italic' }}>"{r.feedback}"</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#64748b' }}>
+                      <span>Partner:</span>
+                      <img
+                        src={partnerImg}
+                        alt="Partner"
+                        style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #22c55e' }}
+                        onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+                      />
+                      <span style={{ fontWeight: 600, color: '#0f172a' }}>{r.deliveryExecutive?.name || 'N/A'}</span>
+                    </div>
+                  </div>
+                );
+              }} />
+              <Column header="TYPE" body={() => (
                 <Tag 
-                  value={r.isComplaint ? 'COMPLAINT' : 'PRAISE'} 
-                  severity={r.isComplaint ? 'danger' : 'success'} 
+                  value="COMPLAINT" 
+                  severity="danger" 
                   style={{ borderRadius: '6px' }} 
                 />
-              )} sortable />
-              <Column header="SUBMITTED ON" body={(r) => formatDate(r.createdAt)} sortable />
+              )} />
+              <Column header="SUBMITTED ON" body={(r) => formatDate(r.createdAt)} />
             </DataTable>
           </div>
         </>
       )}
+      {/* Payout Bank Details Modal */}
+      <Dialog
+        visible={payoutDialogVisible}
+        onHide={() => {
+          setPayoutDialogVisible(false);
+          setSelectedPayout(null);
+        }}
+        header={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', width: '100%' }}>
+            <i className="pi pi-credit-card" style={{ color: '#22c55e', fontSize: '1.25rem' }} />
+            <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>Payout Request & Bank Details</span>
+          </div>
+        }
+        style={{ width: '450px', maxWidth: '95vw', borderRadius: '16px' }}
+        modal
+        dismissableMask
+      >
+        {selectedPayout && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem', fontFamily: 'Inter, sans-serif' }}>
+            
+            {/* Executive Profile Section - Flex row layout */}
+            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', paddingBottom: '1.25rem', borderBottom: '1px solid #f1f5f9' }}>
+              <img
+                src={selectedPayout.deliveryExecutive?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+                alt={selectedPayout.deliveryExecutive?.name || 'Executive'}
+                referrerPolicy="no-referrer"
+                style={{ width: '85px', height: '85px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #22c55e', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}
+                onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
+                  {selectedPayout.deliveryExecutive?.name}
+                </h3>
+                <span style={{ fontSize: '0.82rem', color: '#64748b', wordBreak: 'break-all' }}>
+                  {selectedPayout.deliveryExecutive?.email}
+                </span>
+                
+                {/* Payout details combined here */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.4rem' }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#166534' }}>
+                    ₹{selectedPayout.amount.toFixed(2)}
+                  </span>
+                  <Tag 
+                    value={selectedPayout.status} 
+                    severity={
+                      selectedPayout.status === 'Pending' ? 'warning' :
+                      selectedPayout.status === 'Approved' ? 'success' : 'danger'
+                    }
+                    style={{ borderRadius: '6px', padding: '2px 8px', fontSize: '0.75rem' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bank details card */}
+            <div>
+              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Bank Account / UPI Details
+              </h4>
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.25rem 1rem' }}>
+                {parsePaymentDetails(selectedPayout.paymentDetails)}
+              </div>
+            </div>
+
+            {/* Date requested */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748b' }}>
+              <span>Requested Date:</span>
+              <span style={{ fontWeight: 600 }}>{formatDate(selectedPayout.requestDate)}</span>
+            </div>
+
+            {/* Actions for pending payouts in modal */}
+            {selectedPayout.status === 'Pending' && (
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+                <Button
+                  label="Reject Payout"
+                  icon="pi pi-times"
+                  severity="danger"
+                  outlined
+                  onClick={() => {
+                    handleUpdateWithdrawalStatus(selectedPayout._id, 'Rejected');
+                    setPayoutDialogVisible(false);
+                  }}
+                  style={{ flex: 1, borderRadius: '8px' }}
+                />
+                <Button
+                  label="Approve Payout"
+                  icon="pi pi-check"
+                  severity="success"
+                  onClick={() => {
+                    handleUpdateWithdrawalStatus(selectedPayout._id, 'Approved');
+                    setPayoutDialogVisible(false);
+                  }}
+                  style={{ flex: 1, borderRadius: '8px', backgroundColor: '#22c55e', border: 'none', color: '#ffffff' }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 };

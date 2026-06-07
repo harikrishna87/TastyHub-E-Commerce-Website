@@ -355,9 +355,10 @@ export const redeemGiftCard = async (req: Request, res: Response): Promise<void>
     user.walletBalance = (user.walletBalance || 0) + giftAmount;
     await user.save();
 
-    // Mark gift card redeemed
+    // Mark gift card redeemed and set new owner (the redeemer)
     giftCard.balance = 0;
     giftCard.isActive = false;
+    giftCard.owner = new Types.ObjectId(userId as string);
     await giftCard.save();
 
     // Record Transaction
@@ -384,19 +385,13 @@ export const redeemGiftCard = async (req: Request, res: Response): Promise<void>
 export const getMyGiftCards = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?._id;
-    const userEmail = req.user?.email;
 
     if (!userId) {
       res.status(401).json({ success: false, message: 'User not authenticated' });
       return;
     }
 
-    const cards = await GiftCard.find({
-      $or: [
-        { owner: userId },
-        { recipientEmail: userEmail ? userEmail.toLowerCase() : '' }
-      ]
-    }).sort({ createdAt: -1 });
+    const cards = await GiftCard.find({ owner: userId }).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,

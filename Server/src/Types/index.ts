@@ -70,6 +70,8 @@ export interface IOrder extends Document {
   deliveryExecutive?: Types.ObjectId;
   isProductRated?: boolean;
   isDeliveryRated?: boolean;
+  productRating?: number;
+  deliveryRating?: number;
   createdAt: Date;
   updatedAt: Date;
 }

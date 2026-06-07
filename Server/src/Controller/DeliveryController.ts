@@ -6,6 +6,8 @@ import EmailService from '../Utils/EmailService';
 import AdminNotification from '../Models/AdminNotification';
 import { Types } from 'mongoose';
 import WithdrawalRequest from '../Models/WithdrawalRequest';
+import DeliveryReview from '../Models/DeliveryReview';
+import { createUserSession } from '../Utils/sessionHelper';
 
 // Register Delivery Executive
 export const deliveryRegister = async (req: Request, res: Response): Promise<void> => {
@@ -95,6 +97,7 @@ export const deliveryLogin = async (req: Request, res: Response): Promise<void> 
     if (user.deliveryStatus === 'Pending') {
       // Allow login but explicitly signal they are not approved yet
       const token = user.getJwtToken();
+      await createUserSession(user._id as any, res);
       res.status(200).json({
         success: true,
         approved: false,
@@ -112,6 +115,7 @@ export const deliveryLogin = async (req: Request, res: Response): Promise<void> 
     }
 
     // Fully approved, send standard auth response
+    await createUserSession(user._id as any, res);
     sendToken(user, 200, res);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -361,8 +365,29 @@ export const adminGetDeliveryExecutives = async (req: Request, res: Response): P
         performance = 'Medium';
       }
 
+      // Dynamically calculate overall average rating (all reviews) and complaint count (rating < 3)
+      const allReviews = await DeliveryReview.find({ deliveryExecutive: exec._id });
+      const allCount = allReviews.length;
+      const allRateSum = allReviews.reduce((sum, item) => sum + item.rating, 0);
+      const overallRate = allCount > 0 ? Number((allRateSum / allCount).toFixed(1)) : 0;
+
+      const complaintCount = await DeliveryReview.countDocuments({ deliveryExecutive: exec._id, rating: { $lt: 3 } });
+
+      // Update User model in DB if rating is stale/mismatched
+      if (!exec.rating || exec.rating.rate !== overallRate || exec.rating.count !== complaintCount) {
+        exec.rating = {
+          rate: overallRate,
+          count: complaintCount
+        };
+        await exec.save();
+      }
+
       executivesWithStats.push({
         ...exec.toObject(),
+        rating: {
+          rate: overallRate,
+          count: complaintCount
+        },
         dailyOrderCount,
         performance
       });

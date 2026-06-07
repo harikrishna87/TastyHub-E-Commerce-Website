@@ -1294,12 +1294,12 @@ const ProfilePage: React.FC = () => {
                           if (rowData.deliveryStatus !== 'Delivered') return <span style={{ color: '#9ca3af' }}>-</span>;
                           if (rowData.isProductRated) {
                             return (
-                              <Button 
-                                icon="pi pi-check-circle" 
-                                label="Rated"
-                                className="p-button-text p-button-sm" 
-                                disabled
-                                style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto', color: '#9ca3af', opacity: 0.6 }} 
+                              <Rating 
+                                disabled 
+                                cancel={false} 
+                                value={rowData.productRating || 5} 
+                                stars={5} 
+                                style={{ fontSize: '13px', color: '#f59e0b' }} 
                               />
                             );
                           }
@@ -1321,12 +1321,12 @@ const ProfilePage: React.FC = () => {
                           if (!rowData.deliveryExecutive) return <span style={{ color: '#9ca3af' }}>N/A</span>;
                           if (rowData.isDeliveryRated) {
                             return (
-                              <Button 
-                                icon="pi pi-check-circle" 
-                                label="Rated"
-                                className="p-button-text p-button-sm" 
-                                disabled
-                                style={{ padding: '4px 8px', height: 'auto', minWidth: 'auto', color: '#9ca3af', opacity: 0.6 }} 
+                              <Rating 
+                                disabled 
+                                cancel={false} 
+                                value={rowData.deliveryRating || 5} 
+                                stars={5} 
+                                style={{ fontSize: '13px', color: '#f59e0b' }} 
                               />
                             );
                           }

@@ -11,6 +11,8 @@ import * as brevo from '@getbrevo/brevo';
 import AdminNotification from '../Models/AdminNotification';
 import { OAuth2Client } from 'google-auth-library';
 import SystemSettings from '../Models/SystemSettings';
+import UserSession from '../Models/UserSession';
+import { createUserSession, clearUserSession } from '../Utils/sessionHelper';
 
 dotenv.config();
 
@@ -390,6 +392,7 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
         user = await User.findOneAndUpdate({ email }, { $set: updates }, { new: true }) as typeof user;
       }
 
+      await createUserSession(user!._id as any, res);
       sendToken(user!, 200, res);
       return;
     }
@@ -418,6 +421,7 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
       console.error('Welcome email failed:', emailError);
     }
 
+    await createUserSession(newUser._id as any, res);
     sendToken(newUser, 201, res);
   } catch (error: any) {
     console.error('Google auth error:', error);
@@ -478,6 +482,7 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
       console.error('Welcome email failed:', emailError);
     }
 
+    await createUserSession(user._id as any, res);
     sendToken(user, 201, res);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -545,6 +550,7 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
       return;
     }
 
+    await createUserSession(user._id as any, res);
     sendToken(user, 200, res);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -573,6 +579,7 @@ const logout = async (req: Request, res: Response, next: NextFunction): Promise<
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
+
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
@@ -1124,6 +1131,74 @@ const guestLogin = async (req: Request, res: Response, next: NextFunction): Prom
         await user.save();
       }
     }
+    await createUserSession(user._id as any, res);
+    sendToken(user, 200, res);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getLastLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rememberToken = req.cookies.tastyhub_remember_me;
+    if (!rememberToken || rememberToken === 'none') {
+      res.status(200).json({ success: false, message: 'No cached session cookie found' });
+      return;
+    }
+
+    const session = await UserSession.findOne({ rememberToken }).populate('user');
+    if (!session || !session.user) {
+      res.status(200).json({ success: false, message: 'Session expired or not found' });
+      return;
+    }
+
+    const user = session.user as any;
+    if (!user.isActive) {
+      await clearUserSession(rememberToken, res);
+      res.status(200).json({ success: false, message: 'Account deactivated' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        image: user.image || ''
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const continueLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const rememberToken = req.cookies.tastyhub_remember_me;
+    if (!rememberToken || rememberToken === 'none') {
+      res.status(401).json({ success: false, message: 'No cached session token found' });
+      return;
+    }
+
+    const session = await UserSession.findOne({ rememberToken }).populate('user');
+    if (!session || !session.user) {
+      res.status(401).json({ success: false, message: 'Session expired or invalid' });
+      return;
+    }
+
+    const user = session.user as any;
+    if (!user.isActive) {
+      await clearUserSession(rememberToken, res);
+      res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+      return;
+    }
+
+    // Refresh the remember session to extend validity by another 30 days
+    await createUserSession(user._id, res);
+
+    // Login user by sending JWT token
     sendToken(user, 200, res);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -1154,4 +1229,6 @@ export {
   updateSettings,
   toggleUserActiveStatus,
   guestLogin,
+  getLastLogin,
+  continueLogin,
 };

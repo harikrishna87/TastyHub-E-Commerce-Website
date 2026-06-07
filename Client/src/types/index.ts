@@ -81,6 +81,8 @@ export interface IOrder {
   shippingAddress?: ShippingAddress;
   paymentMethod?: string;
   paymentId?: string;
+  productRating?: number;
+  deliveryRating?: number;
 }
 
 declare global {

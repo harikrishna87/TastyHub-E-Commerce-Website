@@ -113,8 +113,8 @@ export const createDeliveryReview = async (req: Request, res: Response): Promise
       return;
     }
 
-    if (!rating || rating < 1 || rating > 5 || !feedback || !orderId) {
-      res.status(400).json({ success: false, message: 'Please provide rating, feedback description, and order reference ID' });
+    if (!rating || rating < 1 || rating > 5 || !orderId) {
+      res.status(400).json({ success: false, message: 'Please provide rating and order reference ID' });
       return;
     }
 
@@ -135,26 +135,53 @@ export const createDeliveryReview = async (req: Request, res: Response): Promise
       return;
     }
 
-    // A rating of 3 or below indicates a complaint automatically
-    const isComplaint = rating <= 3;
+    // A rating of below 3 indicates a complaint automatically
+    const isComplaint = rating < 3;
+
+    // Use default feedback description if not provided or empty
+    let finalFeedback = feedback;
+    if (!finalFeedback || finalFeedback.trim() === '') {
+      switch (rating) {
+        case 5:
+          finalFeedback = "Excellent service! Timely, professional, and very friendly delivery partner.";
+          break;
+        case 4:
+          finalFeedback = "Good delivery service. Timely and polite.";
+          break;
+        case 3:
+          finalFeedback = "Average delivery service. Delivery partner was alright.";
+          break;
+        case 2:
+          finalFeedback = "Below average service. Delivery was delayed.";
+          break;
+        case 1:
+          finalFeedback = "Very poor delivery experience. Package handled poorly or severe delays.";
+          break;
+        default:
+          finalFeedback = "No feedback text provided.";
+          break;
+      }
+    }
 
     // Save review uniquely per order
     const updatedReview = await DeliveryReview.findOneAndUpdate(
       { order: orderId },
-      { deliveryExecutive: deliveryExecutiveId, user: userId, rating, feedback, isComplaint },
+      { deliveryExecutive: deliveryExecutiveId, user: userId, rating, feedback: finalFeedback, isComplaint },
       { new: true, upsert: true }
     );
 
-    // Recalculate average rating and unique review count for delivery executive
-    const reviews = await DeliveryReview.find({ deliveryExecutive: deliveryExecutiveId });
-    const count = reviews.length;
-    const rateSum = reviews.reduce((sum, item) => sum + item.rating, 0);
-    const averageRate = count > 0 ? Number((rateSum / count).toFixed(1)) : 0;
+    // Recalculate average rating (all reviews) and complaint count (rating < 3) for delivery executive
+    const allReviews = await DeliveryReview.find({ deliveryExecutive: deliveryExecutiveId });
+    const allCount = allReviews.length;
+    const allRateSum = allReviews.reduce((sum, item) => sum + item.rating, 0);
+    const overallRate = allCount > 0 ? Number((allRateSum / allCount).toFixed(1)) : 0;
 
-    // Update User model
+    const complaintCount = await DeliveryReview.countDocuments({ deliveryExecutive: deliveryExecutiveId, rating: { $lt: 3 } });
+
+    // Update User model (rate = overall average, count = complaint count)
     executive.rating = {
-      rate: averageRate,
-      count: count,
+      rate: overallRate,
+      count: complaintCount,
     };
     await executive.save();
 

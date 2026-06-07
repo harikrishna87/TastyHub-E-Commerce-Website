@@ -55,10 +55,19 @@ TastyHub uses a robust, modern full-stack architecture to ensure security, visua
 *   **Branded Portals & Password Toggles**:
     - Renamed and organized the authentication module to [UserAuth.tsx](file:///c:/Users/hari/OneDrive/Desktop/Projects/TastyHub-E-Commerce-Website/Client/src/Pages/Customer/UserAuth.tsx) within the customer directory.
     - Integrated interactive visibility eye/eye-slash PrimeIcons (`pi pi-eye` / `pi pi-eye-slash`) on password fields across User and Admin login flows (including reset password inputs) with safety offsets.
-    - Viewport height centering dynamically targets available screen real estate without scrollbars.
+    - Viewport height centering dynamically targets available screen real estate (`min-height: 100vh` on auth container) to center the card exactly on the screen without layout scrollbars.
     - Swapped title header branding to "Welcome to TastyHub" for a friendly landing page experience.
+*   **Database-Backed Remember Session Caching**:
+    - Completely replaced HTML5 local storage caching with a secure **HttpOnly cookie + Database session store** (`UserSession` collection with 30-day TTL auto-expiration) to remember returning user profiles securely.
+    - Retains the secure remember cookie on logout so returning users are greeted with the "Welcome Back" profile card, while clearing active JWT tokens.
+*   **"Back to Home" Entry Buttons**:
+    - Added a green-colored link button **"Back to Home"** with a left arrow icon to the bottom of all login portals (Customer forms/welcome back card, Admin sign-in, and Delivery Partner forms).
+    - Removed hover outlines and text decorations using a global `.back-to-home-btn:hover` CSS overrides.
 *   **Standardized Date Displays**:
-    *   All dates are standardized to the custom readable format `d mmm yyyy` (e.g. `3 jun 2026`) across all tables, logs, list columns, and headers using a unified formatting utility.
+    - All dates are standardized to the custom readable format `d mmm yyyy` (e.g. `3 jun 2026`) across all tables, logs, list columns, and headers using a unified formatting utility.
+*   **New Arrivals Refinements**:
+    - Simplified card tags to display **only** the `NEW` tag, removing the trending and popular tags.
+    - Enabled the `NEW` tag for all 8 latest products (which are sorted by date) and resolved TypeScript compiler unused variables warnings.
 
 ### Admin & Management Dashboard
 

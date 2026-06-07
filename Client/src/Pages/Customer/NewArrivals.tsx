@@ -134,11 +134,9 @@ const NewArrivals = () => {
         return `${description.substring(0, maxLength)}...`;
     };
 
-    const getProductTags = (index: number) => {
+    const getProductTags = (_index?: number) => {
         const tags = [];
-        if (index < 3) tags.push({ type: 'new', icon: 'pi pi-clock', text: 'NEW', color: 'green', severity: 'success' as const });
-        if (index % 3 === 0) tags.push({ type: 'trending', icon: 'pi pi-bolt', text: 'TRENDING', color: 'red', severity: 'danger' as const });
-        if (index % 2 === 0) tags.push({ type: 'popular', icon: 'pi pi-star', text: 'POPULAR', color: 'orange', severity: 'warning' as const });
+        tags.push({ type: 'new', icon: 'pi pi-clock', text: 'NEW', color: 'green', severity: 'success' as const });
         return tags;
     };
 

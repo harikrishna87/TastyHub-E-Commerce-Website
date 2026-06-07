@@ -23,6 +23,8 @@ import {
     updateSettings,
     toggleUserActiveStatus,
     guestLogin,
+    getLastLogin,
+    continueLogin,
 } from '../Controller/AuthController';
 import { protect } from '../Middleware/AuthMiddleWare';
 import multer from 'multer';
@@ -35,6 +37,8 @@ router.post('/login', login as express.RequestHandler);
 router.post('/guest-login', guestLogin as express.RequestHandler);
 router.post('/logout', logout as express.RequestHandler);
 router.post('/google', googleAuth as express.RequestHandler);
+router.get('/last-login', getLastLogin as express.RequestHandler);
+router.post('/continue-login', continueLogin as express.RequestHandler);
 router.get('/getme', protect as express.RequestHandler, getMe as express.RequestHandler);
 router.put('/updateprofile', protect as express.RequestHandler, updateProfile as express.RequestHandler);
 router.post('/upload-image', protect as express.RequestHandler, upload.single('image'), uploadImage as express.RequestHandler);

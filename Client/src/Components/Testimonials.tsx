@@ -168,7 +168,7 @@ const Testimonials: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px' }}>
+    <div style={{ width: '100%', margin: '0 auto' }}>
       <style>
         {`
           .testimonial-carousel .p-carousel-indicators {

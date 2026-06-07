@@ -302,18 +302,136 @@ export default function Homepage() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '1rem' }}>
         <i className="pi pi-spin pi-spinner" style={{ fontSize: '3rem', color: '#52c41a' }} />
-        <span style={{ color: '#52c41a', fontWeight: 600 }}>Loading gourmet catalogs...</span>
+        <span style={{ color: '#52c41a', fontWeight: 600 }}>Loading delicious menus...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ minHeight: '100vh', padding: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '12px', padding: '24px 32px', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-          <i className="pi pi-exclamation-triangle" style={{ fontSize: '3rem', color: '#ef4444', marginBottom: '16px' }} />
-          <h3 style={{ margin: '0 0 8px 0', fontWeight: 700, color: '#991b1b' }}>Gourmet Catalog Error</h3>
-          <p style={{ margin: 0, color: '#b91c1c', fontSize: '14px' }}>{error}</p>
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 9999,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+        fontFamily: 'Inter, sans-serif',
+        padding: '2rem',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{
+          maxWidth: '500px',
+          width: '100%',
+          backgroundColor: '#ffffff',
+          borderRadius: '24px',
+          padding: '3rem 2rem',
+          textAlign: 'center',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          border: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.5rem'
+        }}>
+          {/* Glowing Server Icon */}
+          <div style={{
+            position: 'relative',
+            width: '90px',
+            height: '90px',
+            borderRadius: '50%',
+            backgroundColor: '#fef2f2',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            boxShadow: '0 0 30px rgba(239, 68, 68, 0.15)',
+            border: '2px solid #fee2e2',
+            animation: 'pulse 2s infinite ease-in-out'
+          }}>
+            <style>{`
+              @keyframes pulse {
+                0% { transform: scale(1); box-shadow: 0 0 30px rgba(239, 68, 68, 0.15); }
+                50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(239, 68, 68, 0.3); }
+                100% { transform: scale(1); box-shadow: 0 0 30px rgba(239, 68, 68, 0.15); }
+              }
+            `}</style>
+            <i className="pi pi-server" style={{ fontSize: '3rem', color: '#ef4444' }} />
+            <div style={{
+              position: 'absolute',
+              bottom: '5px',
+              right: '5px',
+              backgroundColor: '#ef4444',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid #ffffff'
+            }}>
+              <i className="pi pi-exclamation-triangle" style={{ fontSize: '0.8rem', color: '#ffffff' }} />
+            </div>
+          </div>
+
+          <div>
+            <h2 style={{ margin: '0 0 0.5rem 0', fontWeight: 800, fontSize: '1.75rem', color: '#1e293b' }}>
+              Connection Interrupted
+            </h2>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5' }}>
+              We're having trouble connecting to our kitchens. This could be due to server maintenance or network disruption.
+            </p>
+          </div>
+
+          {/* Technical Details */}
+          <div style={{
+            width: '100%',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '1rem',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <i className="pi pi-code" style={{ color: '#64748b', fontSize: '0.9rem' }} />
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Technical Details
+              </span>
+            </div>
+            <div style={{
+              fontFamily: 'monospace',
+              fontSize: '0.82rem',
+              color: '#ef4444',
+              wordBreak: 'break-all',
+              maxHeight: '80px',
+              overflowY: 'auto',
+              lineHeight: '1.4'
+            }}>
+              {error}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '0.5rem' }}>
+            <Button
+              label="Go to Home"
+              icon="pi pi-home"
+              severity="secondary"
+              outlined
+              onClick={() => window.location.href = '/'}
+              style={{ flex: 1, borderRadius: '12px', padding: '0.75rem', fontWeight: 600 }}
+            />
+            <Button
+              label="Retry Connection"
+              icon="pi pi-refresh"
+              severity="success"
+              onClick={() => window.location.reload()}
+              style={{ flex: 1, borderRadius: '12px', padding: '0.75rem', fontWeight: 600, backgroundColor: '#22c55e', border: 'none', color: '#ffffff' }}
+            />
+          </div>
         </div>
       </div>
     );

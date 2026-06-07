@@ -16,6 +16,16 @@ interface ICustomer {
   name: string;
   email: string;
   phone?: string;
+  shippingAddress?: {
+    fullName?: string;
+    phone?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  };
   role: string;
   walletBalance?: number;
   image?: string;
@@ -208,7 +218,7 @@ const CustomersManagement: React.FC = () => {
   };
 
   const phoneBodyTemplate = (rowData: ICustomer) => {
-    return <span>{rowData.phone || 'N/A'}</span>;
+    return <span>{rowData.shippingAddress?.phone || rowData.phone || 'N/A'}</span>;
   };
 
 
@@ -217,22 +227,25 @@ const CustomersManagement: React.FC = () => {
     return <span>{formatDate(rowData.createdAt)}</span>;
   };
 
-  const statusBodyTemplate = (rowData: ICustomer) => {
+  const verifiedBodyTemplate = (rowData: ICustomer) => {
     const isVerified = rowData.verified !== false;
+    return (
+      <Tag
+        severity={isVerified ? 'success' : 'warning'}
+        value={isVerified ? 'Verified' : 'Unverified'}
+        style={{ fontSize: '0.75rem' }}
+      />
+    );
+  };
+
+  const activeBodyTemplate = (rowData: ICustomer) => {
     const isActive = rowData.isActive !== false;
     return (
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <Tag
-          severity={isVerified ? 'success' : 'warning'}
-          value={isVerified ? 'Verified' : 'Unverified'}
-          style={{ fontSize: '0.75rem' }}
-        />
-        <Tag
-          severity={isActive ? 'success' : 'danger'}
-          value={isActive ? 'Active' : 'Inactive'}
-          style={{ fontSize: '0.75rem' }}
-        />
-      </div>
+      <Tag
+        severity={isActive ? 'success' : 'danger'}
+        value={isActive ? 'Active' : 'Inactive'}
+        style={{ fontSize: '0.75rem' }}
+      />
     );
   };
 
@@ -330,9 +343,10 @@ const CustomersManagement: React.FC = () => {
           <Column body={imageBodyTemplate} style={{ width: '4rem' }} />
           <Column header="Name" body={nameBodyTemplate} sortable field="name" style={{ fontWeight: 600 }} />
           <Column field="email" header="Email" sortable />
-          <Column header="Phone" body={phoneBodyTemplate} />
+          <Column field="shippingAddress.phone" header="Phone" body={phoneBodyTemplate} />
           <Column header="Joined" body={dateBodyTemplate} sortable field="createdAt" />
-          <Column header="Status" body={statusBodyTemplate} />
+          <Column header="Verified Status" body={verifiedBodyTemplate} sortable field="verified" />
+          <Column header="Account Status" body={activeBodyTemplate} sortable field="isActive" />
           <Column body={actionBodyTemplate} style={{ width: '8rem' }} />
         </DataTable>
       </div>
@@ -369,7 +383,7 @@ const CustomersManagement: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>{selectedCustomer.name}</h4>
                   <span style={{ fontSize: '0.85rem', color: '#4b5563', wordBreak: 'break-all' }}>{selectedCustomer.email}</span>
-                  <span style={{ fontSize: '0.85rem', color: '#4b5563' }}>Phone: {selectedCustomer.phone || 'N/A'}</span>
+                  <span style={{ fontSize: '0.85rem', color: '#4b5563' }}>Phone: {selectedCustomer.shippingAddress?.phone || selectedCustomer.phone || 'N/A'}</span>
                   <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', alignItems: 'center' }}>
                     <Tag severity={selectedCustomer.verified !== false ? 'success' : 'warning'} value={selectedCustomer.verified !== false ? 'Verified' : 'Unverified'} />
                     <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Joined: {formatDate(selectedCustomer.createdAt)}</span>

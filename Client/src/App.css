@@ -790,3 +790,25 @@ button,
   z-index: 9999 !important;
 }
 
+/* Align all icons vertically with baseline text except in navbar, admin, and delivery layouts */
+.customer-content-wrapper .pi,
+footer .pi {
+  vertical-align: middle !important;
+  position: relative !important;
+  top: -1px !important;
+}
+
+/* Reset baseline adjustment for buttons since they are aligned with flexbox center */
+.customer-content-wrapper button .pi,
+.customer-content-wrapper .p-button .pi,
+.customer-content-wrapper .ant-btn .pi,
+footer button .pi {
+  top: 0 !important;
+  vertical-align: baseline !important;
+}
+
+.p-button.p-button-link.back-to-home-btn:hover,
+.p-button.p-button-link.back-to-home-btn:hover * {
+  text-decoration: none !important;
+}
+

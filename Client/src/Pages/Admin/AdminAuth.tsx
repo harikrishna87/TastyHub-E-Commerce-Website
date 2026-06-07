@@ -6,6 +6,7 @@ import { AuthContext } from '../../context/AuthContext';
 // PrimeReact Components
 import { Checkbox } from 'primereact/checkbox';
 import { Toast } from 'primereact/toast';
+import { Button } from 'primereact/button';
 
 const customStyles = `
   .dedicated-admin-auth-container {
@@ -261,6 +262,18 @@ const AdminAuth: React.FC = () => {
             )}
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+          <Button
+            type="button"
+            label="Back to Home"
+            icon="pi pi-arrow-left"
+            link
+            className="p-button-success back-to-home-btn"
+            style={{ color: '#22c55e', fontWeight: 700, padding: 0 }}
+            onClick={() => navigate('/user/home')}
+          />
+        </div>
       </div>
     </div>
   );
