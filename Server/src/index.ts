@@ -35,6 +35,9 @@ requiredEnv.forEach((key) => {
 
 const app = express();
 
+// Trust the reverse proxy (e.g. Render, Heroku) to determine client's IP address
+app.set("trust proxy", 1);
+
 connectDB();
 
 // Apply security headers
