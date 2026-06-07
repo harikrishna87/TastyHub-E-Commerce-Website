@@ -140,6 +140,7 @@ export interface IGiftCard extends Document {
   recipientEmail?: string;
   isActive: boolean;
   expiryDate?: Date;
+  redeemedToWallet?: boolean;
 }
 
 export interface ITransaction extends Document {

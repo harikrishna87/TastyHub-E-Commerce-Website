@@ -9,6 +9,7 @@ import {
   accessComboDeal,
   purchaseGiftCard,
   redeemGiftCard,
+  adminRedeemGiftCard,
   getMyGiftCards,
   getAllGiftCards,
   getGiftCardByCode,
@@ -66,6 +67,8 @@ promoRouter.post('/giftcards/redeem', protect as express.RequestHandler, redeemG
 promoRouter.get('/giftcards/my', protect as express.RequestHandler, getMyGiftCards as express.RequestHandler);
 // Admin fetches all gift cards in the system
 promoRouter.get('/giftcards/all', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, getAllGiftCards as express.RequestHandler);
+// Admin force-redeems a gift card to recipient's wallet
+promoRouter.post('/giftcards/admin-redeem', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, adminRedeemGiftCard as express.RequestHandler);
 // Check/validate gift card code and return balance
 promoRouter.get('/giftcards/check/:code', protect as express.RequestHandler, getGiftCardByCode as express.RequestHandler);
 // Check/validate coupon code and return details

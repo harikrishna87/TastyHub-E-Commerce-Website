@@ -6,6 +6,7 @@ export interface IUser {
   role: 'user' | 'admin' | 'delivery_executive';
   googleId?: string;
   isAvailable?: boolean;
+  walletBalance?: number;
 }
 
 export interface AuthContextType {

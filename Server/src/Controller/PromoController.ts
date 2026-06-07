@@ -359,6 +359,7 @@ export const redeemGiftCard = async (req: Request, res: Response): Promise<void>
     giftCard.balance = 0;
     giftCard.isActive = false;
     giftCard.owner = new Types.ObjectId(userId as string);
+    giftCard.redeemedToWallet = true;
     await giftCard.save();
 
     // Record Transaction
@@ -414,6 +415,92 @@ export const getAllGiftCards = async (req: Request, res: Response): Promise<void
     res.status(200).json({
       success: true,
       giftCards: cards
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const adminRedeemGiftCard = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Access denied. Admin only.' });
+      return;
+    }
+
+    const { code } = req.body;
+
+    if (!code) {
+      res.status(400).json({ success: false, message: 'Please enter a Gift Card code' });
+      return;
+    }
+
+    const giftCard = await GiftCard.findOne({ code: code.trim().toUpperCase() });
+
+    if (!giftCard) {
+      res.status(404).json({ success: false, message: 'Gift Card not found' });
+      return;
+    }
+
+    if (!giftCard.isActive || giftCard.balance <= 0) {
+      res.status(400).json({ success: false, message: 'This Gift Card is inactive or has zero balance' });
+      return;
+    }
+
+    if (giftCard.expiryDate && new Date() > giftCard.expiryDate) {
+      res.status(400).json({ success: false, message: 'This Gift Card has expired' });
+      return;
+    }
+
+    // Determine the recipient user
+    let recipientUser: any = null;
+
+    if (giftCard.recipientEmail) {
+      recipientUser = await User.findOne({ email: giftCard.recipientEmail.toLowerCase() });
+      if (!recipientUser) {
+        res.status(404).json({
+          success: false,
+          message: `Recipient user (${giftCard.recipientEmail}) is not registered yet. They must sign up first to receive this wallet credit.`
+        });
+        return;
+      }
+    } else {
+      // If no recipient email, redeem to the owner (the purchaser/user who currently holds it)
+      recipientUser = await User.findById(giftCard.owner);
+      if (!recipientUser) {
+        res.status(404).json({ success: false, message: 'Owner user not found' });
+        return;
+      }
+    }
+
+    const giftAmount = giftCard.balance;
+
+    // Credit recipient's walletBalance
+    recipientUser.walletBalance = (recipientUser.walletBalance || 0) + giftAmount;
+    await recipientUser.save();
+
+    // Mark gift card redeemed and set new owner (the redeemer)
+    giftCard.balance = 0;
+    giftCard.isActive = false;
+    giftCard.owner = recipientUser._id as Types.ObjectId;
+    giftCard.redeemedToWallet = true;
+    await giftCard.save();
+
+    // Record Transaction
+    await Transaction.create({
+      user: recipientUser._id,
+      type: 'Credit',
+      amount: giftAmount,
+      description: `Redeemed Gift Card ${giftCard.code} to Wallet (Processed by Admin)`
+    });
+
+    // Send notification email
+    await EmailService.sendGiftCardRedeem(recipientUser, giftCard);
+
+    res.status(200).json({
+      success: true,
+      message: `Gift card redeemed successfully! ₹${giftAmount.toFixed(2)} added to ${recipientUser.name}'s wallet.`,
+      walletBalance: recipientUser.walletBalance
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

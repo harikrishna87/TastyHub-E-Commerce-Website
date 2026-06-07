@@ -49,6 +49,7 @@ interface IGiftCard {
   expiryDate: string;
   isActive: boolean;
   createdAt: string;
+  redeemedToWallet?: boolean;
 }
 
 // interface ITransaction {
@@ -234,6 +235,8 @@ const ProfilePage: React.FC = () => {
   const [redeemModalOpen, setRedeemModalOpen] = useState<boolean>(false);
   const [redeemCode, setRedeemCode] = useState<string>('');
   const [redeeming, setRedeeming] = useState<boolean>(false);
+  const [successCard, setSuccessCard] = useState<{ code: string; amount: number; isSelf: boolean } | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   // Order Details Modal states
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -669,10 +672,16 @@ const ProfilePage: React.FC = () => {
               });
 
               if (res.data.success) {
-                toast.current?.show({ severity: 'success', summary: 'Success', detail: res.data.message || 'Gift card purchased!' });
+                const isSelf = !giftCardRecipientEmail || giftCardRecipientEmail.trim().toLowerCase() === authContext?.user?.email.toLowerCase();
+                setSuccessCard({
+                  code: res.data.giftCard.code,
+                  amount,
+                  isSelf
+                });
                 setCustomAmount('');
                 setGiftCardRecipientEmail('');
                 setPurchaseModalOpen(false);
+                setShowSuccessModal(true);
                 fetchGiftCardsList();
               }
             } catch (err: any) {
@@ -720,6 +729,31 @@ const ProfilePage: React.FC = () => {
       toast.current?.show({ severity: 'error', summary: 'Failed', detail: err.response?.data?.message || 'Invalid or expired Gift Card' });
     } finally {
       setRedeeming(false);
+    }
+  };
+
+  const handleDirectRedeem = async (code: string) => {
+    if (!code.trim()) return;
+    try {
+      setRedeemCode(code);
+      setRedeeming(true);
+      const config = { headers: { Authorization: `Bearer ${authContext?.token}` }, withCredentials: true };
+      const res = await axios.post(`${backendUrl}/api/promo/giftcards/redeem`, { code: code.trim() }, config);
+
+      if (res.data.success) {
+        toast.current?.show({ severity: 'success', summary: 'Redeemed', detail: res.data.message || 'Wallet balance updated!' });
+        if (authContext?.login && authContext.user && authContext.token && res.data.walletBalance !== undefined) {
+          authContext.login({ ...authContext.user, walletBalance: res.data.walletBalance } as any, authContext.token);
+          setProfileData(prev => prev ? { ...prev, walletBalance: res.data.walletBalance } : null);
+        }
+        fetchGiftCardsList();
+        fetchTransactionsList();
+      }
+    } catch (err: any) {
+      toast.current?.show({ severity: 'error', summary: 'Failed', detail: err.response?.data?.message || 'Invalid or expired Gift Card' });
+    } finally {
+      setRedeeming(false);
+      setRedeemCode('');
     }
   };
 
@@ -971,8 +1005,8 @@ const ProfilePage: React.FC = () => {
         {profileData?.role === 'user' && (
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '12px', padding: '1.25rem 2rem', backdropFilter: 'blur(10px)', textAlign: 'center', minWidth: '220px' }}>
-              <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#dcfce7', display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Gift Card Balance</span>
-              <span style={{ fontSize: '2rem', fontWeight: 800 }}>₹{totalGiftCardBalance.toFixed(2)}</span>
+              <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#dcfce7', display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Wallet Balance</span>
+              <span style={{ fontSize: '2rem', fontWeight: 800 }}>₹{((profileData?.walletBalance || 0) + totalGiftCardBalance).toFixed(2)}</span>
             </div>
           </div>
         )}
@@ -1378,7 +1412,7 @@ const ProfilePage: React.FC = () => {
                     <div style={{ flex: '1 1 350px', border: '1px solid #b7eb8f', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#f0fdf4', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01)' }}>
                       <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, color: '#166534' }}>Have a gift card code?</h3>
                       <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: '#15803d', lineHeight: 1.4 }}>Redeem received gift card credentials instantly to top up your personal dining wallet balance.</p>
-                      <Button label="Redeem Gift Card to Wallet" icon="pi pi-wallet" severity="success" onClick={() => setRedeemModalOpen(true)} style={{ borderRadius: '8px' }} />
+                      <Button label="Redeem Gift Card to Wallet" severity="success" onClick={() => setRedeemModalOpen(true)} style={{ borderRadius: '8px' }} />
                     </div>
                   </div>
 
@@ -1392,10 +1426,46 @@ const ProfilePage: React.FC = () => {
                     </div>
                     <DataTable value={myGiftCards} loading={loadingGiftCards} paginator rows={5} rowsPerPageOptions={[5, 10, 20]} className="p-datatable-striped" style={{ fontSize: '0.82rem' }}>
                       <Column header="GIFT CARD CODE" body={(r: IGiftCard) => <code style={{ cursor: 'pointer', color: '#15803d', fontWeight: 700, letterSpacing: '0.5px' }} onClick={() => handleCopyCode(r.code)}>{r.code}</code>} style={{ width: '180px' }} />
-                      <Column header="REMAINING BALANCE" body={(r: IGiftCard) => <span style={{ fontWeight: 'bold', color: '#16a34a' }}>₹{r.balance.toFixed(2)}</span>} style={{ width: '150px' }} />
-                      <Column header="STATUS" body={(r: IGiftCard) => <PrimeTag severity={r.balance <= 0 ? 'danger' : 'success'} value={r.balance <= 0 ? 'Consumed' : 'Active'} style={{ borderRadius: '4px' }} />} style={{ width: '120px' }} />
+                      <Column header="AMOUNT" body={(r: IGiftCard) => <span>₹{r.originalValue.toFixed(2)}</span>} style={{ width: '120px' }} />
+                      <Column header="REMAINING BALANCE" body={(r: IGiftCard) => <span style={{ fontWeight: 'bold', color: r.balance <= 0 ? '#64748b' : '#16a34a' }}>₹{r.balance.toFixed(2)}</span>} style={{ width: '150px' }} />
+                       <Column 
+                        header="STATUS" 
+                        body={(r: IGiftCard) => {
+                          if (r.balance <= 0) {
+                            return r.redeemedToWallet ? (
+                              <PrimeTag severity="info" value="Redeemed to Wallet" style={{ borderRadius: '4px' }} />
+                            ) : (
+                              <PrimeTag severity="warning" value="Used at Checkout" style={{ borderRadius: '4px' }} />
+                            );
+                          }
+                          return <PrimeTag severity="success" value="Active" style={{ borderRadius: '4px' }} />;
+                        }} 
+                        style={{ width: '150px' }} 
+                      />
                       <Column header="ISSUED ON" body={(r: IGiftCard) => formatDate(r.createdAt)} style={{ width: '140px' }} />
+                      <Column 
+                        header="ACTIONS" 
+                        body={(r: IGiftCard) => {
+                          if (r.balance > 0 && r.isActive) {
+                            return (
+                              <Button
+                                label="Redeem to Wallet"
+                                severity="success"
+                                loading={redeeming && redeemCode === r.code}
+                                onClick={() => handleDirectRedeem(r.code)}
+                                style={{ borderRadius: '6px', fontSize: '0.72rem', padding: '4px 8px' }}
+                              />
+                            );
+                          }
+                          return <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic' }}>N/A</span>;
+                        }} 
+                        style={{ width: '150px' }}
+                      />
                     </DataTable>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', color: '#64748b', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                      <i className="pi pi-info-circle" style={{ color: '#3b82f6', fontSize: '0.9rem' }}></i>
+                      <span>Note: Redeeming a gift card transfers its entire value to your **Wallet Balance** (shown at the top). Once redeemed, the gift card's remaining balance becomes ₹0.00, but the money is securely saved in your wallet and can be used at checkout.</span>
+                    </div>
                   </div>
 
                   {/* Purchase Gift Card Modal */}
@@ -1431,6 +1501,72 @@ const ProfilePage: React.FC = () => {
                           <Button label="Cancel" type="button" className="p-button-outlined p-button-secondary" style={{ color: '#595959', border: '1px solid #d9d9d9' }} onClick={() => setPurchaseModalOpen(false)} />
                           <Button label={purchasing ? "Processing Secure Gateway..." : "Buy Gift Card"} icon="pi pi-credit-card" severity="success" loading={purchasing} onClick={handlePurchaseGiftCard} />
                         </div>
+                      </div>
+                    </div>
+                  </Dialog>
+
+                  {/* Purchase Success Dialog */}
+                  <Dialog
+                    header={<div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold' }}><i className="pi pi-check-circle"></i><span>Purchase Successful!</span></div>}
+                    visible={showSuccessModal}
+                    style={{ width: '420px', borderRadius: '16px' }}
+                    modal
+                    onHide={() => setShowSuccessModal(false)}
+                  >
+                    <div style={{ padding: '0.5rem 0', display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center', textAlign: 'center' }}>
+                      <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #bbf7d0', boxShadow: '0 4px 10px rgba(34, 197, 94, 0.1)' }}>
+                        <i className="pi pi-gift" style={{ color: '#16a34a', fontSize: '2rem' }}></i>
+                      </div>
+                      
+                      <div>
+                        <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 800, color: '#1f2937', fontSize: '1.1rem' }}>Gift Card Ready!</h4>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>Your prepaid code is generated and active.</p>
+                      </div>
+
+                      {successCard && (
+                        <div style={{ width: '100%', border: '1px dashed #bbf7d0', backgroundColor: '#f9fafb', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                            <span style={{ color: '#64748b', fontWeight: 600 }}>Amount:</span>
+                            <span style={{ color: '#16a34a', fontWeight: 800 }}>₹{successCard.amount.toFixed(2)}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                            <span style={{ color: '#64748b', fontWeight: 600 }}>Code:</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <code style={{ color: '#1f2937', fontWeight: 800, letterSpacing: '0.5px' }}>{successCard.code}</code>
+                              <Button
+                                icon="pi pi-copy"
+                                className="p-button-text p-button-success p-button-sm"
+                                style={{ padding: '2px', width: '1.2rem', height: '1.2rem' }}
+                                onClick={() => handleCopyCode(successCard.code)}
+                                tooltip="Copy Code"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: '0.5rem' }}>
+                        {successCard?.isSelf ? (
+                          <Button 
+                            label={redeeming ? "Redeeming to Wallet..." : "Redeem to Wallet Now"} 
+                            severity="success" 
+                            loading={redeeming}
+                            onClick={() => {
+                              if (successCard) {
+                                handleDirectRedeem(successCard.code);
+                                setShowSuccessModal(false);
+                              }
+                            }} 
+                            style={{ width: '100%', borderRadius: '8px', fontWeight: 700 }} 
+                          />
+                        ) : (
+                          <Button 
+                            label="Done / Close" 
+                            severity="success" 
+                            onClick={() => setShowSuccessModal(false)} 
+                            style={{ width: '100%', borderRadius: '8px', fontWeight: 700 }} 
+                          />
+                        )}
                       </div>
                     </div>
                   </Dialog>
@@ -1698,7 +1834,7 @@ const ProfilePage: React.FC = () => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
             <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>Please share your feedback for each item in your order:</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+            <div className="hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
               {Object.keys(productReviews).map((productId) => {
                 const item = productReviews[productId];
                 return (

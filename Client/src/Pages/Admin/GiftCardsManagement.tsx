@@ -25,6 +25,7 @@ interface GiftCard {
   expiryDate?: string;
   isActive: boolean;
   createdAt: string;
+  redeemedToWallet?: boolean;
 }
 
 const GiftCardsManagement: React.FC = () => {
@@ -37,6 +38,7 @@ const GiftCardsManagement: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [giftCardDialogVisible, setGiftCardDialogVisible] = useState<boolean>(false);
+  const [redeemingCode, setRedeemingCode] = useState<string | null>(null);
 
   // Form State
   const [amount, setAmount] = useState<number>(0);
@@ -131,6 +133,44 @@ const GiftCardsManagement: React.FC = () => {
     }
   };
 
+  const handleAdminRedeem = async (code: string) => {
+    if (!auth?.token) return;
+    try {
+      setRedeemingCode(code);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+          'Content-Type': 'application/json'
+        },
+        withCredentials: true
+      };
+
+      const res = await axios.post(
+        `${backendUrl}/api/promo/giftcards/admin-redeem`,
+        { code },
+        config
+      );
+
+      if (res.data.success) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Redeemed',
+          detail: res.data.message || "Gift card successfully redeemed to user's wallet."
+        });
+        fetchGiftCards();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Redeem Failed',
+        detail: err.response?.data?.message || 'Failed to redeem gift card.'
+      });
+    } finally {
+      setRedeemingCode(null);
+    }
+  };
+
   // --- RENDERING TEMPLATES ---
   const ownerTemplate = (row: GiftCard) => {
     if (typeof row.owner === 'object' && row.owner !== null) {
@@ -156,7 +196,11 @@ const GiftCardsManagement: React.FC = () => {
     const redeemed = row.balance <= 0 || !row.isActive;
 
     if (redeemed) {
-      return <Tag value="Redeemed" severity="secondary" style={{ borderRadius: '6px' }} />;
+      if (row.redeemedToWallet) {
+        return <Tag value="Redeemed to Wallet" severity="info" style={{ borderRadius: '6px' }} />;
+      } else {
+        return <Tag value="Used at Checkout" severity="warning" style={{ borderRadius: '6px' }} />;
+      }
     }
     if (isExpired) {
       return <Tag value="Expired" severity="danger" style={{ borderRadius: '6px' }} />;
@@ -227,6 +271,27 @@ const GiftCardsManagement: React.FC = () => {
           <Column field="originalValue" header="ORIGINAL VALUE" body={(r) => `₹${r.originalValue.toFixed(2)}`} sortable />
           <Column field="expiryDate" header="EXPIRY DATE" body={(r) => r.expiryDate ? formatDate(r.expiryDate) : 'N/A'} sortable />
           <Column header="STATUS" body={statusTemplate} />
+          <Column 
+            header="ACTIONS" 
+            body={(r: GiftCard) => {
+              const isExpired = r.expiryDate && new Date() > new Date(r.expiryDate);
+              const redeemed = r.balance <= 0 || !r.isActive;
+              
+              if (!redeemed && !isExpired) {
+                return (
+                  <Button
+                    label="Redeem to Wallet"
+                    severity="warning"
+                    loading={redeemingCode === r.code}
+                    onClick={() => handleAdminRedeem(r.code)}
+                    style={{ borderRadius: '6px', fontSize: '0.75rem', padding: '4px 8px' }}
+                  />
+                );
+              }
+              return <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>N/A</span>;
+            }} 
+            style={{ width: '160px' }}
+          />
         </DataTable>
       </div>
 

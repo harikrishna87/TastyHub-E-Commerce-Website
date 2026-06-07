@@ -30,6 +30,7 @@ const sendToken = (user: IUser, statusCode: number, res: Response) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        walletBalance: user.walletBalance,
       },
       token,
     });

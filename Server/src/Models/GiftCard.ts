@@ -35,6 +35,10 @@ const GiftCardSchema: Schema = new Schema<IGiftCard>({
   },
   expiryDate: {
     type: Date
+  },
+  redeemedToWallet: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

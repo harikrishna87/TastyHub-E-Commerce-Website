@@ -20,6 +20,7 @@ interface IGiftCard {
   expiryDate: string;
   isActive: boolean;
   createdAt: string;
+  redeemedToWallet?: boolean;
 }
 
 const GiftCards: React.FC = () => {
@@ -40,6 +41,8 @@ const GiftCards: React.FC = () => {
   // Redeem Card dialog state
   const [redeemModalOpen, setRedeemModalOpen] = useState<boolean>(false);
   const [redeemCode, setRedeemCode] = useState<string>('');
+  const [successCard, setSuccessCard] = useState<{ code: string; amount: number; isSelf: boolean } | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -164,15 +167,17 @@ const GiftCards: React.FC = () => {
               );
 
               if (res.data.success) {
-                toast.current?.show({
-                  severity: 'success',
-                  summary: 'Success',
-                  detail: res.data.message || 'Gift card purchased successfully!'
+                const isSelf = !recipientEmail || recipientEmail.trim().toLowerCase() === auth?.user?.email.toLowerCase();
+                setSuccessCard({
+                  code: res.data.giftCard.code,
+                  amount,
+                  isSelf
                 });
                 
                 // Reset form fields
                 setCustomAmount('');
                 setRecipientEmail('');
+                setShowSuccessModal(true);
                 
                 // Refresh list
                 fetchMyGiftCards();
@@ -261,6 +266,40 @@ const GiftCards: React.FC = () => {
     }
   };
 
+  const handleDirectRedeem = async (code: string) => {
+    if (!code.trim()) return;
+    try {
+      setRedeemCode(code);
+      setRedeeming(true);
+      const config = { headers: { Authorization: `Bearer ${auth?.token}` }, withCredentials: true };
+      const res = await axios.post(`${backendUrl}/api/promo/giftcards/redeem`, { code: code.trim() }, config);
+
+      if (res.data.success) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Redeemed',
+          detail: res.data.message || 'Wallet balance updated successfully!'
+        });
+        
+        if (auth?.login && auth.user && auth.token && res.data.walletBalance !== undefined) {
+          auth.login({ ...auth.user, walletBalance: res.data.walletBalance } as any, auth.token);
+        }
+
+        fetchMyGiftCards();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Failed',
+        detail: err.response?.data?.message || 'Invalid or expired Gift Card code'
+      });
+    } finally {
+      setRedeeming(false);
+      setRedeemCode('');
+    }
+  };
+
   // Helper copy code
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -302,7 +341,6 @@ const GiftCards: React.FC = () => {
         </div>
         <Button
           label="Redeem Gift Card"
-          icon="pi pi-wallet"
           severity="success"
           onClick={() => {
             if (!auth?.isAuthenticated) {
@@ -485,7 +523,7 @@ const GiftCards: React.FC = () => {
           />
           <Column
             header="REMAINING BALANCE"
-            body={(rowData: IGiftCard) => <span style={{ fontWeight: 700, color: '#15803d' }}>₹{rowData.balance.toFixed(2)}</span>}
+            body={(rowData: IGiftCard) => <span style={{ fontWeight: 700, color: rowData.balance <= 0 ? '#64748b' : '#15803d' }}>₹{rowData.balance.toFixed(2)}</span>}
           />
           <Column
             header="RECIPIENT EMAIL"
@@ -501,12 +539,17 @@ const GiftCards: React.FC = () => {
               const isExpired = new Date() > new Date(rowData.expiryDate);
               const isConsumed = rowData.balance <= 0;
 
-              let sev: 'success' | 'warning' | 'danger' = 'success';
+              let sev: 'success' | 'warning' | 'danger' | 'info' = 'success';
               let val = 'Active';
 
               if (isConsumed) {
-                sev = 'danger';
-                val = 'Fully Consumed';
+                if (rowData.redeemedToWallet) {
+                  sev = 'info';
+                  val = 'Redeemed to Wallet';
+                } else {
+                  sev = 'warning';
+                  val = 'Used at Checkout';
+                }
               } else if (isExpired) {
                 sev = 'warning';
                 val = 'Expired';
@@ -515,7 +558,28 @@ const GiftCards: React.FC = () => {
               return <Tag severity={sev} value={val} style={{ fontSize: '0.75rem' }} />;
             }}
           />
+          <Column 
+            header="ACTIONS" 
+            body={(rowData: IGiftCard) => {
+              if (rowData.balance > 0 && rowData.isActive) {
+                return (
+                  <Button
+                    label="Redeem to Wallet"
+                    severity="success"
+                    loading={redeeming && redeemCode === rowData.code}
+                    onClick={() => handleDirectRedeem(rowData.code)}
+                    style={{ borderRadius: '6px', fontSize: '0.72rem', padding: '4px 8px' }}
+                  />
+                );
+              }
+              return <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontStyle: 'italic' }}>N/A</span>;
+            }} 
+          />
         </DataTable>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1rem', color: '#64748b', fontSize: '0.78rem', lineHeight: 1.4 }}>
+          <i className="pi pi-info-circle" style={{ color: '#3b82f6', fontSize: '0.9rem' }}></i>
+          <span>Note: Redeeming a gift card transfers its entire value to your **Wallet Balance** (shown on the profile page). Once redeemed, the gift card's remaining balance becomes ₹0.00, but the money is securely saved in your wallet and can be used at checkout.</span>
+        </div>
       </div>
 
       {/* Redeem Card Dialog Modal */}
@@ -561,6 +625,72 @@ const GiftCards: React.FC = () => {
             />
           </div>
         </form>
+      </Dialog>
+
+      {/* Purchase Success Dialog */}
+      <Dialog
+        header={<div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold' }}><i className="pi pi-check-circle"></i><span>Purchase Successful!</span></div>}
+        visible={showSuccessModal}
+        style={{ width: '420px', borderRadius: '16px' }}
+        modal
+        onHide={() => setShowSuccessModal(false)}
+      >
+        <div style={{ padding: '0.5rem 0', display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center', textAlign: 'center' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #bbf7d0', boxShadow: '0 4px 10px rgba(34, 197, 94, 0.1)' }}>
+            <i className="pi pi-gift" style={{ color: '#16a34a', fontSize: '2rem' }}></i>
+          </div>
+          
+          <div>
+            <h4 style={{ margin: '0 0 0.25rem 0', fontWeight: 800, color: '#1f2937', fontSize: '1.1rem' }}>Gift Card Ready!</h4>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>Your prepaid code is generated and active.</p>
+          </div>
+
+          {successCard && (
+            <div style={{ width: '100%', border: '1px dashed #bbf7d0', backgroundColor: '#f9fafb', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>Amount:</span>
+                <span style={{ color: '#16a34a', fontWeight: 800 }}>₹{successCard.amount.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                <span style={{ color: '#64748b', fontWeight: 600 }}>Code:</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <code style={{ color: '#1f2937', fontWeight: 800, letterSpacing: '0.5px' }}>{successCard.code}</code>
+                  <Button
+                    icon="pi pi-copy"
+                    className="p-button-text p-button-success p-button-sm"
+                    style={{ padding: '2px', width: '1.2rem', height: '1.2rem' }}
+                    onClick={() => handleCopyCode(successCard.code)}
+                    tooltip="Copy Code"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', marginTop: '0.5rem' }}>
+            {successCard?.isSelf ? (
+              <Button 
+                label={redeeming ? "Redeeming to Wallet..." : "Redeem to Wallet Now"} 
+                severity="success" 
+                loading={redeeming}
+                onClick={() => {
+                  if (successCard) {
+                    handleDirectRedeem(successCard.code);
+                    setShowSuccessModal(false);
+                  }
+                }} 
+                style={{ width: '100%', borderRadius: '8px', fontWeight: 700 }} 
+              />
+            ) : (
+              <Button 
+                label="Done / Close" 
+                severity="success" 
+                onClick={() => setShowSuccessModal(false)} 
+                style={{ width: '100%', borderRadius: '8px', fontWeight: 700 }} 
+              />
+            )}
+          </div>
+        </div>
       </Dialog>
 
     </div>

@@ -162,7 +162,7 @@ const UserAuth: React.FC = () => {
         const response = await axios.get(`${backendUrl}/api/auth/last-login`, {
           withCredentials: true
         });
-        if (response.data.success) {
+        if (response.data.success && response.data.user.role === 'user') {
           setCachedSession({
             user: response.data.user
           });

@@ -142,6 +142,10 @@ const DeliveryAuth: React.FC = () => {
   const [password, setPassword] = useState<string>('');
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [cachedSession, setCachedSession] = useState<{
+    user: any;
+  } | null>(null);
+  const [useDifferentAccount, setUseDifferentAccount] = useState<boolean>(false);
   
   const message = {
     info: (content: string) => {
@@ -160,6 +164,24 @@ const DeliveryAuth: React.FC = () => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+  useEffect(() => {
+    const fetchLastLogin = async () => {
+      try {
+        const response = await axios.get(`${backendUrl}/api/auth/last-login`, {
+          withCredentials: true
+        });
+        if (response.data.success && response.data.user.role === 'delivery_executive') {
+          setCachedSession({
+            user: response.data.user
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch last login from backend:', err);
+      }
+    };
+    fetchLastLogin();
+  }, [backendUrl]);
 
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -231,169 +253,284 @@ const DeliveryAuth: React.FC = () => {
   return (
     <div className="auth-page-container">
       <Toast ref={toastRef} />
-      <div className="image-login-card">
-        {mode === 'login' ? (
-          <div>
-            <div className="image-login-title">Delivery Portal</div>
-            <div className="image-login-subtitle">Welcome back! Please login to your account</div>
+      
+      {cachedSession && !useDifferentAccount ? (
+        <div className="image-login-card" style={{ textAlign: 'center' }}>
+          <h2 className="image-login-title">Welcome Back!</h2>
+          <p className="image-login-subtitle">Continue with your previous session</p>
 
-            <form onSubmit={handleSubmit}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
-                <label className="image-input-label">Email Address</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <i className="pi pi-envelope" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
-                  <input 
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="image-text-input has-left-icon" 
-                    placeholder="Enter your email"
-                    style={{ width: '100%' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
-                <label className="image-input-label">Password</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <i className="pi pi-lock" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
-                  <input 
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="image-text-input has-both-icons" 
-                    placeholder="Enter your password"
-                    style={{ width: '100%' }}
-                    required
-                  />
-                  <i 
-                    className={showPassword ? 'pi pi-eye' : 'pi pi-eye-slash'} 
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{ position: 'absolute', right: '16px', color: '#94a3b8', cursor: 'pointer', fontSize: '1.1rem' }}
-                  />
-                </div>
-              </div>
-
-              <div className="image-form-footer">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe} 
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="image-checkbox" 
-                  />
-                  <span style={{ fontWeight: 600, color: '#475569' }}>Remember me</span>
-                </label>
-                <a href="#forgot" className="image-forgot-link" onClick={(e) => { e.preventDefault(); message.info('Please contact support desk at partner@tastyhub.com to reset your credentials.'); }}>Forgot password?</a>
-              </div>
-
-              <button type="submit" disabled={loading} className="image-submit-btn">
-                {loading ? (
-                  <span><i className="pi pi-spin pi-spinner" style={{ marginRight: '8px' }} /> Signing In...</span>
-                ) : (
-                  <>
-                    <i className="pi pi-sign-in" style={{ marginRight: '8px' }} /> Sign In
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="image-toggle-footer">
-              Don't have an account? 
-              <span className="image-toggle-link" onClick={handleToggleMode}>Create Account</span>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '1.5rem',
+            backgroundColor: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '16px',
+            marginBottom: '1.5rem',
+            position: 'relative'
+          }}>
+            <img
+              src={cachedSession.user.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
+              alt={cachedSession.user.name}
+              style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '3px solid #22c55e',
+                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)'
+              }}
+              onError={(e) => { (e.target as any).src = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'; }}
+            />
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}>
+                {cachedSession.user.name}
+              </h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+                {cachedSession.user.email}
+              </p>
             </div>
           </div>
-        ) : (
-          <div>
-            <div className="image-login-title">Apply Now</div>
-            <div className="image-login-subtitle">Join Nellore's premium dining distribution fleet</div>
 
-            <form onSubmit={handleSubmit}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
-                <label className="image-input-label">Full Name</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <i className="pi pi-user" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
-                  <input 
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="image-text-input has-left-icon" 
-                    placeholder="Enter your full name"
-                    style={{ width: '100%' }}
-                    required
-                  />
-                </div>
-              </div>
+          <button
+            onClick={async () => {
+              try {
+                setLoading(true);
+                const response = await axios.post(`${backendUrl}/api/auth/continue-login`, {}, {
+                  withCredentials: true
+                });
+                if (response.data.success) {
+                  const { user, token } = response.data;
+                  if (user.deliveryStatus === 'Pending') {
+                    message.warning('Login approved! However, your executive profile is waiting for administrator authorization to accept deliveries.');
+                  } else {
+                    message.success(`Welcome back, Partner ${user.name}!`);
+                  }
+                  if (authContext?.login) {
+                    authContext.login(user, token || localStorage.getItem('token') || '');
+                  }
+                  navigate('/delivery/home');
+                } else {
+                  message.error(response.data.message || 'Could not restore session');
+                  setCachedSession(null);
+                }
+              } catch (err: any) {
+                message.error(err.response?.data?.message || 'Server error during auto-login');
+                setCachedSession(null);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            className="image-submit-btn"
+            disabled={loading}
+          >
+            <i className="pi pi-sign-in" />
+            <span>Continue as {cachedSession.user.name}</span>
+          </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
-                <label className="image-input-label">Email Address</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <i className="pi pi-envelope" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
-                  <input 
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="image-text-input has-left-icon" 
-                    placeholder="Enter your email"
-                    style={{ width: '100%' }}
-                    required
-                  />
-                </div>
-              </div>
+          <button
+            onClick={() => setUseDifferentAccount(true)}
+            style={{
+              background: 'transparent',
+              border: '1.5px solid #e2e8f0',
+              color: '#475569',
+              height: '44px',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease',
+              marginTop: '0.5rem'
+            }}
+          >
+            <i className="pi pi-user-plus" />
+            <span>Use another account</span>
+          </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
-                <label className="image-input-label">Secure Password</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <i className="pi pi-lock" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
-                  <input 
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="image-text-input has-both-icons" 
-                    placeholder="Create secure password"
-                    style={{ width: '100%' }}
-                    required
-                    minLength={6}
-                  />
-                  <i 
-                    className={showPassword ? 'pi pi-eye' : 'pi pi-eye-slash'} 
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{ position: 'absolute', right: '16px', color: '#94a3b8', cursor: 'pointer', fontSize: '1.1rem' }}
-                  />
-                </div>
-              </div>
-
-              <button type="submit" disabled={loading} className="image-submit-btn">
-                {loading ? (
-                  <span><i className="pi pi-spin pi-spinner" style={{ marginRight: '8px' }} /> Submitting...</span>
-                ) : (
-                  <>
-                    <i className="pi pi-send" style={{ marginRight: '8px' }} /> Submit Application
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="image-toggle-footer">
-              Already have an account? 
-              <span className="image-toggle-link" onClick={handleToggleMode}>Sign In</span>
-            </div>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Back to Home"
+              icon="pi pi-arrow-left"
+              link
+              className="p-button-success back-to-home-btn"
+              style={{ color: '#22c55e', fontWeight: 700, padding: 0 }}
+              onClick={() => navigate('/user/home')}
+            />
           </div>
-        )}
-
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-          <Button
-            type="button"
-            label="Back to Home"
-            icon="pi pi-arrow-left"
-            link
-            className="p-button-success back-to-home-btn"
-            style={{ color: '#22c55e', fontWeight: 700, padding: 0 }}
-            onClick={() => navigate('/user/home')}
-          />
         </div>
-      </div>
+      ) : (
+        <div className="image-login-card">
+          {mode === 'login' ? (
+            <div>
+              <div className="image-login-title">Delivery Portal</div>
+              <div className="image-login-subtitle">Welcome back! Please login to your account</div>
+
+              <form onSubmit={handleSubmit}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
+                  <label className="image-input-label">Email Address</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <i className="pi pi-envelope" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
+                    <input 
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="image-text-input has-left-icon" 
+                      placeholder="Enter your email"
+                      style={{ width: '100%' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
+                  <label className="image-input-label">Password</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <i className="pi pi-lock" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
+                    <input 
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="image-text-input has-both-icons" 
+                      placeholder="Enter your password"
+                      style={{ width: '100%' }}
+                      required
+                    />
+                    <i 
+                      className={showPassword ? 'pi pi-eye' : 'pi pi-eye-slash'} 
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: '16px', color: '#94a3b8', cursor: 'pointer', fontSize: '1.1rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="image-form-footer">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={rememberMe} 
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="image-checkbox" 
+                    />
+                    <span style={{ fontWeight: 600, color: '#475569' }}>Remember me</span>
+                  </label>
+                  <a href="#forgot" className="image-forgot-link" onClick={(e) => { e.preventDefault(); message.info('Please contact support desk at partner@tastyhub.com to reset your credentials.'); }}>Forgot password?</a>
+                </div>
+
+                <button type="submit" disabled={loading} className="image-submit-btn">
+                  {loading ? (
+                    <span><i className="pi pi-spin pi-spinner" style={{ marginRight: '8px' }} /> Signing In...</span>
+                  ) : (
+                    <>
+                      <i className="pi pi-sign-in" style={{ marginRight: '8px' }} /> Sign In
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="image-toggle-footer">
+                Don't have an account? 
+                <span className="image-toggle-link" onClick={handleToggleMode}>Create Account</span>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="image-login-title">Apply Now</div>
+              <div className="image-login-subtitle">Join Nellore's premium dining distribution fleet</div>
+
+              <form onSubmit={handleSubmit}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
+                  <label className="image-input-label">Full Name</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <i className="pi pi-user" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
+                    <input 
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="image-text-input has-left-icon" 
+                      placeholder="Enter your full name"
+                      style={{ width: '100%' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
+                  <label className="image-input-label">Email Address</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <i className="pi pi-envelope" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
+                    <input 
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="image-text-input has-left-icon" 
+                      placeholder="Enter your email"
+                      style={{ width: '100%' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '14px' }}>
+                  <label className="image-input-label">Secure Password</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <i className="pi pi-lock" style={{ position: 'absolute', left: '16px', color: '#94a3b8', fontSize: '1.1rem' }} />
+                    <input 
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="image-text-input has-both-icons" 
+                      placeholder="Create secure password"
+                      style={{ width: '100%' }}
+                      required
+                      minLength={6}
+                    />
+                    <i 
+                      className={showPassword ? 'pi pi-eye' : 'pi pi-eye-slash'} 
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: '16px', color: '#94a3b8', cursor: 'pointer', fontSize: '1.1rem' }}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={loading} className="image-submit-btn">
+                  {loading ? (
+                    <span><i className="pi pi-spin pi-spinner" style={{ marginRight: '8px' }} /> Submitting...</span>
+                  ) : (
+                    <>
+                      <i className="pi pi-send" style={{ marginRight: '8px' }} /> Submit Application
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="image-toggle-footer">
+                Already have an account? 
+                <span className="image-toggle-link" onClick={handleToggleMode}>Sign In</span>
+              </div>
+            </div>
+          )}
+
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+            <Button
+              type="button"
+              label="Back to Home"
+              icon="pi pi-arrow-left"
+              link
+              className="p-button-success back-to-home-btn"
+              style={{ color: '#22c55e', fontWeight: 700, padding: 0 }}
+              onClick={() => navigate('/user/home')}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

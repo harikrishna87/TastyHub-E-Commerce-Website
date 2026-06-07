@@ -230,13 +230,23 @@ const CartPage: React.FC = () => {
                   <span style={styles.discPrice}>₹{(item.discount_price * item.quantity).toFixed(2)}</span>
                 </div>
 
-                {/* Delete button */}
+                {/* Delete button positioned absolutely at top right */}
                 <Button
                   icon="pi pi-trash"
                   className="p-button-text p-button-danger p-button-sm"
                   onClick={() => handleDeleteItem(item.name)}
                   tooltip="Remove item"
-                  style={{ color: '#ef4444', padding: '4px', minWidth: 'auto', background: 'transparent', border: 'none' }}
+                  style={{ 
+                    position: 'absolute', 
+                    top: '12px', 
+                    right: '12px', 
+                    color: '#ef4444', 
+                    padding: '4px', 
+                    minWidth: 'auto', 
+                    background: 'transparent', 
+                    border: 'none',
+                    zIndex: 10
+                  }}
                 />
               </div>
             </div>
@@ -372,6 +382,7 @@ const styles = {
     overflowY: 'auto' as const,
   },
   itemCard: {
+    position: 'relative' as const,
     backgroundColor: '#ffffff',
     borderRadius: '16px',
     padding: '1.25rem',
@@ -398,6 +409,7 @@ const styles = {
     gap: '1.5rem',
     flexWrap: 'wrap' as const,
     minWidth: '240px',
+    paddingRight: '1.5rem',
   },
   itemDetails: {
     flex: 1,

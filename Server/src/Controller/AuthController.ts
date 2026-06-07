@@ -603,6 +603,7 @@ const getMe = async (req: Request, res: Response, next: NextFunction): Promise<v
         shippingAddress: user.shippingAddress,
         isAvailable: user.isAvailable,
         deliveryStatus: user.deliveryStatus,
+        walletBalance: user.walletBalance,
       },
     });
   } catch (error: any) {
@@ -706,6 +707,7 @@ const updateProfile = async (req: Request, res: Response, next: NextFunction): P
         role: updatedUser.role,
         image: updatedUser.image,
         shippingAddress: updatedUser.shippingAddress,
+        walletBalance: updatedUser.walletBalance,
       },
     });
   } catch (error: any) {
@@ -1166,7 +1168,8 @@ const getLastLogin = async (req: Request, res: Response, next: NextFunction): Pr
         name: user.name,
         email: user.email,
         role: user.role,
-        image: user.image || ''
+        image: user.image || '',
+        walletBalance: user.walletBalance,
       }
     });
   } catch (error: any) {
