@@ -385,7 +385,7 @@ const RestaurantsManagement: React.FC = () => {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}>
               <i className="pi pi-shop" style={{ color: '#15803d' }} /> Active Dining Restaurants
             </h2>
-            <DataTable value={restaurants} loading={loading} paginator rows={5} className="p-datatable-striped" responsiveLayout="scroll">
+            <DataTable value={restaurants} loading={loading} paginator rows={5} className="p-datatable-striped" responsiveLayout="scroll" tableStyle={{ minWidth: '65rem' }}>
               <Column header="IMAGE" body={imageTemplate} style={{ width: '80px' }} />
               <Column field="name" header="RESTAURANT NAME" style={{ fontWeight: 700 }} sortable />
               <Column field="category" header="CATEGORY FILTER" sortable />
@@ -423,7 +423,7 @@ const RestaurantsManagement: React.FC = () => {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}>
               <i className="pi pi-images" style={{ color: '#15803d' }} /> Main Screen Promotion Banners
             </h2>
-            <DataTable value={banners} loading={loading} paginator rows={5} className="p-datatable-striped" responsiveLayout="scroll">
+            <DataTable value={banners} loading={loading} paginator rows={5} className="p-datatable-striped" responsiveLayout="scroll" tableStyle={{ minWidth: '60rem' }}>
               <Column header="SLIDE IMAGE" body={imageTemplate} style={{ width: '80px' }} />
               <Column field="title" header="PROMO TITLE" style={{ fontWeight: 600 }} />
               <Column field="subtitle" header="SUBTITLE DESCR." />

@@ -1,3 +1,12 @@
 #root {
     font-family: 'Times New Roman', Times, serif;
 }
+
+/* Hide horizontal scrollbars globally for PrimeReact DataTable wrapper */
+.p-datatable-wrapper::-webkit-scrollbar {
+  display: none !important;
+}
+.p-datatable-wrapper {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}

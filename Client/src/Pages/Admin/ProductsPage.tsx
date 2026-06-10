@@ -331,6 +331,7 @@ const ProductsPage: React.FC = () => {
           rowsPerPageOptions={[5, 10, 20]}
           className="p-datatable-striped"
           responsiveLayout="scroll"
+          tableStyle={{ minWidth: '60rem' }}
           emptyMessage={() => (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
               <i className="pi pi-box" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />

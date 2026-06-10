@@ -20,7 +20,6 @@ import DealsDiscounts from './Pages/Customer/DealsDiscounts'
 import GiftCards from './Pages/Customer/GiftCards'
 import ShoppingInfo from './Pages/Customer/ShoppingInfo'
 import ReturnsExchanges from './Pages/Customer/ReturnsExchanges'
-import PaymentOverview from './Pages/Admin/PaymentOverview'
 import OrderManagement from './Pages/Admin/OrderManagement'
 import OrderAnalytics from './Pages/Admin/OrderAnalytics'
 import ProfilePage from './Pages/Customer/ProfilePage'
@@ -58,7 +57,6 @@ const AppContent: React.FC = () => {
           <Route path="/admin/home" element={<OrderAnalytics />} />
           <Route path="/admin/orderanalytics" element={<Navigate to="/admin/home" replace />} />
           <Route path='/admin/productspage' element={<ProductsPage />} />
-          <Route path='/admin/paymentoverview' element={<PaymentOverview />} />
           <Route path='/admin/ordermanagement' element={<OrderManagement />} />
           <Route path='/admin/customers' element={<CustomersManagement />} />
           <Route path='/admin/delivery' element={<DeliveryManagement />} />

@@ -657,14 +657,6 @@ const DeliveryManagement: React.FC = () => {
   return (
     <div style={styles.container}>
       <style>{`
-        /* Hide horizontal scrollbar for PrimeReact DataTable wrapper */
-        .p-datatable-wrapper::-webkit-scrollbar {
-          display: none !important;
-        }
-        .p-datatable-wrapper {
-          -ms-overflow-style: none !important;  /* IE and Edge */
-          scrollbar-width: none !important;  /* Firefox */
-        }
         .non-expandable-row .p-row-toggler {
           display: none !important;
           pointer-events: none !important;
@@ -687,6 +679,7 @@ const DeliveryManagement: React.FC = () => {
               rowsPerPageOptions={[5, 10, 20]}
               className="p-datatable-striped"
               responsiveLayout="scroll"
+              tableStyle={{ minWidth: '70rem' }}
               emptyMessage={() => (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
                   <i className="pi pi-truck" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
@@ -726,6 +719,7 @@ const DeliveryManagement: React.FC = () => {
               rowsPerPageOptions={[5, 10, 20]}
               className="p-datatable-striped"
               responsiveLayout="scroll"
+              tableStyle={{ minWidth: '60rem' }}
               emptyMessage={() => (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
                   <i className="pi pi-money-bill" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
@@ -840,6 +834,7 @@ const DeliveryManagement: React.FC = () => {
               rowsPerPageOptions={[5, 10, 20]}
               className="p-datatable-striped"
               responsiveLayout="scroll"
+              tableStyle={{ minWidth: '60rem' }}
               emptyMessage={() => (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
                   <i className="pi pi-comments" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />

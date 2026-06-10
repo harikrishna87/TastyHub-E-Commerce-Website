@@ -337,6 +337,7 @@ const CustomersManagement: React.FC = () => {
           globalFilter={globalFilter}
           emptyMessage={emptyTableTemplate}
           responsiveLayout="scroll"
+          tableStyle={{ minWidth: '60rem' }}
           style={{ fontSize: '0.9rem' }}
           rowHover
         >
@@ -420,6 +421,7 @@ const CustomersManagement: React.FC = () => {
                   )}
                   paginator
                   rows={5}
+                  tableStyle={{ minWidth: '35rem' }}
                   style={{ fontSize: '0.85rem' }}
                 >
                   <Column

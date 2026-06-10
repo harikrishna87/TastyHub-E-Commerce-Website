@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",
+    "@iroomit/rate-limit-mongodb": "^1.0.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
@@ -34,7 +35,9 @@
     "nodemon": "^3.1.10",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "rate-limit-redis": "^5.0.0",
     "razorpay": "^2.9.6",
+    "redis": "^6.0.0",
     "stripe": "^19.3.1",
     "ts-node-dev": "^2.0.0"
   },

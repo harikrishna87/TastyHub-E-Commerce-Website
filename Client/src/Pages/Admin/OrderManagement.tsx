@@ -321,7 +321,6 @@ const OrderManagement: React.FC = () => {
 
   const dateTemplate = (row: IOrder) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.88rem' }}>
-      <i className="pi pi-calendar" style={{ color: '#22c55e' }} />
       <span>{formatDate(row.createdAt)}</span>
     </div>
   );
@@ -362,6 +361,7 @@ const OrderManagement: React.FC = () => {
           rowsPerPageOptions={[5, 10, 20]}
           className="p-datatable-striped"
           responsiveLayout="scroll"
+          tableStyle={{ minWidth: '70rem' }}
           emptyMessage={() => (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
               <i className="pi pi-shopping-bag" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />

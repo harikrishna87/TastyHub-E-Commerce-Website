@@ -244,32 +244,56 @@ const OrderAnalytics: React.FC = () => {
 
   // 2. Weekly Performance Chart (Line Chart for Revenue, Bar for Orders, Bar for Customers)
   const weeklyChartData = useMemo(() => {
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dates: string[] = [];
+    const dateObjects: Date[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dateObjects.push(d);
+      dates.push(d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+    }
+
     const earnings = [0, 0, 0, 0, 0, 0, 0];
     const orderCounts = [0, 0, 0, 0, 0, 0, 0];
     const customerCounts = [0, 0, 0, 0, 0, 0, 0];
 
     orders.forEach(order => {
       if (order.createdAt) {
-        const dayIndex = (new Date(order.createdAt).getDay() + 6) % 7; // Mon=0, Sun=6
-        if (dayIndex >= 0 && dayIndex < 7) {
-          earnings[dayIndex] += order.totalAmount;
-          orderCounts[dayIndex] += 1;
+        const orderDate = new Date(order.createdAt);
+        for (let i = 0; i < 7; i++) {
+          const target = dateObjects[i];
+          if (
+            orderDate.getDate() === target.getDate() &&
+            orderDate.getMonth() === target.getMonth() &&
+            orderDate.getFullYear() === target.getFullYear()
+          ) {
+            earnings[i] += order.totalAmount;
+            orderCounts[i] += 1;
+            break;
+          }
         }
       }
     });
 
     customers.forEach(cust => {
       if (cust.createdAt) {
-        const dayIndex = (new Date(cust.createdAt).getDay() + 6) % 7; // Mon=0, Sun=6
-        if (dayIndex >= 0 && dayIndex < 7) {
-          customerCounts[dayIndex] += 1;
+        const custDate = new Date(cust.createdAt);
+        for (let i = 0; i < 7; i++) {
+          const target = dateObjects[i];
+          if (
+            custDate.getDate() === target.getDate() &&
+            custDate.getMonth() === target.getMonth() &&
+            custDate.getFullYear() === target.getFullYear()
+          ) {
+            customerCounts[i] += 1;
+            break;
+          }
         }
       }
     });
 
     return {
-      labels: weekdays,
+      labels: dates,
       datasets: [
         {
           label: 'Revenue (₹)',
@@ -796,6 +820,7 @@ const OrderAnalytics: React.FC = () => {
             value={topCustomers.slice(0, 5)}
             responsiveLayout="scroll"
             className="p-datatable-sm"
+            tableStyle={{ minWidth: '35rem' }}
             style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}
           >
             <Column field="name" header="CUSTOMER" body={customerTemplate} style={{ fontSize: '0.8rem' }} />
@@ -820,6 +845,7 @@ const OrderAnalytics: React.FC = () => {
             value={latestTransactions.slice(0, 5)}
             responsiveLayout="scroll"
             className="p-datatable-sm"
+            tableStyle={{ minWidth: '35rem' }}
             style={{ marginTop: '0.75rem', fontSize: '0.8rem' }}
           >
             <Column field="user.name" header="CUSTOMER" body={txCustomerTemplate} style={{ fontSize: '0.8rem' }} />
@@ -832,7 +858,7 @@ const OrderAnalytics: React.FC = () => {
 
       {/* Dialog for Top Customers */}
       <Dialog header="Top Spending Customers" visible={custDialogVisible} style={{ width: '60vw', borderRadius: '12px' }} onHide={() => setCustDialogVisible(false)}>
-        <DataTable value={topCustomers} paginator rows={10} responsiveLayout="scroll" style={{ fontSize: '0.85rem' }}>
+        <DataTable value={topCustomers} paginator rows={10} responsiveLayout="scroll" tableStyle={{ minWidth: '50rem' }} style={{ fontSize: '0.85rem' }}>
           <Column field="name" header="Customer Name" body={customerTemplate} />
           <Column field="email" header="Email Address" />
           <Column field="orderCount" header="Total Orders" />
@@ -842,7 +868,7 @@ const OrderAnalytics: React.FC = () => {
 
       {/* Dialog for All Transactions Log */}
       <Dialog header="All Transactions Log" visible={txDialogVisible} style={{ width: '70vw', borderRadius: '12px' }} onHide={() => setTxDialogVisible(false)}>
-        <DataTable value={latestTransactions} paginator rows={10} responsiveLayout="scroll" style={{ fontSize: '0.85rem' }}>
+        <DataTable value={latestTransactions} paginator rows={10} responsiveLayout="scroll" tableStyle={{ minWidth: '60rem' }} style={{ fontSize: '0.85rem' }}>
           <Column field="_id" header="Order ID" body={(r) => <code style={{ color: '#64748b' }}>{r._id}</code>} />
           <Column field="user.name" header="Customer Name" body={txCustomerTemplate} />
           <Column field="user.email" header="Customer Email" body={(r) => typeof r.user === 'object' ? r.user?.email : r.user} />
@@ -921,6 +947,7 @@ const OrderAnalytics: React.FC = () => {
                   )}
                   paginator
                   rows={5}
+                  tableStyle={{ minWidth: '35rem' }}
                   style={{ fontSize: '0.85rem' }}
                 >
                   <Column

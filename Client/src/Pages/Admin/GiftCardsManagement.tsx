@@ -42,7 +42,6 @@ const GiftCardsManagement: React.FC = () => {
 
   // Form State
   const [amount, setAmount] = useState<number>(0);
-  const [recipientEmail, setRecipientEmail] = useState<string>('');
 
   const fetchGiftCards = async () => {
     if (!auth?.token) return;
@@ -99,7 +98,6 @@ const GiftCardsManagement: React.FC = () => {
         `${backendUrl}/api/promo/giftcards`,
         {
           amount,
-          recipientEmail: recipientEmail || undefined
         },
         config
       );
@@ -111,7 +109,6 @@ const GiftCardsManagement: React.FC = () => {
           detail: 'Gift Card generated successfully! Code: ' + response.data.giftCard.code
         });
         setAmount(0);
-        setRecipientEmail('');
         setGiftCardDialogVisible(false);
         fetchGiftCards();
       } else {
@@ -184,12 +181,7 @@ const GiftCardsManagement: React.FC = () => {
     return <span style={{ color: '#64748b', fontStyle: 'italic' }}>System Purchased</span>;
   };
 
-  const recipientTemplate = (row: GiftCard) => {
-    if (row.recipientEmail) {
-      return <span>{row.recipientEmail}</span>;
-    }
-    return <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Self Redeemed / Unassigned</span>;
-  };
+
 
   const statusTemplate = (row: GiftCard) => {
     const isExpired = row.expiryDate && new Date() > new Date(row.expiryDate);
@@ -257,6 +249,7 @@ const GiftCardsManagement: React.FC = () => {
           rowsPerPageOptions={[5, 10]}
           className="p-datatable-striped"
           responsiveLayout="scroll"
+          tableStyle={{ minWidth: '60rem' }}
           emptyMessage={() => (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
               <i className="pi pi-gift" style={{ fontSize: '3.5rem', color: '#cbd5e1', marginBottom: '1rem' }} />
@@ -267,7 +260,6 @@ const GiftCardsManagement: React.FC = () => {
         >
           <Column header="GIFT CARD CODE" body={codeTemplate} style={{ fontWeight: 600 }} sortable />
           <Column header="PURCHASER (OWNER)" body={ownerTemplate} />
-          <Column header="RECIPIENT EMAIL" body={recipientTemplate} />
           <Column field="originalValue" header="ORIGINAL VALUE" body={(r) => `₹${r.originalValue.toFixed(2)}`} sortable />
           <Column field="expiryDate" header="EXPIRY DATE" body={(r) => r.expiryDate ? formatDate(r.expiryDate) : 'N/A'} sortable />
           <Column header="STATUS" body={statusTemplate} />
@@ -314,20 +306,6 @@ const GiftCardsManagement: React.FC = () => {
               style={styles.input}
               required
             />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Recipient Email Address (Optional)</label>
-            <input
-              type="email"
-              placeholder="e.g. customer@gmail.com (defaults to buyer email)"
-              value={recipientEmail}
-              onChange={(e) => setRecipientEmail(e.target.value)}
-              style={styles.input}
-            />
-            <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0.2rem 0 0 0' }}>
-              If provided, the gift card code will be emailed directly to this recipient.
-            </p>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem' }}>

@@ -27,13 +27,14 @@ import {
     continueLogin,
 } from '../Controller/AuthController';
 import { protect } from '../Middleware/AuthMiddleWare';
+import { authLimiter } from '../Middleware/RateLimitMiddleware';
 import multer from 'multer';
 
 const router: Router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post('/register', register as express.RequestHandler);
-router.post('/login', login as express.RequestHandler);
+router.post('/register', authLimiter, register as express.RequestHandler);
+router.post('/login', authLimiter, login as express.RequestHandler);
 router.post('/guest-login', guestLogin as express.RequestHandler);
 router.post('/logout', logout as express.RequestHandler);
 router.post('/google', googleAuth as express.RequestHandler);
@@ -46,12 +47,12 @@ router.get('/get-uploaded-image', protect as express.RequestHandler, getUploaded
 router.put('/update-password', protect as express.RequestHandler, updatePassword as express.RequestHandler);
 router.delete('/delete-account', protect as express.RequestHandler, DeleteAccount as express.RequestHandler);
 router.post('/fcm-token', protect as express.RequestHandler, FcmToken as express.RequestHandler);
-router.post('/forgot-password', sendPasswordResetOTP as express.RequestHandler);
-router.post('/verify-reset-otp', verifyPasswordResetOTP as express.RequestHandler);
-router.put('/reset-password', resetPassword as express.RequestHandler);
-router.post('/resend-reset-otp', resendPasswordResetOTP as express.RequestHandler);
-router.post('/verify-otp', verifyOTP as express.RequestHandler);
-router.post('/resend-otp', resendOTP as express.RequestHandler);
+router.post('/forgot-password', authLimiter, sendPasswordResetOTP as express.RequestHandler);
+router.post('/verify-reset-otp', authLimiter, verifyPasswordResetOTP as express.RequestHandler);
+router.put('/reset-password', authLimiter, resetPassword as express.RequestHandler);
+router.post('/resend-reset-otp', authLimiter, resendPasswordResetOTP as express.RequestHandler);
+router.post('/verify-otp', authLimiter, verifyOTP as express.RequestHandler);
+router.post('/resend-otp', authLimiter, resendOTP as express.RequestHandler);
 router.get('/customers', protect as express.RequestHandler, getAllCustomers as express.RequestHandler);
 router.delete('/customer/:userId', protect as express.RequestHandler, deleteCustomerById as express.RequestHandler);
 router.patch('/users/:userId/toggle-status', protect as express.RequestHandler, toggleUserActiveStatus as express.RequestHandler);

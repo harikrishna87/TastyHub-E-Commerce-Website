@@ -20,7 +20,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import passport from 'passport';
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import { apiLimiter } from "./Middleware/RateLimitMiddleware";
 
 dotenv.config();
 
@@ -43,14 +43,7 @@ connectDB();
 // Apply security headers
 app.use(helmet());
 
-// Enable standard request rate limiter for API stability and DDoS prevention
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 requests per 15 minutes
-  message: { success: false, message: "Too many requests from this IP. Please try again after 15 minutes." },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
+// Enable standard request rate limiter for API stability and DDoS prevention (managed in RateLimitMiddleware)
 
 app.use("/api", apiLimiter);
 

@@ -100,7 +100,6 @@ const FoodNavbar: React.FC = () => {
     if (pathname === '/admin/orderanalytics' || pathname === '/admin/home') return 'orderanalytics';
     if (pathname === '/admin/productspage') return 'products';
     if (pathname === '/admin/ordermanagement') return 'ordermanagement';
-    if (pathname === '/admin/paymentoverview') return 'paymentoverview';
     if (pathname === '/admin/profilepage') return 'profile';
     if (pathname === '/delivery/home' || pathname === '/delivery/dashboard') return 'delivery_dashboard';
     return '';

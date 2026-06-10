@@ -420,6 +420,7 @@ const CouponsManagement: React.FC = () => {
               rowsPerPageOptions={[5, 10]}
               className="p-datatable-striped"
               responsiveLayout="scroll"
+              tableStyle={{ minWidth: '60rem' }}
               emptyMessage={() => (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
                   <i className="pi pi-ticket" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
@@ -463,6 +464,7 @@ const CouponsManagement: React.FC = () => {
               rowsPerPageOptions={[5, 10]}
               className="p-datatable-striped"
               responsiveLayout="scroll"
+              tableStyle={{ minWidth: '60rem' }}
               emptyMessage={() => (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
                   <i className="pi pi-percentage" style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
