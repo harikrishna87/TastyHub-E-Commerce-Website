@@ -1,0 +1,58 @@
+name: TastyHub Continuous Integration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  client-ci:
+    name: Client CI (React Frontend)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './Client/package-lock.json'
+
+      - name: Install Client dependencies
+        run: npm ci
+        working-directory: ./Client
+
+      - name: Run ESLint
+        run: npm run lint
+        working-directory: ./Client
+
+      - name: Compile & Build Frontend
+        run: npm run build
+        working-directory: ./Client
+
+  server-ci:
+    name: Server CI (Node.js Backend)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './Server/package-lock.json'
+
+      - name: Install Server dependencies
+        run: npm ci
+        working-directory: ./Server
+
+      - name: Compile TypeScript Backend
+        run: npm run build
+        working-directory: ./Server
