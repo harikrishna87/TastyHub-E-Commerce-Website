@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import UserSession from '../Models/UserSession';
 import mongoose from 'mongoose';
 
-export const createUserSession = async (userId: mongoose.Types.ObjectId, req: Request, res: Response) => {
+export const createUserSession = async (userId: mongoose.Types.ObjectId, req: Request, res: Response): Promise<string | undefined> => {
   try {
     // Delete any existing session for the user first to keep DB clean
     await UserSession.deleteMany({ user: userId });
@@ -37,8 +37,10 @@ export const createUserSession = async (userId: mongoose.Types.ObjectId, req: Re
     };
     
     res.cookie('tastyhub_remember_me', rememberToken, cookieOptions);
+    return rememberToken;
   } catch (error) {
     console.error('Error creating user session in DB:', error);
+    return undefined;
   }
 };
 

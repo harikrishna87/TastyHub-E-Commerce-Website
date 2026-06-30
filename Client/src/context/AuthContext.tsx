@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { AuthContextType, IUser } from '../types';
@@ -15,23 +15,28 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
+  const isLoggingOutRef = useRef<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  const login = useCallback((userData: IUser, jwtToken: string) => {
+  const login = useCallback((userData: IUser, jwtToken: string, rememberToken?: string) => {
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', jwtToken);
+    if (rememberToken) {
+      localStorage.setItem('remember_token', rememberToken);
+    }
     setIsAuthenticated(true);
     setUser(userData);
     setToken(jwtToken);
   }, []);
 
   const logout = useCallback(async () => {
-    if (isLoggingOut) {
+    if (isLoggingOutRef.current) {
       return;
     }
 
+    isLoggingOutRef.current = true;
     setIsLoggingOut(true);
 
     try {
@@ -47,6 +52,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('remember_token');
       localStorage.setItem('logout_intentional', 'true');
     } catch (e) {
       console.error('Failed to clear localStorage:', e);
@@ -57,24 +63,33 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setToken(null);
     setIsLoggingOut(false);
-  }, [backendUrl, isLoggingOut]);
+    isLoggingOutRef.current = false;
+  }, [backendUrl]);
 
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     try {
-      const res = await axios.post(`${backendUrl}/api/auth/continue-login`, {}, {
-        withCredentials: true,
-        timeout: 10000
-      });
+      const rememberToken = localStorage.getItem('remember_token');
+      const res = await axios.post(`${backendUrl}/api/auth/continue-login`, 
+        { rememberToken }, 
+        {
+          headers: rememberToken ? { 'X-Remember-Token': rememberToken } : undefined,
+          withCredentials: true,
+          timeout: 10000
+        }
+      );
       if (res.data.success) {
-        const { user: newUser, token: newToken } = res.data;
-        login(newUser, newToken);
+        const { user: newUser, token: newToken, rememberToken: newRememberToken } = res.data;
+        login(newUser, newToken, newRememberToken);
         return newToken;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to refresh access token:', err);
+      // Only logout if the server explicitly responds with 401 (Unauthorized) or 403 (Forbidden).
+      // This prevents logging out the user during temporary network dropouts or 5xx server issues.
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        logout();
+      }
     }
-    // Only logout if token refresh actually fails (e.g. refresh token expired or invalid)
-    logout();
     return null;
   }, [backendUrl, login, logout]);
 

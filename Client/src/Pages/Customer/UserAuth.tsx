@@ -339,7 +339,7 @@ const UserAuth: React.FC = () => {
             return;
           }
 
-          auth.login(user, response.data.token);
+          auth.login(user, response.data.token, response.data.rememberToken);
           toastRef.current?.show({ severity: 'success', summary: 'Success', detail: `Welcome back ${user.name}!` });
           
           if (user.role === 'delivery_executive') {
@@ -386,7 +386,7 @@ const UserAuth: React.FC = () => {
 
       if (response.data.success) {
         const user = response.data.user;
-        auth.login(user, response.data.token);
+        auth.login(user, response.data.token, response.data.rememberToken);
         toastRef.current?.show({ severity: 'success', summary: 'Success', detail: 'Logged in as Guest Customer!' });
         navigate('/user/home');
       }
@@ -416,7 +416,7 @@ const UserAuth: React.FC = () => {
       );
 
       if (response.data.success) {
-        auth.login(response.data.user, response.data.token);
+        auth.login(response.data.user, response.data.token, response.data.rememberToken);
         toastRef.current?.show({ severity: 'success', summary: 'Verified', detail: 'Email verified successfully! Welcome to TastyHub!' });
         setShowOTPVerification(false);
         setOtpValues(['', '', '', '', '', '']);
@@ -623,11 +623,16 @@ const UserAuth: React.FC = () => {
             onClick={async () => {
               try {
                 setLoading(true);
-                const response = await axios.post(`${backendUrl}/api/auth/continue-login`, {}, {
-                  withCredentials: true
-                });
+                const rememberToken = localStorage.getItem('remember_token');
+                const response = await axios.post(`${backendUrl}/api/auth/continue-login`, 
+                  { rememberToken }, 
+                  {
+                    headers: rememberToken ? { 'X-Remember-Token': rememberToken } : undefined,
+                    withCredentials: true
+                  }
+                );
                 if (response.data.success) {
-                  auth.login(response.data.user, response.data.token);
+                  auth.login(response.data.user, response.data.token, response.data.rememberToken);
                   toastRef.current?.show({ severity: 'success', summary: 'Success', detail: `Welcome back ${response.data.user.name}!` });
                   if (response.data.user.role === 'delivery_executive') {
                     navigate('/delivery/home');

@@ -414,8 +414,8 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
         user = await User.findOneAndUpdate({ email }, { $set: updates }, { new: true }) as typeof user;
       }
 
-      await createUserSession(user!._id as any, req, res);
-      sendToken(user!, 200, res);
+      const rememberToken = await createUserSession(user!._id as any, req, res);
+      sendToken(user!, 200, res, rememberToken);
       return;
     }
 
@@ -443,8 +443,8 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
       console.error('Welcome email failed:', emailError);
     }
 
-    await createUserSession(newUser._id as any, req, res);
-    sendToken(newUser, 201, res);
+    const rememberToken = await createUserSession(newUser._id as any, req, res);
+    sendToken(newUser, 201, res, rememberToken);
   } catch (error: any) {
     console.error('Google auth error:', error);
     res.status(500).json({ success: false, message: 'Google authentication failed' });
@@ -504,8 +504,8 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
       console.error('Welcome email failed:', emailError);
     }
 
-    await createUserSession(user._id as any, req, res);
-    sendToken(user, 201, res);
+    const rememberToken = await createUserSession(user._id as any, req, res);
+    sendToken(user, 201, res, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -575,15 +575,16 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
       return;
     }
 
+    let rememberToken: string | undefined;
     if (rememberMe) {
-      await createUserSession(user._id as any, req, res);
+      rememberToken = await createUserSession(user._id as any, req, res);
     } else {
-      const oldRememberToken = req.cookies.tastyhub_remember_me;
+      const oldRememberToken = req.cookies.tastyhub_remember_me || req.headers['x-remember-token'];
       if (oldRememberToken && oldRememberToken !== 'none') {
         await clearUserSession(oldRememberToken, res);
       }
     }
-    sendToken(user, 200, res);
+    sendToken(user, 200, res, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1198,8 +1199,8 @@ const guestLogin = async (req: Request, res: Response, next: NextFunction): Prom
         await user.save();
       }
     }
-    await createUserSession(user._id as any, req, res);
-    sendToken(user, 200, res);
+    const rememberToken = await createUserSession(user._id as any, req, res);
+    sendToken(user, 200, res, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1207,9 +1208,9 @@ const guestLogin = async (req: Request, res: Response, next: NextFunction): Prom
 
 const getLastLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const rememberToken = req.cookies.tastyhub_remember_me;
+    const rememberToken = req.cookies.tastyhub_remember_me || req.headers['x-remember-token'] || req.query.rememberToken;
     if (!rememberToken || rememberToken === 'none') {
-      res.status(200).json({ success: false, message: 'No cached session cookie found' });
+      res.status(200).json({ success: false, message: 'No cached session token found' });
       return;
     }
 
@@ -1255,7 +1256,7 @@ const getLastLogin = async (req: Request, res: Response, next: NextFunction): Pr
 
 const continueLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const rememberToken = req.cookies.tastyhub_remember_me;
+    const rememberToken = req.cookies.tastyhub_remember_me || req.headers['x-remember-token'] || req.body.rememberToken;
     if (!rememberToken || rememberToken === 'none') {
       res.status(401).json({ success: false, message: 'No cached session token found' });
       return;
@@ -1286,10 +1287,10 @@ const continueLogin = async (req: Request, res: Response, next: NextFunction): P
     }
 
     // Refresh the remember session to extend validity by another 365 days
-    await createUserSession(user._id, req, res);
+    const newRememberToken = await createUserSession(user._id, req, res);
 
     // Login user by sending JWT token
-    sendToken(user, 200, res);
+    sendToken(user, 200, res, newRememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

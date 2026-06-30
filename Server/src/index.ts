@@ -87,7 +87,13 @@ const allowedOrigins = isProduction ? productionOrigins : [...productionOrigins,
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // In development, allow any localhost or 127.0.0.1 origin (with any port) to prevent CORS blocks
+    const isLocalhost = !isProduction && origin && (
+      origin.startsWith("http://localhost:") || 
+      origin.startsWith("http://127.0.0.1:")
+    );
+
+    if (!origin || allowedOrigins.includes(origin) || isLocalhost) {
       callback(null, true);
     } else {
       console.log("❌ Blocked Origin:", origin);

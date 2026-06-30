@@ -13,7 +13,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   user: IUser | null;
   token: string | null;
-  login: (userData: IUser, jwtToken: string) => void;
+  login: (userData: IUser, jwtToken: string, rememberToken?: string) => void;
   logout: () => void;
   isLoading: boolean;
   error: string | null;

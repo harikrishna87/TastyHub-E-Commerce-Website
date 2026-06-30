@@ -43,7 +43,7 @@ const GoogleCallback = () => {
         );
 
         if (response.data.success) {
-          auth?.login(response.data.user, response.data.token);
+          auth?.login(response.data.user, response.data.token, response.data.rememberToken);
           navigate('/');
         } else {
           setError(response.data.message || 'Google sign-in failed. Redirecting...');

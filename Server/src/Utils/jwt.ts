@@ -8,7 +8,7 @@ interface TokenOptions {
   secure?: boolean;
 }
 
-const sendToken = (user: IUser, statusCode: number, res: Response) => {
+const sendToken = (user: IUser, statusCode: number, res: Response, rememberToken?: string) => {
   const token = user.getJwtToken();
 
   const cookieExpireDays = Number(process.env.COOKIE_EXPIRE) || 7;
@@ -33,6 +33,7 @@ const sendToken = (user: IUser, statusCode: number, res: Response) => {
         walletBalance: user.walletBalance,
       },
       token,
+      rememberToken, // Fallback for clients blocking cross-origin third-party cookies
     });
 };
 
