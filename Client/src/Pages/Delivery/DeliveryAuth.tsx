@@ -202,7 +202,7 @@ const DeliveryAuth: React.FC = () => {
     if (mode === 'login') {
       try {
         setLoading(true);
-        const res = await axios.post(`${backendUrl}/api/delivery/login`, { email, password }, { withCredentials: true });
+        const res = await axios.post(`${backendUrl}/api/delivery/login`, { email, password, rememberMe }, { withCredentials: true });
         
         if (res.data.success) {
           const { user, token } = res.data;

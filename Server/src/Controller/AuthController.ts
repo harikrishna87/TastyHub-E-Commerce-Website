@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../Models/Users';
 import Cart from '../Models/Cart_Items';
 import Order from '../Models/Orders';
+import OTP from '../Models/OTP';
 import sendToken from '../Utils/jwt';
 import dotenv from 'dotenv';
 import cloudinary from 'cloudinary';
@@ -27,15 +29,27 @@ brevoApi.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_LOGIN_CLIENT_ID);
 
+const getDeletedUserPlaceholderId = async (): Promise<any> => {
+  const email = "deleted_user@tastyhub.com";
+  let user = await User.findOne({ email });
+  if (!user) {
+    user = await User.create({
+      name: "Deleted User",
+      email,
+      password: crypto.randomBytes(20).toString('hex'),
+      role: "user",
+      isActive: false,
+    });
+  }
+  return user._id;
+};
+
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
 
-const otpStore = new Map();
-const passwordResetOtpStore = new Map();
-
 const generateOTP = (): string => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 999999).toString();
 };
 
 const sendOTPEmail = async (email: string, otp: string, name: string): Promise<void> => {
@@ -275,14 +289,22 @@ const register = async (req: Request, res: Response, next: NextFunction): Promis
     }
 
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
-    otpStore.set(email, { otp, userData: { name, email, password }, expiresAt });
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await OTP.deleteMany({ email, type: 'register' });
+    await OTP.create({
+      email,
+      otp,
+      userData: { name, email, password },
+      type: 'register',
+      expiresAt
+    });
 
     try {
       await sendOTPEmail(email, otp, name);
       res.status(200).json({ success: true, message: 'OTP sent to your email. Please check your inbox.', email });
     } catch (emailError: any) {
-      otpStore.delete(email);
+      await OTP.deleteMany({ email, type: 'register' });
       res.status(500).json({ success: false, message: 'Failed to send verification email. Please check your email address and try again.', error: emailError.message });
     }
   } catch (error: any) {
@@ -392,7 +414,7 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
         user = await User.findOneAndUpdate({ email }, { $set: updates }, { new: true }) as typeof user;
       }
 
-      await createUserSession(user!._id as any, res);
+      await createUserSession(user!._id as any, req, res);
       sendToken(user!, 200, res);
       return;
     }
@@ -421,7 +443,7 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
       console.error('Welcome email failed:', emailError);
     }
 
-    await createUserSession(newUser._id as any, res);
+    await createUserSession(newUser._id as any, req, res);
     sendToken(newUser, 201, res);
   } catch (error: any) {
     console.error('Google auth error:', error);
@@ -438,14 +460,14 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
       return;
     }
 
-    const storedData = otpStore.get(email);
+    const storedData = await OTP.findOne({ email, type: 'register' });
     if (!storedData) {
       res.status(400).json({ success: false, message: 'OTP expired or invalid. Please register again.' });
       return;
     }
 
-    if (Date.now() > storedData.expiresAt) {
-      otpStore.delete(email);
+    if (storedData.expiresAt.getTime() < Date.now()) {
+      await OTP.deleteOne({ _id: storedData._id });
       res.status(400).json({ success: false, message: 'OTP has expired. Please register again.' });
       return;
     }
@@ -455,7 +477,7 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
       return;
     }
 
-    const { name, email: userEmail, password } = storedData.userData;
+    const { name, email: userEmail, password } = storedData.userData as any;
 
     const user = await User.create({
       name,
@@ -474,7 +496,7 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
       isRead: false,
     });
 
-    otpStore.delete(email);
+    await OTP.deleteMany({ email, type: 'register' });
 
     try {
       await sendWelcomeEmail(userEmail, name);
@@ -482,7 +504,7 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
       console.error('Welcome email failed:', emailError);
     }
 
-    await createUserSession(user._id as any, res);
+    await createUserSession(user._id as any, req, res);
     sendToken(user, 201, res);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -498,18 +520,21 @@ const resendOTP = async (req: Request, res: Response, next: NextFunction): Promi
       return;
     }
 
-    const storedData = otpStore.get(email);
+    const storedData = await OTP.findOne({ email, type: 'register' });
     if (!storedData) {
       res.status(400).json({ success: false, message: 'No pending verification for this email. Please register again.' });
       return;
     }
 
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
-    otpStore.set(email, { ...storedData, otp, expiresAt });
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    
+    storedData.otp = otp;
+    storedData.expiresAt = expiresAt;
+    await storedData.save();
 
     try {
-      await sendOTPEmail(email, otp, storedData.userData.name);
+      await sendOTPEmail(email, otp, storedData.userData?.name || 'User');
       res.status(200).json({ success: true, message: 'OTP resent successfully. Please check your email.' });
     } catch (emailError: any) {
       res.status(500).json({ success: false, message: 'Failed to resend verification email. Please try again.', error: emailError.message });
@@ -521,7 +546,7 @@ const resendOTP = async (req: Request, res: Response, next: NextFunction): Promi
 
 const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (!email || !password) {
       res.status(400).json({ success: false, message: 'Please enter email and password' });
@@ -550,7 +575,14 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
       return;
     }
 
-    await createUserSession(user._id as any, res);
+    if (rememberMe) {
+      await createUserSession(user._id as any, req, res);
+    } else {
+      const oldRememberToken = req.cookies.tastyhub_remember_me;
+      if (oldRememberToken && oldRememberToken !== 'none') {
+        await clearUserSession(oldRememberToken, res);
+      }
+    }
     sendToken(user, 200, res);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -559,6 +591,15 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
 
 const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    // We preserve the remember_me session cookie and DB record on logout
+    // so that the "Welcome Back" profile card displays on the login screen.
+    /*
+    const rememberToken = req.cookies.tastyhub_remember_me;
+    if (rememberToken && rememberToken !== 'none') {
+      await clearUserSession(rememberToken, res);
+    }
+    */
+
     let token: string | undefined;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
@@ -570,7 +611,7 @@ const logout = async (req: Request, res: Response, next: NextFunction): Promise<
       await User.findByIdAndUpdate(decoded.id, { $set: { accessedCoupons: [] } });
     }
   } catch (error) {
-    console.error('Error clearing coupons during logout:', error);
+    console.error('Error clearing session/coupons during logout:', error);
   }
 
   res.cookie('token', 'none', {
@@ -795,8 +836,9 @@ const DeleteAccount = async (req: Request, res: Response, next: NextFunction): P
       }
     }
 
+    const deletedUserPlaceholderId = await getDeletedUserPlaceholderId();
     const cartDeletion = await Cart.deleteMany({ user: user._id });
-    const orderDeletion = await Order.deleteMany({ user: user._id });
+    const orderAnonymization = await Order.updateMany({ user: user._id }, { $set: { user: deletedUserPlaceholderId } });
     const userDeletion = await User.findByIdAndDelete(user._id);
 
     if (!userDeletion) {
@@ -814,7 +856,7 @@ const DeleteAccount = async (req: Request, res: Response, next: NextFunction): P
     res.status(200).json({
       success: true,
       message: 'Account deleted successfully',
-      deletedItems: { carts: cartDeletion.deletedCount, orders: orderDeletion.deletedCount },
+      deletedItems: { carts: cartDeletion.deletedCount, orders: orderAnonymization.modifiedCount },
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -843,14 +885,21 @@ const sendPasswordResetOTP = async (req: Request, res: Response, next: NextFunct
     }
 
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
-    passwordResetOtpStore.set(email, { otp, expiresAt, userName: user.name });
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await OTP.deleteMany({ email, type: 'reset' });
+    await OTP.create({
+      email,
+      otp,
+      type: 'reset',
+      expiresAt
+    });
 
     try {
       await sendPasswordResetOTPEmail(email, otp, user.name || 'User');
       res.status(200).json({ success: true, message: 'Password reset OTP sent to your email.' });
     } catch (emailError: any) {
-      passwordResetOtpStore.delete(email);
+      await OTP.deleteMany({ email, type: 'reset' });
       res.status(500).json({ success: false, message: 'Failed to send password reset email. Please try again.' });
     }
   } catch (error: any) {
@@ -867,15 +916,15 @@ const verifyPasswordResetOTP = async (req: Request, res: Response, next: NextFun
       return;
     }
 
-    const storedData = passwordResetOtpStore.get(email);
+    const storedData = await OTP.findOne({ email, type: 'reset' });
 
     if (!storedData) {
       res.status(400).json({ success: false, message: 'OTP expired or invalid. Please request a new one.' });
       return;
     }
 
-    if (Date.now() > storedData.expiresAt) {
-      passwordResetOtpStore.delete(email);
+    if (storedData.expiresAt.getTime() < Date.now()) {
+      await OTP.deleteOne({ _id: storedData._id });
       res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
       return;
     }
@@ -885,7 +934,8 @@ const verifyPasswordResetOTP = async (req: Request, res: Response, next: NextFun
       return;
     }
 
-    passwordResetOtpStore.set(email, { ...storedData, verified: true });
+    storedData.verified = true;
+    await storedData.save();
 
     res.status(200).json({ success: true, message: 'OTP verified successfully. You can now reset your password.' });
   } catch (error: any) {
@@ -902,7 +952,7 @@ const resetPassword = async (req: Request, res: Response, next: NextFunction): P
       return;
     }
 
-    const storedData = passwordResetOtpStore.get(email);
+    const storedData = await OTP.findOne({ email, type: 'reset' });
 
     if (!storedData || !storedData.verified) {
       res.status(400).json({ success: false, message: 'Please verify your OTP before resetting your password.' });
@@ -919,7 +969,7 @@ const resetPassword = async (req: Request, res: Response, next: NextFunction): P
     user.password = newPassword;
     await user.save();
 
-    passwordResetOtpStore.delete(email);
+    await OTP.deleteMany({ email, type: 'reset' });
 
     res.status(200).json({ success: true, message: 'Password reset successfully. Please login with your new password.' });
   } catch (error: any) {
@@ -943,9 +993,23 @@ const resendPasswordResetOTP = async (req: Request, res: Response, next: NextFun
       return;
     }
 
+    const storedData = await OTP.findOne({ email, type: 'reset' });
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000;
-    passwordResetOtpStore.set(email, { otp, expiresAt, userName: user.name });
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    if (!storedData) {
+      await OTP.create({
+        email,
+        otp,
+        type: 'reset',
+        expiresAt
+      });
+    } else {
+      storedData.otp = otp;
+      storedData.expiresAt = expiresAt;
+      storedData.verified = false;
+      await storedData.save();
+    }
 
     try {
       await sendPasswordResetOTPEmail(email, otp, user.name || 'User');
@@ -1030,8 +1094,9 @@ const deleteCustomerById = async (req: Request, res: Response, next: NextFunctio
       }
     }
 
+    const deletedUserPlaceholderId = await getDeletedUserPlaceholderId();
     await Cart.deleteMany({ user: userId });
-    await Order.deleteMany({ user: userId });
+    await Order.updateMany({ user: userId }, { $set: { user: deletedUserPlaceholderId } });
     await User.findByIdAndDelete(userId);
 
     res.status(200).json({ success: true, message: 'Customer deleted successfully' });
@@ -1133,7 +1198,7 @@ const guestLogin = async (req: Request, res: Response, next: NextFunction): Prom
         await user.save();
       }
     }
-    await createUserSession(user._id as any, res);
+    await createUserSession(user._id as any, req, res);
     sendToken(user, 200, res);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -1158,6 +1223,17 @@ const getLastLogin = async (req: Request, res: Response, next: NextFunction): Pr
     if (!user.isActive) {
       await clearUserSession(rememberToken, res);
       res.status(200).json({ success: false, message: 'Account deactivated' });
+      return;
+    }
+
+    // IP/User-Agent verification to prevent session hijacking
+    const currentIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || req.ip || '').split(',')[0].trim();
+    const currentUA = req.headers['user-agent'] || '';
+
+    if ((session.ipAddress && session.ipAddress !== currentIp) || (session.userAgent && session.userAgent !== currentUA)) {
+      console.warn(`Security alert: Session hijack check failed for user ${user.email}. Expected IP: ${session.ipAddress}, Actual: ${currentIp}. Expected UA: ${session.userAgent}, Actual: ${currentUA}`);
+      await clearUserSession(rememberToken, res);
+      res.status(200).json({ success: false, message: 'Security validation failed. Please log in again.' });
       return;
     }
 
@@ -1198,8 +1274,19 @@ const continueLogin = async (req: Request, res: Response, next: NextFunction): P
       return;
     }
 
-    // Refresh the remember session to extend validity by another 30 days
-    await createUserSession(user._id, res);
+    // IP/User-Agent verification to prevent session hijacking
+    const currentIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || req.ip || '').split(',')[0].trim();
+    const currentUA = req.headers['user-agent'] || '';
+
+    if ((session.ipAddress && session.ipAddress !== currentIp) || (session.userAgent && session.userAgent !== currentUA)) {
+      console.warn(`Security alert: Session hijack check failed for user ${user.email}. Expected IP: ${session.ipAddress}, Actual: ${currentIp}. Expected UA: ${session.userAgent}, Actual: ${currentUA}`);
+      await clearUserSession(rememberToken, res);
+      res.status(401).json({ success: false, message: 'Security validation failed. Please log in again.' });
+      return;
+    }
+
+    // Refresh the remember session to extend validity by another 365 days
+    await createUserSession(user._id, req, res);
 
     // Login user by sending JWT token
     sendToken(user, 200, res);

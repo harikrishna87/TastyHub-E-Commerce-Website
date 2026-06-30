@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import Razorpay from "razorpay";
 import dotenv from "dotenv";
+import { protect } from "../Middleware/AuthMiddleWare";
 
 const payment_router = express.Router();
 dotenv.config();
@@ -41,7 +42,7 @@ const Get_Key = async (req: Request, res: Response): Promise<void> => {
   res.status(200).json({ key: process.env.RAZORPAY_API_KEY });
 };
 
-payment_router.route("/payment/process").post(Process_Payment);
-payment_router.route("/getkey").get(Get_Key);
+payment_router.route("/payment/process").post(protect as any, Process_Payment);
+payment_router.route("/getkey").get(protect as any, Get_Key);
 
 export default payment_router;

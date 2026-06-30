@@ -51,6 +51,26 @@ interface FilterOptions {
 // );
 
 const customStoreStyles = `
+.customer-content-wrapper .pi.search-icon-inside {
+    position: absolute !important;
+    left: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #22c55e !important;
+    font-size: 16px !important;
+    z-index: 2 !important;
+}
+.customer-content-wrapper .pi.clear-icon-inside {
+    position: absolute !important;
+    right: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #9ca3af !important;
+    cursor: pointer !important;
+    font-size: 18px !important;
+    z-index: 2 !important;
+    transition: color 0.2s !important;
+}
 .product-card {
     transition: all 0.3s ease;
     background-color: #ffffff;
@@ -670,43 +690,30 @@ const Store: React.FC = () => {
                     <div className="search-section-row">
                         <div className="search-input-col">
                             <div style={{ position: 'relative', width: '100%' }}>
-                                <span style={{ width: '100%', display: 'block', position: 'relative' }}>
-                                    <i className="pi pi-search" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#22c55e', fontSize: '16px', zIndex: 2 }} />
-                                    <InputText
-                                        value={searchTerm}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                                        placeholder="Search premium food, desserts, or drinks..."
-                                        style={{
-                                            width: '100%',
-                                            paddingLeft: '44px',
-                                            paddingRight: searchTerm ? '40px' : '16px',
-                                            borderRadius: '30px',
-                                            border: '2.5px solid #22c55e',
-                                            height: '46px',
-                                            fontSize: '15px',
-                                            fontWeight: 500,
-                                            outline: 'none',
-                                            boxShadow: '0 4px 15px rgba(34, 197, 94, 0.08)',
-                                            transition: 'all 0.3s ease',
-                                            backgroundColor: '#ffffff'
-                                        }}
-                                    />
-                                </span>
+                                <i className="pi pi-search search-icon-inside" />
+                                <InputText
+                                    value={searchTerm}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                                    placeholder="Search premium food, desserts, or drinks..."
+                                    style={{
+                                        width: '100%',
+                                        paddingLeft: '44px',
+                                        paddingRight: searchTerm ? '40px' : '16px',
+                                        borderRadius: '30px',
+                                        border: '2.5px solid #22c55e',
+                                        height: '46px',
+                                        fontSize: '15px',
+                                        fontWeight: 500,
+                                        outline: 'none',
+                                        boxShadow: '0 4px 15px rgba(34, 197, 94, 0.08)',
+                                        transition: 'all 0.3s ease',
+                                        backgroundColor: '#ffffff'
+                                    }}
+                                />
                                 {searchTerm && (
                                     <i
-                                        className="pi pi-times-circle"
+                                        className="pi pi-times-circle clear-icon-inside"
                                         onClick={() => setSearchTerm('')}
-                                        style={{
-                                            position: 'absolute',
-                                            right: '16px',
-                                            top: '50%',
-                                            transform: 'translateY(-50%)',
-                                            color: '#9ca3af',
-                                            cursor: 'pointer',
-                                            fontSize: '18px',
-                                            zIndex: 2,
-                                            transition: 'color 0.2s'
-                                        }}
                                         title="Clear search"
                                     />
                                 )}

@@ -59,7 +59,26 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoggingOut(false);
   }, [backendUrl, isLoggingOut]);
 
-  const loadUserFromStorage = useCallback(() => {
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await axios.post(`${backendUrl}/api/auth/continue-login`, {}, {
+        withCredentials: true,
+        timeout: 10000
+      });
+      if (res.data.success) {
+        const { user: newUser, token: newToken } = res.data;
+        login(newUser, newToken);
+        return newToken;
+      }
+    } catch (err) {
+      console.error('Failed to refresh access token:', err);
+    }
+    // Only logout if token refresh actually fails (e.g. refresh token expired or invalid)
+    logout();
+    return null;
+  }, [backendUrl, login, logout]);
+
+  const loadUserFromStorage = useCallback(async () => {
     const storedUser = localStorage.getItem('user');
     const storedToken = localStorage.getItem('token');
 
@@ -68,9 +87,14 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userData: IUser = JSON.parse(storedUser);
         const decodedToken: any = jwtDecode(storedToken);
 
-        if (decodedToken.exp * 1000 < Date.now()) {
-          console.warn('Token expired. Logging out.');
-          logout();
+        // If access token is expired or expiring in less than 30 seconds
+        if (decodedToken.exp * 1000 < Date.now() + 30000) {
+          console.warn('Access token expired or expiring soon. Attempting silent refresh.');
+          const newToken = await refreshAccessToken();
+          if (!newToken) {
+            setIsLoading(false);
+            return;
+          }
         } else {
           setIsAuthenticated(true);
           setUser(userData);
@@ -83,11 +107,74 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
     setIsLoading(false);
-  }, [logout]);
+  }, [logout, refreshAccessToken]);
 
   useEffect(() => {
     loadUserFromStorage();
   }, [loadUserFromStorage]);
+
+  // Axios response interceptor for automatic token refresh on 401 errors
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        
+        if (
+          error.response &&
+          error.response.status === 401 &&
+          !originalRequest._retry &&
+          originalRequest.url &&
+          !originalRequest.url.includes('/api/auth/login') &&
+          !originalRequest.url.includes('/api/auth/register') &&
+          !originalRequest.url.includes('/api/auth/continue-login') &&
+          !originalRequest.url.includes('/api/auth/logout')
+        ) {
+          originalRequest._retry = true;
+          
+          try {
+            console.log('Access token expired. Attempting silent token refresh via interceptor...');
+            const newToken = await refreshAccessToken();
+            if (newToken) {
+              originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+              return axios(originalRequest);
+            }
+          } catch (refreshError) {
+            console.error('Interceptor token refresh failed:', refreshError);
+          }
+        }
+        
+        return Promise.reject(error);
+      }
+    );
+    
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [refreshAccessToken]);
+
+  // Silent background refresh timer to refresh token before expiration
+  useEffect(() => {
+    if (!isAuthenticated || !token) return;
+
+    try {
+      const decoded: any = jwtDecode(token);
+      const delay = decoded.exp * 1000 - Date.now() - 60000; // refresh 1 minute before expiration
+      
+      if (delay > 0) {
+        const timer = setTimeout(() => {
+          console.log('Background refreshing token...');
+          refreshAccessToken();
+        }, delay);
+        
+        return () => clearTimeout(timer);
+      } else {
+        refreshAccessToken();
+      }
+    } catch (e) {
+      console.error('Error setting up silent refresh timer:', e);
+    }
+  }, [isAuthenticated, token, refreshAccessToken]);
 
   // Sync profile details silently on mount to refresh stale data (e.g. uploaded avatars)
   useEffect(() => {

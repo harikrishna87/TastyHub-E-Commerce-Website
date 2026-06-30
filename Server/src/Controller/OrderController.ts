@@ -11,9 +11,16 @@ import ComboDeal from '../Models/ComboDeal';
 import ProductReview from '../Models/ProductReview';
 import DeliveryReview from '../Models/DeliveryReview';
 import { OrderDeliveryStatus, IOrderPopulated, IOrder } from '../Types';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import Razorpay from 'razorpay';
 import EmailService from '../Utils/EmailService';
 import AdminNotification from '../Models/AdminNotification';
+import SystemSettings from '../Models/SystemSettings';
+
+const razorpayInstance = new Razorpay({
+  key_id: process.env.RAZORPAY_API_KEY!,
+  key_secret: process.env.RAZORPAY_SECRET_KEY!,
+});
 
 const createOrder = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -22,6 +29,17 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
 
+    const { couponCode, giftCardCode, useWallet = false, paymentMethod = 'cod', paymentId, comboId } = req.body;
+
+    const shippingAddress = req.body.shippingAddress;
+    if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.phone || !shippingAddress.addressLine1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Shipping address is required to create an order'
+      });
+    }
+
+    // 1. Initial calculations and verification (Read-only / Pre-validation)
     const cart = await Cart.findOne({ user: userId });
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ success: false, message: 'Cart is empty. Cannot create order.' });
@@ -31,16 +49,6 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-
-    const shippingAddress = req.body.shippingAddress || user.shippingAddress;
-    if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.phone || !shippingAddress.addressLine1) {
-      return res.status(400).json({
-        success: false,
-        message: 'Shipping address is required to create an order'
-      });
-    }
-
-    const { couponCode, giftCardCode, useWallet = false, paymentMethod = 'cod', paymentId, comboId } = req.body;
 
     let baseTotal = cart.items.reduce((sum, item) => sum + item.discount_price * item.quantity, 0);
     let comboDealObj = null;
@@ -67,77 +75,106 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
       baseTotal = comboDealObj.comboPrice;
     }
 
-    let finalAmount = baseTotal;
+    // Calculate and apply delivery fee dynamically from SystemSettings
+    let deliveryFee = 0;
+    if (!comboId) {
+      let settings = await SystemSettings.findOne();
+      if (!settings) {
+        settings = await SystemSettings.create({});
+      }
+      const minAmountForFreeDelivery = settings.freeDeliveryMinAmount ?? 500;
+      const flatFee = settings.flatDeliveryFee ?? 40;
+
+      if (baseTotal < minAmountForFreeDelivery) {
+        deliveryFee = flatFee;
+      }
+    }
+
+    let finalAmount = baseTotal + deliveryFee;
     let appliedCouponDiscount = 0;
     let appliedGiftCardDeduction = 0;
     let reminderMessage = '';
 
-    // 1. Process Coupon Code
+    // Coupon Code check
+    let couponObj = null;
     if (couponCode) {
-      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true, expiryDate: { $gt: new Date() } });
-      if (coupon) {
-        if (baseTotal >= coupon.minOrderAmount) {
-          if (coupon.discountType === 'percentage') {
-            appliedCouponDiscount = (baseTotal * coupon.discountValue) / 100;
+      couponObj = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true, expiryDate: { $gt: new Date() } });
+      if (couponObj) {
+        if (baseTotal >= couponObj.minOrderAmount) {
+          if (couponObj.discountType === 'percentage') {
+            appliedCouponDiscount = (baseTotal * couponObj.discountValue) / 100;
           } else {
-            appliedCouponDiscount = coupon.discountValue;
+            appliedCouponDiscount = couponObj.discountValue;
           }
           finalAmount = Math.max(0, finalAmount - appliedCouponDiscount);
         }
       }
     }
 
-    // 2. Process Gift Card Code
+    // Gift Card check
+    let giftCardObj = null;
     if (giftCardCode) {
-      const giftCard = await GiftCard.findOne({ code: giftCardCode.toUpperCase(), isActive: true, expiryDate: { $gt: new Date() } });
-      if (giftCard && giftCard.balance > 0) {
-        if (giftCard.balance > finalAmount) {
+      giftCardObj = await GiftCard.findOne({ code: giftCardCode.toUpperCase(), isActive: true, expiryDate: { $gt: new Date() } });
+      if (giftCardObj && giftCardObj.balance > 0) {
+        if (giftCardObj.balance > finalAmount) {
           appliedGiftCardDeduction = finalAmount;
-          giftCard.balance = Number((giftCard.balance - finalAmount).toFixed(2));
           finalAmount = 0;
-        } else if (giftCard.balance === finalAmount) {
+        } else if (giftCardObj.balance === finalAmount) {
           appliedGiftCardDeduction = finalAmount;
-          giftCard.balance = 0;
-          giftCard.isActive = false;
           finalAmount = 0;
           reminderMessage = 'Your Gift Card has been fully consumed!';
         } else {
-          appliedGiftCardDeduction = giftCard.balance;
-          finalAmount = Number((finalAmount - giftCard.balance).toFixed(2));
-          giftCard.balance = 0;
-          giftCard.isActive = false;
+          appliedGiftCardDeduction = giftCardObj.balance;
+          finalAmount = Number((finalAmount - giftCardObj.balance).toFixed(2));
         }
-        await giftCard.save();
       }
     }
 
-    // 3. Process Wallet Balance Deduction
+    // Wallet Balance check
     let appliedWalletDeduction = 0;
     if (useWallet && finalAmount > 0) {
       const walletBal = user.walletBalance || 0;
       if (walletBal > 0) {
         if (walletBal >= finalAmount) {
           appliedWalletDeduction = finalAmount;
-          user.walletBalance = Number((walletBal - finalAmount).toFixed(2));
           finalAmount = 0;
         } else {
           appliedWalletDeduction = walletBal;
           finalAmount = Number((finalAmount - walletBal).toFixed(2));
-          user.walletBalance = 0;
         }
-        await user.save();
+      }
+    }
 
-        // Record Transaction
-        await Transaction.create({
-          user: userId,
-          type: 'Debit',
-          amount: appliedWalletDeduction,
-          description: `Paid for Order using Wallet Balance`
+    // 2. SERVER-SIDE RAZORPAY PAYMENT VERIFICATION
+    if (paymentMethod === 'online' && finalAmount > 0) {
+      if (!paymentId) {
+        return res.status(400).json({ success: false, message: 'Payment ID is required for online payments' });
+      }
+      try {
+        const paymentDetails = await razorpayInstance.payments.fetch(paymentId);
+        if (paymentDetails.status !== 'captured' && paymentDetails.status !== 'authorized') {
+          return res.status(400).json({
+            success: false,
+            message: `Payment verification failed. Razorpay status: ${paymentDetails.status}`
+          });
+        }
+        const expectedPaise = Math.round(finalAmount * 100);
+        if (Math.abs(Number(paymentDetails.amount) - expectedPaise) > 100) { // Allow up to 1 rupee difference for decimal rounding
+          return res.status(400).json({
+            success: false,
+            message: `Payment verification failed. Paid amount: ₹${Number(paymentDetails.amount) / 100}, Expected: ₹${finalAmount}`
+          });
+        }
+      } catch (rzpErr: any) {
+        console.error('Razorpay payment fetch error:', rzpErr);
+        return res.status(400).json({
+          success: false,
+          message: 'Razorpay payment verification failed: Invalid Payment ID'
         });
       }
     }
 
-    // Determine exact payment method
+    // Determine resolved payment method
     let resolvedPaymentMethod = paymentMethod;
     if (finalAmount === 0) {
       if (appliedWalletDeduction > 0) {
@@ -147,49 +184,127 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
       }
     }
 
-    const order = await Order.create({
-      user: userId,
-      items: cart.items,
-      totalAmount: finalAmount,
-      deliveryStatus: 'Pending',
-      shippingAddress: shippingAddress,
-      paymentMethod: resolvedPaymentMethod,
-      paymentId: paymentId || (resolvedPaymentMethod === 'gift_card' ? `GIFT-${Date.now()}` : (resolvedPaymentMethod === 'wallet' ? `WAL-${Date.now()}` : undefined)),
-    });
+    // 3. Execution function wrapping database mutations
+    const performCheckoutMutations = async (session?: mongoose.ClientSession) => {
+      // Re-fetch documents within session to ensure concurrency control
+      const dbUser = session ? await User.findById(userId).session(session) : await User.findById(userId);
+      if (!dbUser) throw new Error('User not found during transaction');
 
-    if (comboDealObj) {
-      comboDealObj.timesAccessed += 1;
-      comboDealObj.accessedUsers.push(userId as any);
-      await comboDealObj.save();
+      const dbCart = session ? await Cart.findOne({ user: userId }).session(session) : await Cart.findOne({ user: userId });
+      if (!dbCart || dbCart.items.length === 0) throw new Error('Cart is empty during transaction');
 
-      await EmailService.sendComboDealPurchase(user, comboDealObj).catch((err: any) => {
+      // Deduct gift card if applicable
+      if (giftCardCode && appliedGiftCardDeduction > 0) {
+        const dbGiftCard = session ? await GiftCard.findOne({ code: giftCardCode.toUpperCase() }).session(session) : await GiftCard.findOne({ code: giftCardCode.toUpperCase() });
+        if (dbGiftCard) {
+          dbGiftCard.balance = Number((dbGiftCard.balance - appliedGiftCardDeduction).toFixed(2));
+          if (dbGiftCard.balance <= 0) {
+            dbGiftCard.isActive = false;
+          }
+          await dbGiftCard.save({ session });
+        }
+      }
+
+      // Deduct wallet if applicable
+      if (useWallet && appliedWalletDeduction > 0) {
+        dbUser.walletBalance = Number(((dbUser.walletBalance || 0) - appliedWalletDeduction).toFixed(2));
+        await dbUser.save({ session });
+
+        // Record Transaction
+        const transactionRecord = new Transaction({
+          user: userId,
+          type: 'Debit',
+          amount: appliedWalletDeduction,
+          description: `Paid for Order using Wallet Balance`
+        });
+        await transactionRecord.save({ session });
+      }
+
+      // Update Combo Deal times accessed
+      if (comboId && comboDealObj) {
+        const dbCombo = session ? await ComboDeal.findById(comboId).session(session) : await ComboDeal.findById(comboId);
+        if (dbCombo) {
+          dbCombo.timesAccessed += 1;
+          dbCombo.accessedUsers.push(userId as any);
+          await dbCombo.save({ session });
+        }
+      }
+
+      // Create Order
+      const newOrder = new Order({
+        user: userId,
+        items: dbCart.items,
+        totalAmount: finalAmount,
+        deliveryStatus: 'Pending',
+        shippingAddress: shippingAddress,
+        paymentMethod: resolvedPaymentMethod,
+        paymentId: paymentId || (resolvedPaymentMethod === 'gift_card' ? `GIFT-${Date.now()}` : (resolvedPaymentMethod === 'wallet' ? `WAL-${Date.now()}` : undefined)),
+      });
+      await newOrder.save({ session });
+
+      // Create Admin Notification
+      const adminNotify = new AdminNotification({
+        type: 'new_order',
+        title: 'New Order Placed',
+        message: `${dbUser.name} Placed an Order Worth ₹${finalAmount.toFixed(2)} (Coupon: -₹${appliedCouponDiscount.toFixed(2)}, GiftCard: -₹${appliedGiftCardDeduction.toFixed(2)}, Wallet: -₹${appliedWalletDeduction.toFixed(2)})`,
+        userId: dbUser._id,
+        orderId: newOrder._id,
+        userName: dbUser.name,
+        userEmail: dbUser.email,
+        orderAmount: finalAmount,
+        isRead: false,
+      });
+      await adminNotify.save({ session });
+
+      // Clear Cart
+      dbCart.items = [];
+      await dbCart.save({ session });
+
+      return { newOrder, dbUser };
+    };
+
+    // 4. Run mutations inside safe transaction wrapper
+    const checkoutWrapper = async () => {
+      const session = await mongoose.startSession();
+      try {
+        session.startTransaction();
+        const result = await performCheckoutMutations(session);
+        await session.commitTransaction();
+        return result;
+      } catch (error: any) {
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
+        const isReplicaSetError = error.message && (
+          error.message.includes('Transaction numbers are only allowed on a replica set') ||
+          error.message.includes('sessions are not supported') ||
+          error.code === 20
+        );
+        if (isReplicaSetError) {
+          console.warn("⚠️ Standalone MongoDB detected. Retrying checkout operations without transaction session.");
+          return await performCheckoutMutations();
+        }
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    };
+
+    const { newOrder, dbUser } = await checkoutWrapper();
+
+    // 5. Post-checkout operations (Emails & Push Notifications)
+    if (comboId && comboDealObj) {
+      await EmailService.sendComboDealPurchase(dbUser, comboDealObj).catch((err: any) => {
         console.error('Failed to send combo deal purchase email:', err);
       });
     }
 
-    await AdminNotification.create({
-      type: 'new_order',
-      title: 'New Order Placed',
-      message: `${user.name} Placed an Order Worth ₹${finalAmount.toFixed(2)} (Coupon: -₹${appliedCouponDiscount.toFixed(2)}, GiftCard: -₹${appliedGiftCardDeduction.toFixed(2)}, Wallet: -₹${appliedWalletDeduction.toFixed(2)})`,
-      userId: user._id,
-      orderId: order._id,
-      userName: user.name,
-      userEmail: user.email,
-      orderAmount: finalAmount,
-      isRead: false,
-    });
-
-    cart.items = [];
-    await cart.save();
-
-
-    // ✅ UPDATED: Pass order object directly (Brevo migration)
     const orderWithUser = {
-      ...order.toObject(),
+      ...newOrder.toObject(),
       user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email
+        _id: dbUser._id,
+        name: dbUser.name,
+        email: dbUser.email
       }
     };
 
@@ -198,24 +313,24 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
         console.error('Failed to send order confirmation email via Brevo:', error);
       });
 
-    if (user && user.fcmTokens?.length) {
+    if (dbUser && dbUser.fcmTokens?.length) {
       const notification = {
         title: '🎉 Order Confirmed!',
         body: 'Restaurant is preparing your food with love.'
       };
-      for (const token of user.fcmTokens) {
+      for (const token of dbUser.fcmTokens) {
         const message = {
           token,
           notification: { title: notification.title, body: notification.body },
           android: { priority: "high" as const, notification: { sound: "default", channelId: "tastyhub_channel" } },
           apns: { headers: { "apns-priority": "10" }, payload: { aps: { sound: "default" } } },
           webpush: { headers: { Urgency: "high" } },
-          data: { type: "order_status", orderId: String(order._id), status: "Pending" }
+          data: { type: "order_status", orderId: String(newOrder._id), status: "Pending" }
         };
         try {
           await admin.messaging().send(message);
           await Notification.create({
-            user: user._id,
+            user: dbUser._id,
             title: notification.title,
             body: notification.body,
             type: "order_status"
@@ -223,7 +338,7 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
         } catch (e) {
           const err = e as any;
           if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
-            await User.updateOne({ _id: user._id }, { $pull: { fcmTokens: token } });
+            await User.updateOne({ _id: dbUser._id }, { $pull: { fcmTokens: token } });
           }
         }
       }
@@ -235,9 +350,10 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
       appliedCouponDiscount,
       appliedGiftCardDeduction,
       appliedWalletDeduction,
-      walletBalance: user.walletBalance,
-      order,
+      walletBalance: dbUser.walletBalance,
+      order: newOrder,
     });
+
   } catch (error: any) {
     console.error('Error creating order:', error);
     res.status(500).json({ success: false, message: error.message });

@@ -53,7 +53,8 @@ const CheckoutPage: React.FC = () => {
   const toastRef = useRef<Toast>(null);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const comboId = searchParams.get('comboId');
-  const deliveryCharge = 30;
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(30);
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number>(200);
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -186,6 +187,18 @@ const CheckoutPage: React.FC = () => {
           });
         }
       }
+      const settingsRes = await fetch(`${backendUrl}/api/auth/settings`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const settingsData = await settingsRes.json();
+      if (settingsData?.success && settingsData.settings) {
+        setDeliveryCharge(settingsData.settings.flatDeliveryFee ?? 40);
+        setFreeDeliveryThreshold(settingsData.settings.freeDeliveryMinAmount ?? 500);
+      }
     } catch (err) {
       console.error(err);
       showToast('error', 'Load Failed', 'Unable to load checkout details right now.');
@@ -265,7 +278,7 @@ const CheckoutPage: React.FC = () => {
   const getTotals = () => {
     const cartSubtotal = cartItems.reduce((sum, item) => sum + item.discount_price * item.quantity, 0);
     const subtotal = comboDeal ? comboDeal.comboPrice : cartSubtotal;
-    const delivery = comboDeal ? 0 : subtotal >= 200 ? 0 : deliveryCharge;
+    const delivery = comboDeal ? 0 : subtotal >= freeDeliveryThreshold ? 0 : deliveryCharge;
     const originalTotal = subtotal + delivery;
 
     let couponDiscount = 0;

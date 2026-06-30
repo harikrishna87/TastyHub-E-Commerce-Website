@@ -4,6 +4,8 @@ export interface IUserSession extends Document {
   user: mongoose.Types.ObjectId;
   rememberToken: string;
   expiresAt: Date;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 const UserSessionSchema = new Schema<IUserSession>({
@@ -16,6 +18,12 @@ const UserSessionSchema = new Schema<IUserSession>({
     type: String,
     required: true,
     unique: true
+  },
+  ipAddress: {
+    type: String
+  },
+  userAgent: {
+    type: String
   },
   expiresAt: {
     type: Date,

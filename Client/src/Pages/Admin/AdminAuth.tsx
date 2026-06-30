@@ -176,7 +176,7 @@ const AdminAuth: React.FC = () => {
     try {
       const response = await axios.post(
         `${backendUrl}/api/auth/login`,
-        { email, password },
+        { email, password, rememberMe },
         { withCredentials: true, headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
       );
 

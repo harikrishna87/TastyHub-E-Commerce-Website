@@ -25,7 +25,20 @@ import { apiLimiter } from "./Middleware/RateLimitMiddleware";
 dotenv.config();
 
 // Enforce environment variables validation on startup for operations & resilience
-const requiredEnv = ["PORT", "MONGO_URI", "JWT_SECRET", "RAZORPAY_API_KEY", "RAZORPAY_SECRET_KEY"];
+const requiredEnv = [
+  "PORT",
+  "MONGO_URI",
+  "JWT_SECRET",
+  "RAZORPAY_API_KEY",
+  "RAZORPAY_SECRET_KEY",
+  "BREVO_API_KEY",
+  "BREVO_FROM_EMAIL",
+  "CLOUDINARY_CLOUD_NAME",
+  "CLOUDINARY_API_KEY",
+  "CLOUDINARY_API_SECRET",
+  "GOOGLE_LOGIN_CLIENT_ID",
+  "GOOGLE_LOGIN_CLIENT_SECRET"
+];
 requiredEnv.forEach((key) => {
   if (!process.env[key]) {
     console.error(`❌ CRITICAL CONFIG ERROR: Missing environment variable ${key}`);

@@ -7,7 +7,7 @@ import AdminNotification from '../Models/AdminNotification';
 import { Types } from 'mongoose';
 import WithdrawalRequest from '../Models/WithdrawalRequest';
 import DeliveryReview from '../Models/DeliveryReview';
-import { createUserSession } from '../Utils/sessionHelper';
+import { createUserSession, clearUserSession } from '../Utils/sessionHelper';
 
 // Register Delivery Executive
 export const deliveryRegister = async (req: Request, res: Response): Promise<void> => {
@@ -67,7 +67,7 @@ export const deliveryRegister = async (req: Request, res: Response): Promise<voi
 // Login Delivery Executive
 export const deliveryLogin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     if (!email || !password) {
       res.status(400).json({ success: false, message: 'Please enter email and password' });
@@ -97,7 +97,14 @@ export const deliveryLogin = async (req: Request, res: Response): Promise<void> 
     if (user.deliveryStatus === 'Pending') {
       // Allow login but explicitly signal they are not approved yet
       const token = user.getJwtToken();
-      await createUserSession(user._id as any, res);
+      if (rememberMe) {
+        await createUserSession(user._id as any, req, res);
+      } else {
+        const oldRememberToken = req.cookies.tastyhub_remember_me;
+        if (oldRememberToken && oldRememberToken !== 'none') {
+          await clearUserSession(oldRememberToken, res);
+        }
+      }
       res.status(200).json({
         success: true,
         approved: false,
@@ -115,7 +122,14 @@ export const deliveryLogin = async (req: Request, res: Response): Promise<void> 
     }
 
     // Fully approved, send standard auth response
-    await createUserSession(user._id as any, res);
+    if (rememberMe) {
+      await createUserSession(user._id as any, req, res);
+    } else {
+      const oldRememberToken = req.cookies.tastyhub_remember_me;
+      if (oldRememberToken && oldRememberToken !== 'none') {
+        await clearUserSession(oldRememberToken, res);
+      }
+    }
     sendToken(user, 200, res);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

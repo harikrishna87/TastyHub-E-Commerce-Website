@@ -18,12 +18,32 @@ const CartPage: React.FC = () => {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const deliveryCharge = 40; // Synchronized with standard TastyHub delivery fee
-  const freeDeliveryThreshold = 299; // Synchronized with FAQ/Store free delivery limit (₹299)
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(40);
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number>(299);
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const toastRef = useRef<Toast>(null);
+
+  const fetchSettings = async (): Promise<void> => {
+    if (!auth?.token) return;
+    try {
+      const res = await fetch(`${backendUrl}/api/auth/settings`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${auth.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json();
+      if (data?.success && data.settings) {
+        setDeliveryCharge(data.settings.flatDeliveryFee ?? 40);
+        setFreeDeliveryThreshold(data.settings.freeDeliveryMinAmount ?? 500);
+      }
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    }
+  };
 
   const fetchCartItems = async (): Promise<void> => {
     if (!auth?.token) {
@@ -64,6 +84,7 @@ const CartPage: React.FC = () => {
       return;
     }
     fetchCartItems();
+    fetchSettings();
   }, [auth?.isAuthenticated]);
 
   const handleQuantityUpdate = async (_id: string, newQty: number) => {

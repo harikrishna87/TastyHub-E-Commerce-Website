@@ -1,9 +1,9 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import crypto from 'crypto';
 import UserSession from '../Models/UserSession';
 import mongoose from 'mongoose';
 
-export const createUserSession = async (userId: mongoose.Types.ObjectId, res: Response) => {
+export const createUserSession = async (userId: mongoose.Types.ObjectId, req: Request, res: Response) => {
   try {
     // Delete any existing session for the user first to keep DB clean
     await UserSession.deleteMany({ user: userId });
@@ -11,13 +11,20 @@ export const createUserSession = async (userId: mongoose.Types.ObjectId, res: Re
     // Generate a secure random token
     const rememberToken = crypto.randomBytes(40).toString('hex');
     
-    // Set expiration to 30 days from now
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    // Set expiration based on COOKIE_EXPIRE environment variable (default 365 days)
+    const cookieExpireDays = Number(process.env.COOKIE_EXPIRE) || 365;
+    const expiresAt = new Date(Date.now() + cookieExpireDays * 24 * 60 * 60 * 1000);
     
+    // Extract client IP address and User-Agent
+    const ipAddress = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || req.ip || '').split(',')[0].trim();
+    const userAgent = req.headers['user-agent'] || '';
+
     // Save to database
     await UserSession.create({
       user: userId,
       rememberToken,
+      ipAddress,
+      userAgent,
       expiresAt
     });
     
