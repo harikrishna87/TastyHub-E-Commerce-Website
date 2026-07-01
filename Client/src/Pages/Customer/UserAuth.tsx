@@ -339,7 +339,7 @@ const UserAuth: React.FC = () => {
             return;
           }
 
-          auth.login(user, response.data.token, response.data.rememberToken);
+          auth.login(user, response.data.token, response.data.rememberToken, rememberMe);
           toastRef.current?.show({ severity: 'success', summary: 'Success', detail: `Welcome back ${user.name}!` });
           
           if (user.role === 'delivery_executive') {

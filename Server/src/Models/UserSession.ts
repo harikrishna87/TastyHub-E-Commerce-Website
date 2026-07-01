@@ -6,6 +6,7 @@ export interface IUserSession extends Document {
   expiresAt: Date;
   ipAddress?: string;
   userAgent?: string;
+  rememberMe?: boolean;
 }
 
 const UserSessionSchema = new Schema<IUserSession>({
@@ -24,6 +25,10 @@ const UserSessionSchema = new Schema<IUserSession>({
   },
   userAgent: {
     type: String
+  },
+  rememberMe: {
+    type: Boolean,
+    default: true
   },
   expiresAt: {
     type: Date,

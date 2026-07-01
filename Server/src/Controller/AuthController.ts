@@ -575,15 +575,7 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
       return;
     }
 
-    let rememberToken: string | undefined;
-    if (rememberMe) {
-      rememberToken = await createUserSession(user._id as any, req, res);
-    } else {
-      const oldRememberToken = req.cookies.tastyhub_remember_me || req.headers['x-remember-token'];
-      if (oldRememberToken && oldRememberToken !== 'none') {
-        await clearUserSession(oldRememberToken, res);
-      }
-    }
+    const rememberToken = await createUserSession(user._id as any, req, res, rememberMe);
     sendToken(user, 200, res, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -1286,8 +1278,8 @@ const continueLogin = async (req: Request, res: Response, next: NextFunction): P
       return;
     }
 
-    // Refresh the remember session to extend validity by another 365 days
-    const newRememberToken = await createUserSession(user._id, req, res);
+    // Refresh the remember session to extend validity
+    const newRememberToken = await createUserSession(user._id, req, res, session.rememberMe !== false);
 
     // Login user by sending JWT token
     sendToken(user, 200, res, newRememberToken);

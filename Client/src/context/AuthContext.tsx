@@ -20,12 +20,26 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  const login = useCallback((userData: IUser, jwtToken: string, rememberToken?: string) => {
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', jwtToken);
-    if (rememberToken) {
-      localStorage.setItem('remember_token', rememberToken);
+  const login = useCallback((userData: IUser, jwtToken: string, rememberToken?: string, rememberMeFlag: boolean = true) => {
+    const storage = rememberMeFlag ? localStorage : sessionStorage;
+    const otherStorage = rememberMeFlag ? sessionStorage : localStorage;
+
+    try {
+      otherStorage.removeItem('user');
+      otherStorage.removeItem('token');
+      otherStorage.removeItem('remember_token');
+      otherStorage.removeItem('remember_me_flag');
+
+      storage.setItem('user', JSON.stringify(userData));
+      storage.setItem('token', jwtToken);
+      if (rememberToken) {
+        storage.setItem('remember_token', rememberToken);
+      }
+      storage.setItem('remember_me_flag', rememberMeFlag ? 'true' : 'false');
+    } catch (e) {
+      console.error('Failed to write to storage:', e);
     }
+
     setIsAuthenticated(true);
     setUser(userData);
     setToken(jwtToken);
@@ -53,9 +67,16 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       localStorage.removeItem('remember_token');
+      localStorage.removeItem('remember_me_flag');
+
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('remember_token');
+      sessionStorage.removeItem('remember_me_flag');
+
       localStorage.setItem('logout_intentional', 'true');
     } catch (e) {
-      console.error('Failed to clear localStorage:', e);
+      console.error('Failed to clear storage:', e);
       setError('Failed to clear local data.');
     }
 
@@ -66,135 +87,43 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoggingOutRef.current = false;
   }, [backendUrl]);
 
-  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
-    try {
-      const rememberToken = localStorage.getItem('remember_token');
-      const res = await axios.post(`${backendUrl}/api/auth/continue-login`, 
-        { rememberToken }, 
-        {
-          headers: rememberToken ? { 'X-Remember-Token': rememberToken } : undefined,
-          withCredentials: true,
-          timeout: 10000
-        }
-      );
-      if (res.data.success) {
-        const { user: newUser, token: newToken, rememberToken: newRememberToken } = res.data;
-        login(newUser, newToken, newRememberToken);
-        return newToken;
-      }
-    } catch (err: any) {
-      console.error('Failed to refresh access token:', err);
-      // Only logout if the server explicitly responds with 401 (Unauthorized) or 403 (Forbidden).
-      // This prevents logging out the user during temporary network dropouts or 5xx server issues.
-      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-        logout();
-      }
-    }
-    return null;
-  }, [backendUrl, login, logout]);
-
   const loadUserFromStorage = useCallback(async () => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
 
     if (storedUser && storedToken) {
       try {
         const userData: IUser = JSON.parse(storedUser);
         const decodedToken: any = jwtDecode(storedToken);
 
-        // If access token is expired or expiring in less than 30 seconds
-        if (decodedToken.exp * 1000 < Date.now() + 30000) {
-          console.warn('Access token expired or expiring soon. Attempting silent refresh.');
-          const newToken = await refreshAccessToken();
-          if (!newToken) {
-            setIsLoading(false);
-            return;
-          }
+        // If access token is completely expired, log out.
+        // Since token is now valid for 365 days, this is just a safety check.
+        if (decodedToken.exp * 1000 < Date.now()) {
+          console.warn('Access token expired.');
+          logout();
         } else {
           setIsAuthenticated(true);
           setUser(userData);
           setToken(storedToken);
         }
       } catch (e) {
-        console.error('Failed to parse user data or decode token from localStorage:', e);
+        console.error('Failed to parse user data or decode token from storage:', e);
         setError('Failed to load user data. Logging out.');
         logout();
       }
     }
     setIsLoading(false);
-  }, [logout, refreshAccessToken]);
+  }, [logout]);
 
   useEffect(() => {
     loadUserFromStorage();
   }, [loadUserFromStorage]);
 
-  // Axios response interceptor for automatic token refresh on 401 errors
-  useEffect(() => {
-    const interceptor = axios.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config;
-        
-        if (
-          error.response &&
-          error.response.status === 401 &&
-          !originalRequest._retry &&
-          originalRequest.url &&
-          !originalRequest.url.includes('/api/auth/login') &&
-          !originalRequest.url.includes('/api/auth/register') &&
-          !originalRequest.url.includes('/api/auth/continue-login') &&
-          !originalRequest.url.includes('/api/auth/logout')
-        ) {
-          originalRequest._retry = true;
-          
-          try {
-            console.log('Access token expired. Attempting silent token refresh via interceptor...');
-            const newToken = await refreshAccessToken();
-            if (newToken) {
-              originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-              return axios(originalRequest);
-            }
-          } catch (refreshError) {
-            console.error('Interceptor token refresh failed:', refreshError);
-          }
-        }
-        
-        return Promise.reject(error);
-      }
-    );
-    
-    return () => {
-      axios.interceptors.response.eject(interceptor);
-    };
-  }, [refreshAccessToken]);
-
-  // Silent background refresh timer to refresh token before expiration
-  useEffect(() => {
-    if (!isAuthenticated || !token) return;
-
-    try {
-      const decoded: any = jwtDecode(token);
-      const delay = decoded.exp * 1000 - Date.now() - 60000; // refresh 1 minute before expiration
-      
-      if (delay > 0) {
-        const timer = setTimeout(() => {
-          console.log('Background refreshing token...');
-          refreshAccessToken();
-        }, delay);
-        
-        return () => clearTimeout(timer);
-      } else {
-        refreshAccessToken();
-      }
-    } catch (e) {
-      console.error('Error setting up silent refresh timer:', e);
-    }
-  }, [isAuthenticated, token, refreshAccessToken]);
-
   // Sync profile details silently on mount to refresh stale data (e.g. uploaded avatars)
   useEffect(() => {
     const syncLatestProfile = async () => {
-      const storedToken = localStorage.getItem('token');
+      const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const rememberMeFlag = localStorage.getItem('remember_me_flag') === 'true' || sessionStorage.getItem('remember_me_flag') === 'true';
       if (storedToken && isAuthenticated) {
         try {
           const res = await axios.get(`${backendUrl}/api/auth/getme`, {
@@ -203,7 +132,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
           if (res.data.success) {
             setUser(res.data.user);
-            localStorage.setItem('user', JSON.stringify(res.data.user));
+            const storage = rememberMeFlag ? localStorage : sessionStorage;
+            storage.setItem('user', JSON.stringify(res.data.user));
           }
         } catch (err) {
           console.error('AuthContext: silent profile sync failed:', err);

@@ -193,7 +193,7 @@ const AdminAuth: React.FC = () => {
           return;
         }
 
-        auth.login(user, response.data.token);
+        auth.login(user, response.data.token, response.data.rememberToken, rememberMe);
         toastRef.current?.show({ severity: 'success', summary: 'Success', detail: 'Welcome back Administrator!' });
         navigate('/admin/home');
       }
@@ -258,7 +258,7 @@ const AdminAuth: React.FC = () => {
                   withCredentials: true
                 });
                 if (response.data.success) {
-                  auth.login(response.data.user, response.data.token);
+                  auth.login(response.data.user, response.data.token, response.data.rememberToken, true);
                   toastRef.current?.show({ severity: 'success', summary: 'Success', detail: 'Welcome back Administrator!' });
                   navigate('/admin/home');
                 } else {

@@ -97,19 +97,14 @@ export const deliveryLogin = async (req: Request, res: Response): Promise<void> 
     if (user.deliveryStatus === 'Pending') {
       // Allow login but explicitly signal they are not approved yet
       const token = user.getJwtToken();
-      if (rememberMe) {
-        await createUserSession(user._id as any, req, res);
-      } else {
-        const oldRememberToken = req.cookies.tastyhub_remember_me;
-        if (oldRememberToken && oldRememberToken !== 'none') {
-          await clearUserSession(oldRememberToken, res);
-        }
-      }
+      const rememberToken = await createUserSession(user._id as any, req, res, rememberMe);
+      
       res.status(200).json({
         success: true,
         approved: false,
         message: 'Login successful, but waiting for admin approval to perform operations.',
         token,
+        rememberToken,
         user: {
           _id: user._id,
           name: user.name,
@@ -122,15 +117,8 @@ export const deliveryLogin = async (req: Request, res: Response): Promise<void> 
     }
 
     // Fully approved, send standard auth response
-    if (rememberMe) {
-      await createUserSession(user._id as any, req, res);
-    } else {
-      const oldRememberToken = req.cookies.tastyhub_remember_me;
-      if (oldRememberToken && oldRememberToken !== 'none') {
-        await clearUserSession(oldRememberToken, res);
-      }
-    }
-    sendToken(user, 200, res);
+    const rememberToken = await createUserSession(user._id as any, req, res, rememberMe);
+    sendToken(user, 200, res, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

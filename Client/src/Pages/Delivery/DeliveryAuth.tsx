@@ -214,7 +214,7 @@ const DeliveryAuth: React.FC = () => {
           }
 
           if (authContext?.login) {
-            authContext.login(user, token || localStorage.getItem('token') || '');
+            authContext.login(user, token || '', res.data.rememberToken, rememberMe);
           }
           
           navigate('/delivery/home');
@@ -309,7 +309,7 @@ const DeliveryAuth: React.FC = () => {
                     message.success(`Welcome back, Partner ${user.name}!`);
                   }
                   if (authContext?.login) {
-                    authContext.login(user, token || localStorage.getItem('token') || '');
+                    authContext.login(user, token || '', response.data.rememberToken, true);
                   }
                   navigate('/delivery/home');
                 } else {
