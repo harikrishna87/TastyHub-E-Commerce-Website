@@ -11,6 +11,60 @@ import { AuthContext } from '../../context/AuthContext';
 import { IOrder } from '../../types';
 import { formatDate } from '../../utils/dateFormatter';
 
+const commonChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: {
+    duration: 0
+  } as any,
+  plugins: {
+    legend: {
+      position: 'top' as const,
+      labels: { color: '#475569', font: { family: 'Inter' } }
+    }
+  },
+  scales: {
+    x: {
+      grid: { display: false },
+      ticks: { color: '#64748b', font: { family: 'Inter' } }
+    },
+    y: {
+      type: 'linear' as const,
+      display: true,
+      position: 'left' as const,
+      ticks: { color: '#64748b', font: { family: 'Inter' }, callback: (value: any) => '₹' + value },
+      grid: { color: '#f1f5f9' }
+    },
+    y1: {
+      type: 'linear' as const,
+      display: true,
+      position: 'right' as const,
+      ticks: { color: '#3b82f6', font: { family: 'Inter' }, stepSize: 1 },
+      grid: { display: false }
+    }
+  }
+};
+
+const doughnutChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: '70%',
+  animation: {
+    duration: 0
+  } as any,
+  plugins: {
+    legend: {
+      position: 'bottom' as const,
+      labels: {
+        color: '#475569',
+        usePointStyle: true,
+        boxWidth: 8,
+        font: { family: 'Inter', size: 11 }
+      }
+    }
+  }
+};
+
 const OrderAnalytics: React.FC = () => {
   const auth = useContext(AuthContext);
   const [orders, setOrders] = useState<IOrder[]>([]);
@@ -81,12 +135,22 @@ const OrderAnalytics: React.FC = () => {
   }, [auth?.token, backendUrl]);
 
   useEffect(() => {
-    if (auth?.token && !hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      fetchOrders();
-      fetchCustomers();
+    if (auth?.token) {
+      if (!hasFetchedRef.current) {
+        hasFetchedRef.current = true;
+        fetchOrders();
+        fetchCustomers();
+      }
+
+      // Auto-refresh stats every 30 seconds silently in the background
+      const interval = setInterval(() => {
+        fetchOrders();
+        fetchCustomers();
+      }, 30000);
+
+      return () => clearInterval(interval);
     }
-  }, [auth?.token]);
+  }, [auth?.token, fetchOrders, fetchCustomers]);
 
   // Open Customer details Modal
   const handleCustomerClick = (customerEmailOrId: string) => {
@@ -210,37 +274,7 @@ const OrderAnalytics: React.FC = () => {
   }, [orders]);
 
   // Chart Configurations
-  // 1. Common Chart Options for Dual Axis
-  const commonChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-        labels: { color: '#475569', font: { family: 'Inter' } }
-      }
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { color: '#64748b', font: { family: 'Inter' } }
-      },
-      y: {
-        type: 'linear',
-        display: true,
-        position: 'left',
-        ticks: { color: '#64748b', font: { family: 'Inter' }, callback: (value: any) => '₹' + value },
-        grid: { color: '#f1f5f9' }
-      },
-      y1: {
-        type: 'linear',
-        display: true,
-        position: 'right',
-        ticks: { color: '#3b82f6', font: { family: 'Inter' }, stepSize: 1 },
-        grid: { display: false }
-      }
-    }
-  };
+  // Weekly Performance Chart (Line Chart for Revenue, Bar for Orders, Bar for Customers)
 
   // 2. Weekly Performance Chart (Line Chart for Revenue, Bar for Orders, Bar for Customers)
   const weeklyChartData = useMemo(() => {
@@ -347,22 +381,7 @@ const OrderAnalytics: React.FC = () => {
     };
   }, [stats]);
 
-  const doughnutChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '70%',
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          color: '#475569',
-          usePointStyle: true,
-          boxWidth: 8,
-          font: { family: 'Inter', size: 11 }
-        }
-      }
-    }
-  };
+  // 4. Yearly Analysis Data (Line Chart for Revenue, Bar for Orders, Bar for Customers)
 
   // 4. Yearly Analysis Data (Line Chart for Revenue, Bar for Orders, Bar for Customers)
   const yearlyChartData = useMemo(() => {

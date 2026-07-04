@@ -37,7 +37,7 @@ const createStore = (prefix: string) => {
 // General API requests limiter (e.g. browsing, adding to cart, fetching products)
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 requests per 15 minutes
+  max: process.env.NODE_ENV === "production" ? 200 : 2000, // Increase limit in development to support live dashboard polling
   message: {
     success: false,
     message: "Too many requests from this IP. Please try again after 15 minutes."

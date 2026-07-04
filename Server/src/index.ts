@@ -21,6 +21,9 @@ import cookieParser from "cookie-parser";
 import passport from 'passport';
 import helmet from "helmet";
 import { apiLimiter } from "./Middleware/RateLimitMiddleware";
+import { metricsMiddleware } from "./Middleware/MetricsMiddleware";
+import systemStatsRouter from "./Routes/SystemStatsRoutes";
+
 
 dotenv.config();
 
@@ -50,6 +53,9 @@ const app = express();
 
 // Trust the reverse proxy (e.g. Render, Heroku) to determine client's IP address
 app.set("trust proxy", 1);
+
+// Apply metrics tracking middleware globally
+app.use(metricsMiddleware);
 
 connectDB();
 
@@ -228,6 +234,7 @@ app.use("/razorpay", payment_router);
 app.use("/api/favorites", favorite_router);
 app.use("/api/notifications", notify_router);
 app.use('/api/admin/notifications', adminNotificationRoutes);
+app.use('/api/admin/system-stats', systemStatsRouter);
 app.use("/api/delivery", deliveryRouter);
 app.use("/api/promo", promoRouter);
 app.use("/api/restaurants", restaurantRouter);

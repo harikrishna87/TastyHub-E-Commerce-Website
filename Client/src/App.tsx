@@ -38,6 +38,8 @@ import DeliveryDashboard from './Pages/Delivery/DeliveryDashboard'
 import DeliveryLandingPage from './Pages/Delivery/DeliveryLandingPage'
 import ComboDeals from './Pages/Customer/ComboDeals'
 import AdminAuth from './Pages/Admin/AdminAuth'
+import SystemStats from './Pages/Admin/SystemStats'
+
 
 const AppContent: React.FC = () => {
   const auth = useContext(AuthContext)
@@ -65,6 +67,7 @@ const AppContent: React.FC = () => {
           <Route path='/admin/combodeals' element={<ComboDealsManagement />} />
           <Route path='/admin/giftcards' element={<GiftCardsManagement />} />
           <Route path='/admin/profilepage' element={<ProfilePage />} />
+          <Route path='/admin/systemstats' element={<SystemStats />} />
           <Route path='/auth/callback' element={<GoogleCallback />} />
           <Route path="*" element={<Navigate to="/admin/home" replace />} />
         </Routes>

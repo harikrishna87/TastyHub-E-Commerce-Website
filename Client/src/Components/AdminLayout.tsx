@@ -216,6 +216,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         { label: 'Prepaid Gift Cards', path: '/admin/giftcards' },
       ]
     },
+    { label: 'System Stats', icon: 'pi pi-chart-bar', path: '/admin/systemstats' },
     { label: 'Profile', icon: 'pi pi-user', path: '/admin/profilepage' },
   ];
 
