@@ -22,6 +22,7 @@ import {
   getActiveCoupons
 } from '../Controller/PromoController';
 import { protect, authorizeRoles } from '../Middleware/AuthMiddleWare';
+import { authLimiter } from '../Middleware/RateLimitMiddleware';
 
 const promoRouter: Router = express.Router();
 
@@ -62,7 +63,7 @@ promoRouter.post('/combos/:id/access', protect as express.RequestHandler, access
 // User buys a gift card
 promoRouter.post('/giftcards', protect as express.RequestHandler, purchaseGiftCard as express.RequestHandler);
 // User redeems a gift card code
-promoRouter.post('/giftcards/redeem', protect as express.RequestHandler, redeemGiftCard as express.RequestHandler);
+promoRouter.post('/giftcards/redeem', protect as express.RequestHandler, authLimiter, redeemGiftCard as express.RequestHandler);
 // User fetches their purchased/received gift cards
 promoRouter.get('/giftcards/my', protect as express.RequestHandler, getMyGiftCards as express.RequestHandler);
 // Admin fetches all gift cards in the system
@@ -70,9 +71,9 @@ promoRouter.get('/giftcards/all', protect as express.RequestHandler, authorizeRo
 // Admin force-redeems a gift card to recipient's wallet
 promoRouter.post('/giftcards/admin-redeem', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, adminRedeemGiftCard as express.RequestHandler);
 // Check/validate gift card code and return balance
-promoRouter.get('/giftcards/check/:code', protect as express.RequestHandler, getGiftCardByCode as express.RequestHandler);
+promoRouter.get('/giftcards/check/:code', protect as express.RequestHandler, authLimiter, getGiftCardByCode as express.RequestHandler);
 // Check/validate coupon code and return details
-promoRouter.get('/coupons/check/:code', protect as express.RequestHandler, getCouponByCode as express.RequestHandler);
+promoRouter.get('/coupons/check/:code', protect as express.RequestHandler, authLimiter, getCouponByCode as express.RequestHandler);
 
 
 

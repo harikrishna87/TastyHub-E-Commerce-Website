@@ -68,8 +68,8 @@ app.use("/api", apiLimiter);
 
 app.use(passport.initialize());
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50kb" }));
+app.use(express.urlencoded({ extended: true, limit: "50kb" }));
 app.use(cookieParser());
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -108,7 +108,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Remember-Token"],
 }));
 
 
@@ -230,7 +230,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/cart", router_cart_item);
 app.use("/api/products", product_router);
-app.use("/razorpay", payment_router);
+app.use("/razorpay", apiLimiter, payment_router);
 app.use("/api/favorites", favorite_router);
 app.use("/api/notifications", notify_router);
 app.use('/api/admin/notifications', adminNotificationRoutes);

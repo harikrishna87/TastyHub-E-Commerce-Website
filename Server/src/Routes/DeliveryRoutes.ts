@@ -15,12 +15,13 @@ import {
   adminUpdateWithdrawalStatus
 } from '../Controller/DeliveryController';
 import { protect, authorizeRoles } from '../Middleware/AuthMiddleWare';
+import { authLimiter } from '../Middleware/RateLimitMiddleware';
 
 const deliveryRouter: Router = express.Router();
 
 // Public routes for Delivery Partners
-deliveryRouter.post('/register', deliveryRegister as express.RequestHandler);
-deliveryRouter.post('/login', deliveryLogin as express.RequestHandler);
+deliveryRouter.post('/register', authLimiter, deliveryRegister as express.RequestHandler);
+deliveryRouter.post('/login', authLimiter, deliveryLogin as express.RequestHandler);
 
 // Protected routes (Only for logged-in and approved Delivery Partners)
 deliveryRouter.get('/orders/available', protect as express.RequestHandler, getAvailableOrders as express.RequestHandler);

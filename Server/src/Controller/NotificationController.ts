@@ -6,6 +6,14 @@ import User from '../Models/Users';
 const createNotification = async (req: Request, res: Response) => {
   try {
     const { userId, title, body, type } = req.body;
+    const currentUserId = req.user?.id || req.user?._id?.toString();
+    const currentUserRole = req.user?.role;
+
+    if (userId !== currentUserId && currentUserRole !== 'admin') {
+      res.status(403).json({ success: false, message: 'You are not authorized to create notifications for this user' });
+      return;
+    }
+
     const notification = await Notification.create({ user: userId, title, body, type });
     res.status(201).json({ success: true, notification });
   } catch {
@@ -27,7 +35,9 @@ const getUserNotifications = async (req: Request, res: Response) => {
 const markNotificationRead = async (req: Request, res: Response) => {
   try {
     const notificationId = req.params.id;
-    const notification = await Notification.findByIdAndUpdate(notificationId, { read: true }, { new: true });
+    const userId = req.user?.id || req.user?._id?.toString();
+    if (!userId) return res.status(401).json({ success: false, message: 'User not authenticated' });
+    const notification = await Notification.findOneAndUpdate({ _id: notificationId, user: userId }, { read: true }, { new: true });
     if (!notification) return res.status(404).json({ success: false, message: 'Notification not found' });
     res.status(200).json({ success: true, notification });
   } catch {

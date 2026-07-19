@@ -40,6 +40,11 @@ export const createProductReview = async (req: Request, res: Response): Promise<
       return;
     }
 
+    if (orderExists.user.toString() !== userId.toString()) {
+      res.status(403).json({ success: false, message: 'You are not authorized to review this order' });
+      return;
+    }
+
     // Create or update review uniquely per order per product
     const updatedReview = await ProductReview.findOneAndUpdate(
       { order: orderId, product: productId },
@@ -132,6 +137,11 @@ export const createDeliveryReview = async (req: Request, res: Response): Promise
     const order = await Order.findById(orderId);
     if (!order) {
       res.status(404).json({ success: false, message: 'Order reference not found' });
+      return;
+    }
+
+    if (order.user.toString() !== userId.toString()) {
+      res.status(403).json({ success: false, message: 'You are not authorized to review this order' });
       return;
     }
 
