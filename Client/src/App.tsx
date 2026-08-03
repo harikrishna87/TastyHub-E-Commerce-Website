@@ -11,6 +11,7 @@ import PrivacyPolicy from './Pages/Customer/PrivacyPolicy'
 import TermsOfService from './Pages/Customer/TermsOfService'
 import { AuthProvider, AuthContext } from './context/AuthContext'
 import AuthPage from './Pages/Customer/UserAuth'
+import VoiceAssistant from './Components/VoiceAssistant'
 
 import ProtectedRoute from './Components/ProtectedRoute'
 import ProductsPage from './Pages/Admin/ProductsPage'
@@ -148,6 +149,7 @@ const AppContent: React.FC = () => {
         </Routes>
       </div>
       {!isDeliveryRoute && !isAuthRoute && <FoodFooter />}
+      {!isDeliveryRoute && !isAdminRoute && !isAuthRoute && <VoiceAssistant />}
     </>
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
@@ -101,6 +102,7 @@ export default function Homepage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [productsPerPage] = useState<number>(12);
   const [categoryDiscounts, setCategoryDiscounts] = useState<{ [key: string]: number }>({});
@@ -124,6 +126,23 @@ export default function Homepage() {
       document.head.removeChild(styleElement);
     };
   }, []);
+
+  // Handle voice/URL search query parameters
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+      setTimeout(() => {
+        const element = document.getElementById('our-selection-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('search');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch products & banners dynamically from server endpoints
   useEffect(() => {
