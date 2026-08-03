@@ -37,8 +37,12 @@ const OrderSchema: Schema = new Schema<IOrder>({
   },
   deliveryStatus: {
     type: String,
-    enum: ['Pending', 'Accepted', 'Preparing', 'Pickup', 'Out for Delivery', 'Delivered', 'Shipped'],
+    enum: ['Pending', 'Accepted', 'Preparing', 'Pickup', 'Out for Delivery', 'Delivered', 'Shipped', 'Cancelled', 'Refunded'],
     default: 'Pending',
+  },
+  cancellationReason: {
+    type: String,
+    required: false,
   },
   deliveryExecutive: {
     type: mongoose.Schema.Types.ObjectId,
@@ -63,6 +67,24 @@ const OrderSchema: Schema = new Schema<IOrder>({
   isDeliveryRated: {
     type: Boolean,
     default: false,
+  },
+  walletDeduction: {
+    type: Number,
+    default: 0,
+  },
+  giftCardDeduction: {
+    type: Number,
+    default: 0,
+  },
+  giftCardCode: {
+    type: String,
+  },
+  isRefunded: {
+    type: Boolean,
+    default: false,
+  },
+  refundDetails: {
+    type: String,
   },
 }, { timestamps: true });
 

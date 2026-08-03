@@ -118,7 +118,7 @@ export const deliveryLogin = async (req: Request, res: Response): Promise<void> 
 
     // Fully approved, send standard auth response
     const rememberToken = await createUserSession(user._id as any, req, res, rememberMe);
-    sendToken(user, 200, res, rememberToken);
+    sendToken(user, 200, res, rememberMe, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -132,9 +132,29 @@ export const getAvailableOrders = async (req: Request, res: Response): Promise<v
       return;
     }
 
+    // Auto-cancel pending orders older than 1 hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const expiredOrders = await Order.find({
+      deliveryStatus: 'Pending',
+      deliveryExecutive: null,
+      createdAt: { $lt: oneHourAgo }
+    }).populate('user', 'name email');
+
+    for (const order of expiredOrders) {
+      order.deliveryStatus = 'Cancelled';
+      (order as any).cancellationReason = 'Order expired: No delivery partner accepted within 1 hour deadline';
+      await order.save();
+      // Send cancellation email
+      await EmailService.sendOrderStatusUpdate(order, 'Cancelled').catch((err: any) => {
+        console.error('Failed to send order cancellation email on timeout:', err);
+      });
+    }
+
+    // Fetch available orders within the 1-hour window
     const orders = await Order.find({
       deliveryStatus: 'Pending',
-      deliveryExecutive: null
+      deliveryExecutive: null,
+      createdAt: { $gte: oneHourAgo }
     }).populate('user', 'name email shippingAddress');
 
     res.status(200).json({

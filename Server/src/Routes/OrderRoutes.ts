@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById, deleteOrder } from '../Controller/OrderController';
+import { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById, deleteOrder, cancelOrder, initiateRefund, retryOrder } from '../Controller/OrderController';
 import { protect, authorizeRoles } from '../Middleware/AuthMiddleWare';
 
 const router: Router = express.Router();
@@ -9,6 +9,9 @@ router.get('/myorders', protect as express.RequestHandler, getUserOrders as expr
 router.get('/:id', protect as express.RequestHandler, getOrderById as express.RequestHandler);
 router.get('/', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, getAllOrders as express.RequestHandler);
 router.patch('/:id/status', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, updateOrderStatus as express.RequestHandler);
+router.patch('/:id/cancel', protect as express.RequestHandler, cancelOrder as express.RequestHandler);
+router.patch('/:id/refund', protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, initiateRefund as express.RequestHandler);
+router.patch('/:id/retry', protect as express.RequestHandler, retryOrder as express.RequestHandler);
 router.delete("/:id", protect as express.RequestHandler, authorizeRoles('admin') as express.RequestHandler, deleteOrder as express.RequestHandler )
 
 export default router;

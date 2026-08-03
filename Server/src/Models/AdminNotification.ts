@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IAdminNotification extends Document {
-    type: 'new_user' | 'new_order';
+    type: 'new_user' | 'new_order' | 'refund_initiated';
     title: string;
     message: string;
     userId?: mongoose.Types.ObjectId;
@@ -18,7 +18,7 @@ const AdminNotificationSchema: Schema = new Schema(
     {
         type: {
             type: String,
-            enum: ['new_user', 'new_order'],
+            enum: ['new_user', 'new_order', 'refund_initiated'],
             required: true,
         },
         title: {

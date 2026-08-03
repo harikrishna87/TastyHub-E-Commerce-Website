@@ -75,6 +75,9 @@ interface OrderStatusTrackerProps {
 }
 
 const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }) => {
+  if (currentStatus === 'Cancelled' || currentStatus === 'Refunded') {
+    return null;
+  }
   const getStatusIndex = (status: string) => {
     switch (status) {
       case 'Pending': return 0;
@@ -166,6 +169,57 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ currentStatus }
   );
 };
 
+const CancelCountdown: React.FC<{ createdAt: string; onExpire: () => void }> = ({ createdAt, onExpire }) => {
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const createdTime = new Date(createdAt).getTime();
+      const expiryTime = createdTime + 10 * 60 * 1000; // 10 minutes
+      const difference = expiryTime - Date.now();
+
+      if (difference <= 0) {
+        setTimeLeft('Expired');
+        onExpire();
+        return false;
+      }
+
+      const minutes = Math.floor(difference / (60 * 1000));
+      const seconds = Math.floor((difference % (60 * 1000)) / 1000);
+      setTimeLeft(`${minutes}m ${seconds}s remaining`);
+      return true;
+    };
+
+    calculateTime();
+    const interval = setInterval(() => {
+      const active = calculateTime();
+      if (!active) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [createdAt, onExpire]);
+
+  return (
+    <span style={{ 
+      color: timeLeft === 'Expired' ? '#ef4444' : '#d97706',
+      fontWeight: 700,
+      fontSize: '0.95rem',
+      backgroundColor: '#fff',
+      padding: '0.4rem 0.8rem',
+      borderRadius: '8px',
+      border: '1px solid #fde68a',
+      fontFamily: 'monospace',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px'
+    }}>
+      {timeLeft}
+    </span>
+  );
+};
+
 const ProfilePage: React.FC = () => {
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
@@ -243,6 +297,11 @@ const ProfilePage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [selectedOrderForStatus, setSelectedOrderForStatus] = useState<any>(null);
   const [isStatusModalVisible, setIsStatusModalVisible] = useState<boolean>(false);
+  const [cancelReasonDialogVisible, setCancelReasonDialogVisible] = useState<boolean>(false);
+  const [cancelReasonOption, setCancelReasonOption] = useState<string>('');
+  const [cancelReasonCustomText, setCancelReasonCustomText] = useState<string>('');
+  const [orderToCancel, setOrderToCancel] = useState<any>(null);
+  const [retryLoading, setRetryLoading] = useState<boolean>(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const receiptContentRef = useRef<HTMLDivElement>(null);
 
@@ -773,6 +832,106 @@ const ProfilePage: React.FC = () => {
     setIsStatusModalVisible(true);
   };
 
+  const handleInitiateCancel = (order: any) => {
+    setOrderToCancel(order);
+    setCancelReasonOption('Changed my mind');
+    setCancelReasonCustomText('');
+    setCancelReasonDialogVisible(true);
+  };
+
+  const handleConfirmCancelOrder = async () => {
+    if (!orderToCancel) return;
+    
+    const finalReason = cancelReasonOption === 'Other' ? cancelReasonCustomText : cancelReasonOption;
+    if (!finalReason.trim()) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Reason Required',
+        detail: 'Please select or enter a cancellation reason.'
+      });
+      return;
+    }
+    
+    try {
+      const token = authContext?.token || localStorage.getItem('token');
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      };
+      
+      const response = await axios.patch(
+        `${backendUrl}/api/orders/${orderToCancel._id}/cancel`,
+        { reason: finalReason },
+        config
+      );
+      
+      if (response.data.success) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Order Cancelled',
+          detail: 'Your order has been cancelled successfully.'
+        });
+        setCancelReasonDialogVisible(false);
+        setIsStatusModalVisible(false);
+        setSelectedOrderForStatus(null);
+        setOrderToCancel(null);
+        // Refresh orders list
+        fetchOrdersList();
+      }
+    } catch (err: any) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Cancellation Failed',
+        detail: err.response?.data?.message || 'Failed to cancel the order.'
+      });
+    }
+  };
+
+  const handleRetryOrder = async (orderId: string) => {
+    try {
+      setRetryLoading(true);
+      const token = authContext?.token || localStorage.getItem('token');
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      };
+      
+      const response = await axios.patch(
+        `${backendUrl}/api/orders/${orderId}/retry`,
+        {},
+        config
+      );
+      
+      if (response.data.success) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Search Restarted',
+          detail: 'Searching for a new delivery partner.'
+        });
+        // Update status modal data dynamically
+        if (selectedOrderForStatus && selectedOrderForStatus._id === orderId) {
+          setSelectedOrderForStatus(response.data.order);
+        }
+        // Refresh orders list
+        fetchOrdersList();
+      }
+    } catch (err: any) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Request Failed',
+        detail: err.response?.data?.message || 'Failed to restart search.'
+      });
+    } finally {
+      setRetryLoading(false);
+    }
+  };
+
   const openProductReviewModal = async (order: any) => {
     setSelectedOrderForReview(order);
     setSubmittingReview(true);
@@ -1296,7 +1455,8 @@ const ProfilePage: React.FC = () => {
                             'Out for Delivery': 'success',
                             'Shipped': 'success',
                             'Delivered': 'success',
-                            'Cancelled': 'danger'
+                            'Cancelled': 'danger',
+                            'Refunded': 'info'
                           };
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1310,7 +1470,7 @@ const ProfilePage: React.FC = () => {
                         }} style={{ width: '120px' }} />
 
                         <Column header="TRACK ORDER" body={(rowData) => {
-                          if (rowData.deliveryStatus === 'Cancelled') return <span style={{ color: '#9ca3af' }}>-</span>;
+                          if (rowData.deliveryStatus === 'Cancelled' || rowData.deliveryStatus === 'Refunded') return <span style={{ color: '#9ca3af' }}>-</span>;
                           return (
                             <Button 
                               icon="pi pi-map-marker" 
@@ -1660,7 +1820,8 @@ const ProfilePage: React.FC = () => {
                       'Out for Delivery': 'success',
                       'Shipped': 'success',
                       'Delivered': 'success',
-                      'Cancelled': 'danger'
+                      'Cancelled': 'danger',
+                      'Refunded': 'info'
                     };
                     return (
                       <PrimeTag 
@@ -1759,7 +1920,191 @@ const ProfilePage: React.FC = () => {
             </div>
           }
         >
-          <OrderStatusTracker currentStatus={selectedOrderForStatus.deliveryStatus} />
+          <style>{`
+            .cancellation-deadline-card {
+              background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+              border: 1px solid #fde68a;
+              border-radius: 16px;
+              padding: 1.25rem;
+              margin-bottom: 1.5rem;
+              display: flex;
+              flex-wrap: wrap;
+              justify-content: space-between;
+              align-items: center;
+              gap: 1rem;
+              box-shadow: 0 4px 15px rgba(245, 158, 11, 0.05);
+            }
+          `}</style>
+          
+          <div className="delivery-scoped-font">
+            {/* Conditional Cancellation Window Display */}
+            {selectedOrderForStatus.deliveryStatus !== 'Cancelled' && 
+             selectedOrderForStatus.deliveryStatus !== 'Refunded' && 
+             selectedOrderForStatus.deliveryStatus !== 'Delivered' &&  
+             (Date.now() - new Date(selectedOrderForStatus.createdAt).getTime() < 10 * 60 * 1000) && (
+              <div className="cancellation-deadline-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#fef3c7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#d97706'
+                  }}>
+                    <i className="pi pi-clock" style={{ fontSize: '1.2rem' }} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontWeight: 700, color: '#92400e', fontSize: '0.98rem' }}>10-Min Cancellation Window Active</h4>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#b45309' }}>You can cancel this order and get a full refund before preparation proceeds.</p>
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <CancelCountdown createdAt={selectedOrderForStatus.createdAt} onExpire={fetchOrdersList} />
+                  <Button 
+                    label="Cancel Order" 
+                    icon="pi pi-times-circle"
+                    className="p-button-danger p-button-sm"
+                    style={{ borderRadius: '8px', padding: '0.5rem 1rem', fontWeight: 600 }}
+                    onClick={() => handleInitiateCancel(selectedOrderForStatus)}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* If order is Pending and 10-Min cancellation window is EXPIRED, show "Delivery partner not accepted" & "Try Again" button */}
+            {selectedOrderForStatus.deliveryStatus === 'Pending' && 
+             (Date.now() - new Date(selectedOrderForStatus.createdAt).getTime() >= 10 * 60 * 1000) && (
+              <div style={{
+                background: 'linear-gradient(135deg, #fffbeb 0%, #fee2e2 100%)',
+                border: '1px solid #fecaca',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                boxShadow: '0 4px 15px rgba(239, 68, 68, 0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#fee2e2',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ef4444'
+                  }}>
+                    <i className="pi pi-exclamation-triangle" style={{ fontSize: '1.2rem' }} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontWeight: 700, color: '#991b1b', fontSize: '0.98rem' }}>Delivery Partner Not Accepted</h4>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#b91c1c' }}>No driver has claimed your delivery yet. You can try searching again.</p>
+                  </div>
+                </div>
+                
+                <Button 
+                  label="Try Again" 
+                  icon="pi pi-refresh"
+                  className="p-button-danger p-button-sm"
+                  style={{ borderRadius: '8px', padding: '0.5rem 1rem', fontWeight: 600 }}
+                  loading={retryLoading}
+                  onClick={() => handleRetryOrder(selectedOrderForStatus._id)}
+                />
+              </div>
+            )}
+            
+            {/* If order is already cancelled, show cancellation details */}
+            {selectedOrderForStatus.deliveryStatus === 'Cancelled' && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <i className="pi pi-times-circle" style={{ fontSize: '2rem', color: '#ef4444' }} />
+                <div>
+                  <h4 style={{ margin: 0, fontWeight: 700, color: '#991b1b', fontSize: '0.98rem' }}>Order Cancelled</h4>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: '#b91c1c' }}>
+                    Reason: <strong>{selectedOrderForStatus.cancellationReason || 'Cancelled by customer'}</strong>
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* If order is already refunded, show refund details */}
+            {selectedOrderForStatus.deliveryStatus === 'Refunded' && (
+              <div style={{ background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <i className="pi pi-undo" style={{ fontSize: '2rem', color: '#3b82f6' }} />
+                <div>
+                  <h4 style={{ margin: 0, fontWeight: 700, color: '#1e3a8a', fontSize: '0.98rem' }}>Order Refunded</h4>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: '#1d4ed8' }}>
+                    {selectedOrderForStatus.refundDetails || 'The paid amount has been credited back to your wallet/gift card.'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <OrderStatusTracker currentStatus={selectedOrderForStatus.deliveryStatus} />
+          </div>
+        </Dialog>
+      )}
+
+      {/* Cancellation Reason Dialog */}
+      {orderToCancel && (
+        <Dialog
+          header={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '1.2rem' }}>
+              <i className="pi pi-exclamation-triangle" />
+              <span>Cancel Order - Select Reason</span>
+            </div>
+          }
+          visible={cancelReasonDialogVisible}
+          onHide={() => { setCancelReasonDialogVisible(false); setOrderToCancel(null); }}
+          style={{ width: '450px', maxWidth: '95vw' }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <Button label="Discard" severity="secondary" outlined onClick={() => { setCancelReasonDialogVisible(false); setOrderToCancel(null); }} />
+              <Button label="Confirm Cancel" severity="danger" onClick={handleConfirmCancelOrder} />
+            </div>
+          }
+        >
+          <div className="delivery-scoped-font" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '10px' }}>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#4b5563', lineHeight: 1.5 }}>
+              Please let us know the reason for cancellation. We appreciate your feedback.
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151' }}>Reason *</label>
+              <Dropdown
+                value={cancelReasonOption}
+                options={[
+                  { label: 'Changed my mind', value: 'Changed my mind' },
+                  { label: 'Incorrect shipping address', value: 'Incorrect shipping address' },
+                  { label: 'Ordered incorrect items', value: 'Ordered incorrect items' },
+                  { label: 'Delivery time is too long', value: 'Delivery time is too long' },
+                  { label: 'Other', value: 'Other' }
+                ]}
+                onChange={(e) => setCancelReasonOption(e.value)}
+                style={{ width: '100%', borderRadius: '8px' }}
+              />
+            </div>
+            
+            {cancelReasonOption === 'Other' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151' }}>Custom Explanation *</label>
+                <textarea
+                  value={cancelReasonCustomText}
+                  onChange={(e) => setCancelReasonCustomText(e.target.value)}
+                  placeholder="Tell us why you want to cancel this order..."
+                  style={{ ...styles.formInput, resize: 'vertical', minHeight: '80px' }}
+                  required
+                />
+              </div>
+            )}
+          </div>
         </Dialog>
       )}
 

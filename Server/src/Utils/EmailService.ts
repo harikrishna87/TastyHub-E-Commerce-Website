@@ -243,6 +243,11 @@ class EmailService {
         title: 'Order Cancelled',
         message: 'Your order has been cancelled as requested. If you have questions, please contact support.',
         icon: ''
+      },
+      'Refunded': {
+        title: 'Order Refund Completed',
+        message: 'Your order refund has been processed. The wallet and gift card balances used for this order have been credited back to your account.',
+        icon: ''
       }
     };
 

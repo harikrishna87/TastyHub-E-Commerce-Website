@@ -331,6 +331,60 @@ const customStyles = `
   }
 `;
 
+const OrderCountdown: React.FC<{ createdAt: string; onExpire: () => void }> = ({ createdAt, onExpire }) => {
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const createdTime = new Date(createdAt).getTime();
+      const expiryTime = createdTime + 60 * 60 * 1000; // 1 hour
+      const difference = expiryTime - Date.now();
+
+      if (difference <= 0) {
+        setTimeLeft('Expired');
+        onExpire();
+        return false;
+      }
+
+      const minutes = Math.floor(difference / (60 * 1000));
+      const seconds = Math.floor((difference % (60 * 1000)) / 1000);
+      setTimeLeft(`${minutes}m ${seconds}s left`);
+      return true;
+    };
+
+    calculateTime();
+    const interval = setInterval(() => {
+      const active = calculateTime();
+      if (!active) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [createdAt, onExpire]);
+
+  const minutesLeft = Math.floor((new Date(createdAt).getTime() + 60 * 60 * 1000 - Date.now()) / (60 * 1000));
+  const isWarning = minutesLeft < 15;
+
+  return (
+    <span style={{ 
+      color: timeLeft === 'Expired' ? '#ef4444' : isWarning ? '#b45309' : '#15803d',
+      fontWeight: 700,
+      backgroundColor: '#f8fafc',
+      padding: '4px 10px',
+      borderRadius: '8px',
+      border: `1px solid ${timeLeft === 'Expired' ? 'rgba(239, 68, 68, 0.2)' : isWarning ? 'rgba(217, 119, 6, 0.2)' : 'rgba(21, 128, 61, 0.2)'}`,
+      fontFamily: 'monospace',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px'
+    }}>
+      <i className="pi pi-clock" style={{ fontSize: '0.85rem' }} />
+      {timeLeft}
+    </span>
+  );
+};
+
 const DeliveryDashboard: React.FC = () => {
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
@@ -454,7 +508,7 @@ const DeliveryDashboard: React.FC = () => {
 
   // Wallet & Withdrawal states
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [loadingWithdrawals, setLoadingWithdrawals] = useState<boolean>(false);
+  // const [loadingWithdrawals, setLoadingWithdrawals] = useState<boolean>(false);
   const [withdrawDialogVisible, setWithdrawDialogVisible] = useState<boolean>(false);
   const [withdrawAmount, setWithdrawAmount] = useState<number | ''>('');
   const [accountantName, setAccountantName] = useState<string>('');
@@ -470,7 +524,7 @@ const DeliveryDashboard: React.FC = () => {
     const token = authContext?.token || localStorage.getItem('token');
     if (!token) return;
     try {
-      setLoadingWithdrawals(true);
+      // setLoadingWithdrawals(true);
       const res = await axios.get(`${backendUrl}/api/delivery/withdrawals`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
@@ -481,7 +535,7 @@ const DeliveryDashboard: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch withdrawal requests:', err);
     } finally {
-      setLoadingWithdrawals(false);
+      // setLoadingWithdrawals(false);
     }
   }, [authContext?.token, backendUrl]);
 
@@ -1025,30 +1079,6 @@ const DeliveryDashboard: React.FC = () => {
           {/* TAB 1: OVERVIEW PAGE */}
           {activeTab === 'overview' && (
             <div>
-              {/* Premium Gradient Banner */}
-              <div style={{ background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)', borderRadius: '20px', padding: '2rem', color: '#ffffff', marginBottom: '2rem', boxShadow: '0 10px 25px rgba(21, 128, 61, 0.1)' }}>
-                <h2 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 800 }}>Carrier Operations Desk</h2>
-                <p style={{ margin: '0.5rem 0 0 0', opacity: 0.85, fontSize: '0.95rem', fontWeight: 500 }}>
-                  Manage client distributions, active transits, and track direct delivery earnings.
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-                  <Button 
-                    label="List Available Orders" 
-                    icon="pi pi-bell" 
-                    className="p-button-outlined p-button-sm" 
-                    style={{ color: '#ffffff', borderColor: '#ffffff', borderRadius: '8px' }}
-                    onClick={() => { setActiveTab('new-orders'); fetchDashboardData(true); }} 
-                  />
-                  <Button 
-                    label="View My Transits" 
-                    icon="pi pi-map-marker" 
-                    className="p-button-sm" 
-                    style={{ backgroundColor: '#ffffff', color: '#15803d', border: 'none', borderRadius: '8px', fontWeight: 700 }}
-                    onClick={() => { setActiveTab('active-transits'); fetchDashboardData(true); }} 
-                  />
-                </div>
-              </div>
-
               {/* Metrics Panels */}
               <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                 <div className="premium-metric-card">
@@ -1094,19 +1124,44 @@ const DeliveryDashboard: React.FC = () => {
                     </div>
                   ) : (
                     <div>
-                      {activeOrders.slice(0, 2).map((order) => (
-                        <div key={order._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
-                          <div>
-                            <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{order.user?.name || 'Customer'}</span>
-                            <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b' }}>City: {order.shippingAddress?.city || 'Nellore'} | Bill: ₹{order.totalAmount}</span>
-                          </div>
-                          <Tag 
-                            value={order.deliveryStatus} 
-                            severity={order.deliveryStatus === 'Accepted' ? 'info' : 'warning'} 
-                            style={{ borderRadius: '6px' }}
-                          />
-                        </div>
-                      ))}
+                      <DataTable 
+                        value={activeOrders} 
+                        rows={3}
+                        paginator={activeOrders.length > 3}
+                        emptyMessage="No active transits at the moment."
+                        responsiveLayout="scroll"
+                        style={{ fontSize: '0.88rem' }}
+                      >
+                        <Column 
+                          header="Order Reference" 
+                          body={(o) => <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>#{o._id.substring(0, 10)}</span>} 
+                        />
+                        <Column 
+                          header="Customer" 
+                          body={(o) => <span>{o.user?.name || 'Customer'}</span>} 
+                        />
+                        <Column 
+                          header="City" 
+                          body={(o) => <span>{o.shippingAddress?.city || 'Nellore'}</span>} 
+                        />
+                        <Column 
+                          header="Bill Value" 
+                          body={(o) => <span style={{ fontWeight: 600 }}>₹{o.totalAmount.toFixed(2)}</span>} 
+                        />
+                        <Column 
+                          header="Status" 
+                          body={(o) => (
+                            <Tag 
+                              value={o.deliveryStatus} 
+                              severity={
+                                o.deliveryStatus === 'Accepted' ? 'info' : 
+                                o.deliveryStatus === 'Delivered' ? 'success' : 'warning'
+                              } 
+                              style={{ borderRadius: '6px' }} 
+                            />
+                          )} 
+                        />
+                      </DataTable>
                       <Button 
                         label="Manage Full Transits" 
                         icon="pi pi-arrow-right" 
@@ -1185,6 +1240,10 @@ const DeliveryDashboard: React.FC = () => {
                     <Column 
                       header="Payment Mode" 
                       body={(o) => <Tag value={o.paymentMethod?.toUpperCase()} severity={o.paymentMethod === 'cod' ? 'danger' : 'success'} style={{ borderRadius: '4px' }} />} 
+                    />
+                    <Column 
+                      header="Time Remaining" 
+                      body={(o) => <OrderCountdown createdAt={o.createdAt} onExpire={() => fetchDashboardData(true)} />} 
                     />
                     <Column 
                       header="Actions" 
@@ -1399,7 +1458,6 @@ const DeliveryDashboard: React.FC = () => {
                       value={withdrawals} 
                       paginator 
                       rows={5} 
-                      loading={loadingWithdrawals}
                       emptyMessage="No withdrawal requests submitted yet."
                       responsiveLayout="scroll"
                       style={{ fontSize: '0.88rem' }}

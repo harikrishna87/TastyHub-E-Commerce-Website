@@ -415,7 +415,7 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
       }
 
       const rememberToken = await createUserSession(user!._id as any, req, res);
-      sendToken(user!, 200, res, rememberToken);
+      sendToken(user!, 200, res, true, rememberToken);
       return;
     }
 
@@ -444,7 +444,7 @@ const googleAuth = async (req: Request, res: Response): Promise<void> => {
     }
 
     const rememberToken = await createUserSession(newUser._id as any, req, res);
-    sendToken(newUser, 201, res, rememberToken);
+    sendToken(newUser, 201, res, true, rememberToken);
   } catch (error: any) {
     console.error('Google auth error:', error);
     res.status(500).json({ success: false, message: 'Google authentication failed' });
@@ -505,7 +505,7 @@ const verifyOTP = async (req: Request, res: Response, next: NextFunction): Promi
     }
 
     const rememberToken = await createUserSession(user._id as any, req, res);
-    sendToken(user, 201, res, rememberToken);
+    sendToken(user, 201, res, true, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -576,7 +576,7 @@ const login = async (req: Request, res: Response, next: NextFunction): Promise<v
     }
 
     const rememberToken = await createUserSession(user._id as any, req, res, rememberMe);
-    sendToken(user, 200, res, rememberToken);
+    sendToken(user, 200, res, rememberMe, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -607,11 +607,13 @@ const logout = async (req: Request, res: Response, next: NextFunction): Promise<
     console.error('Error clearing session/coupons during logout:', error);
   }
 
+  const reqSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const isSecure = process.env.NODE_ENV === 'production' || reqSecure;
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isSecure,
+    sameSite: isSecure ? 'none' : 'lax',
   });
 
   res.status(200).json({ success: true, message: 'Logged out successfully' });
@@ -839,11 +841,13 @@ const DeleteAccount = async (req: Request, res: Response, next: NextFunction): P
       return;
     }
 
+    const reqSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const isSecure = process.env.NODE_ENV === 'production' || reqSecure;
     res.cookie('token', 'none', {
       expires: new Date(Date.now() + 10 * 1000),
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: isSecure,
+      sameSite: isSecure ? 'none' : 'lax',
     });
 
     res.status(200).json({
@@ -1192,7 +1196,7 @@ const guestLogin = async (req: Request, res: Response, next: NextFunction): Prom
       }
     }
     const rememberToken = await createUserSession(user._id as any, req, res);
-    sendToken(user, 200, res, rememberToken);
+    sendToken(user, 200, res, true, rememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1223,8 +1227,12 @@ const getLastLogin = async (req: Request, res: Response, next: NextFunction): Pr
     const currentIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || req.ip || '').split(',')[0].trim();
     const currentUA = req.headers['user-agent'] || '';
 
-    if ((session.ipAddress && session.ipAddress !== currentIp) || (session.userAgent && session.userAgent !== currentUA)) {
-      console.warn(`Security alert: Session hijack check failed for user ${user.email}. Expected IP: ${session.ipAddress}, Actual: ${currentIp}. Expected UA: ${session.userAgent}, Actual: ${currentUA}`);
+    if (session.ipAddress && session.ipAddress !== currentIp) {
+      console.warn(`Dynamic IP detected for user ${user.email}. Expected IP: ${session.ipAddress}, Actual: ${currentIp}. Session remains active.`);
+    }
+
+    if (session.userAgent && session.userAgent !== currentUA) {
+      console.warn(`Security alert: Session hijack check failed for user ${user.email} (User-Agent mismatch). Expected UA: ${session.userAgent}, Actual: ${currentUA}`);
       await clearUserSession(rememberToken, res);
       res.status(200).json({ success: false, message: 'Security validation failed. Please log in again.' });
       return;
@@ -1271,8 +1279,12 @@ const continueLogin = async (req: Request, res: Response, next: NextFunction): P
     const currentIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || req.ip || '').split(',')[0].trim();
     const currentUA = req.headers['user-agent'] || '';
 
-    if ((session.ipAddress && session.ipAddress !== currentIp) || (session.userAgent && session.userAgent !== currentUA)) {
-      console.warn(`Security alert: Session hijack check failed for user ${user.email}. Expected IP: ${session.ipAddress}, Actual: ${currentIp}. Expected UA: ${session.userAgent}, Actual: ${currentUA}`);
+    if (session.ipAddress && session.ipAddress !== currentIp) {
+      console.warn(`Dynamic IP detected for user ${user.email}. Expected IP: ${session.ipAddress}, Actual: ${currentIp}. Session remains active.`);
+    }
+
+    if (session.userAgent && session.userAgent !== currentUA) {
+      console.warn(`Security alert: Session hijack check failed for user ${user.email} (User-Agent mismatch). Expected UA: ${session.userAgent}, Actual: ${currentUA}`);
       await clearUserSession(rememberToken, res);
       res.status(401).json({ success: false, message: 'Security validation failed. Please log in again.' });
       return;
@@ -1282,7 +1294,7 @@ const continueLogin = async (req: Request, res: Response, next: NextFunction): P
     const newRememberToken = await createUserSession(user._id, req, res, session.rememberMe !== false);
 
     // Login user by sending JWT token
-    sendToken(user, 200, res, newRememberToken);
+    sendToken(user, 200, res, session.rememberMe !== false, newRememberToken);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

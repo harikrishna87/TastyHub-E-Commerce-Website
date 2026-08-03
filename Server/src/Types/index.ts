@@ -32,7 +32,7 @@ export interface IUser extends Document {
   getJwtToken: () => string;
 }
 
-export type OrderDeliveryStatus = 'Pending' | 'Accepted' | 'Preparing' | 'Pickup' | 'Out for Delivery' | 'Delivered' | 'Shipped';
+export type OrderDeliveryStatus = 'Pending' | 'Accepted' | 'Preparing' | 'Pickup' | 'Out for Delivery' | 'Delivered' | 'Shipped' | 'Cancelled' | 'Refunded';
 
 export interface ICartItem {
   _id?: string;
@@ -72,6 +72,12 @@ export interface IOrder extends Document {
   isDeliveryRated?: boolean;
   productRating?: number;
   deliveryRating?: number;
+  cancellationReason?: string;
+  walletDeduction?: number;
+  giftCardDeduction?: number;
+  giftCardCode?: string;
+  isRefunded?: boolean;
+  refundDetails?: string;
   createdAt: Date;
   updatedAt: Date;
 }

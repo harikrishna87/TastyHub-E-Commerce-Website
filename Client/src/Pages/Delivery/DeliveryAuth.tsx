@@ -168,13 +168,20 @@ const DeliveryAuth: React.FC = () => {
   useEffect(() => {
     const fetchLastLogin = async () => {
       try {
+        const rememberToken = localStorage.getItem('remember_token') || sessionStorage.getItem('remember_token');
         const response = await axios.get(`${backendUrl}/api/auth/last-login`, {
+          headers: rememberToken ? { 'X-Remember-Token': rememberToken } : undefined,
           withCredentials: true
         });
         if (response.data.success && response.data.user.role === 'delivery_executive') {
           setCachedSession({
             user: response.data.user
           });
+        } else {
+          if (rememberToken && response.data.success === false) {
+            localStorage.removeItem('remember_token');
+            sessionStorage.removeItem('remember_token');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch last login from backend:', err);
@@ -298,9 +305,14 @@ const DeliveryAuth: React.FC = () => {
             onClick={async () => {
               try {
                 setLoading(true);
-                const response = await axios.post(`${backendUrl}/api/auth/continue-login`, {}, {
-                  withCredentials: true
-                });
+                const rememberToken = localStorage.getItem('remember_token') || sessionStorage.getItem('remember_token');
+                const response = await axios.post(`${backendUrl}/api/auth/continue-login`, 
+                  { rememberToken }, 
+                  {
+                    headers: rememberToken ? { 'X-Remember-Token': rememberToken } : undefined,
+                    withCredentials: true
+                  }
+                );
                 if (response.data.success) {
                   const { user, token } = response.data;
                   if (user.deliveryStatus === 'Pending') {
@@ -314,10 +326,14 @@ const DeliveryAuth: React.FC = () => {
                   navigate('/delivery/home');
                 } else {
                   message.error(response.data.message || 'Could not restore session');
+                  localStorage.removeItem('remember_token');
+                  sessionStorage.removeItem('remember_token');
                   setCachedSession(null);
                 }
               } catch (err: any) {
                 message.error(err.response?.data?.message || 'Server error during auto-login');
+                localStorage.removeItem('remember_token');
+                sessionStorage.removeItem('remember_token');
                 setCachedSession(null);
               } finally {
                 setLoading(false);

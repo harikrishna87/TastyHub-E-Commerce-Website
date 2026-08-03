@@ -45,7 +45,7 @@ export interface ICartItem {
   description?: string;
 }
 
-export type OrderDeliveryStatus = 'Pending' | 'Accepted' | 'Preparing' | 'Pickup' | 'Out for Delivery' | 'Delivered' | 'Shipped';
+export type OrderDeliveryStatus = 'Pending' | 'Accepted' | 'Preparing' | 'Pickup' | 'Out for Delivery' | 'Delivered' | 'Shipped' | 'Cancelled' | 'Refunded';
 
 export interface ShippingAddress {
   fullName?: string;
@@ -84,6 +84,9 @@ export interface IOrder {
   paymentId?: string;
   productRating?: number;
   deliveryRating?: number;
+  cancellationReason?: string;
+  isRefunded?: boolean;
+  refundDetails?: string;
 }
 
 declare global {

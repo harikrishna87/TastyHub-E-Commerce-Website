@@ -66,13 +66,14 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       localStorage.removeItem('user');
       localStorage.removeItem('token');
-      localStorage.removeItem('remember_token');
-      localStorage.removeItem('remember_me_flag');
+      // Keep remember_token and remember_me_flag so returning users are greeted with the Welcome Back card
+      // localStorage.removeItem('remember_token');
+      // localStorage.removeItem('remember_me_flag');
 
       sessionStorage.removeItem('user');
       sessionStorage.removeItem('token');
-      sessionStorage.removeItem('remember_token');
-      sessionStorage.removeItem('remember_me_flag');
+      // sessionStorage.removeItem('remember_token');
+      // sessionStorage.removeItem('remember_me_flag');
 
       localStorage.setItem('logout_intentional', 'true');
     } catch (e) {

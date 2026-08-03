@@ -15,13 +15,15 @@ import { formatDate } from '../../utils/dateFormatter';
 
 const getAvailableStatusOptions = (currentStatus: OrderDeliveryStatus): OrderDeliveryStatus[] => {
   const statusFlow: Record<OrderDeliveryStatus, OrderDeliveryStatus[]> = {
-    'Pending': ['Pending', 'Accepted'],
-    'Accepted': ['Accepted', 'Preparing'],
-    'Preparing': ['Preparing', 'Pickup'],
-    'Pickup': ['Pickup', 'Out for Delivery'],
-    'Out for Delivery': ['Out for Delivery', 'Delivered'],
-    'Shipped': ['Shipped', 'Delivered'],
-    'Delivered': ['Delivered']
+    'Pending': ['Pending', 'Accepted', 'Cancelled'],
+    'Accepted': ['Accepted', 'Preparing', 'Cancelled'],
+    'Preparing': ['Preparing', 'Pickup', 'Cancelled'],
+    'Pickup': ['Pickup', 'Out for Delivery', 'Cancelled'],
+    'Out for Delivery': ['Out for Delivery', 'Delivered', 'Cancelled'],
+    'Shipped': ['Shipped', 'Delivered', 'Cancelled'],
+    'Delivered': ['Delivered'],
+    'Cancelled': ['Cancelled'],
+    'Refunded': ['Refunded']
   };
   return statusFlow[currentStatus] || ['Pending'];
 };
@@ -37,6 +39,8 @@ const OrderManagement: React.FC = () => {
   const [addressVisible, setAddressVisible] = useState<boolean>(false);
   
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null);
+  const [refundLoading, setRefundLoading] = useState<boolean>(false);
+  const [retryLoading, setRetryLoading] = useState<boolean>(false);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -133,6 +137,84 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  const handleInitiateRefund = async (orderId: string) => {
+    if (!auth?.token) return;
+    try {
+      setRefundLoading(true);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      };
+
+      const response = await axios.patch(`${backendUrl}/api/orders/${orderId}/refund`, {}, config);
+      if (response.data.success) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Refund Completed',
+          detail: response.data.message || 'Refund successfully completed'
+        });
+        
+        // Update the order in state so that the modal updates instantly!
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder(prev => prev ? { ...prev, isRefunded: true, deliveryStatus: 'Refunded', refundDetails: response.data.refundDetails } : null);
+        }
+        
+        // Refresh full orders list
+        fetchOrders();
+      }
+    } catch (err: any) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Refund Failed',
+        detail: err.response?.data?.message || 'Failed to initiate refund'
+      });
+    } finally {
+      setRefundLoading(false);
+    }
+  };
+
+  const handleRetryOrder = async (orderId: string) => {
+    if (!auth?.token) return;
+    try {
+      setRetryLoading(true);
+      const config = {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      };
+
+      const response = await axios.patch(`${backendUrl}/api/orders/${orderId}/retry`, {}, config);
+      if (response.data.success) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Search Restarted',
+          detail: 'Searching for a new delivery partner successfully.'
+        });
+        
+        // Update the order in state so that the modal updates instantly!
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder(response.data.order);
+        }
+        
+        // Refresh full orders list
+        fetchOrders();
+      }
+    } catch (err: any) {
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Retry Failed',
+        detail: err.response?.data?.message || 'Failed to retry order matching'
+      });
+    } finally {
+      setRetryLoading(false);
+    }
+  };
+
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
     doc.setFont('times', 'bold');
@@ -209,6 +291,8 @@ const OrderManagement: React.FC = () => {
     else if (status === 'Accepted') severity = 'info';
     else if (status === 'Preparing') severity = 'warning';
     else if (status === 'Pickup' || status === 'Out for Delivery' || status === 'Shipped') severity = 'info';
+    else if (status === 'Cancelled') severity = 'danger';
+    else if (status === 'Refunded') severity = 'info';
     return <Tag value={status} severity={severity} style={{ borderRadius: '6px' }} />;
   };
 
@@ -401,6 +485,63 @@ const OrderManagement: React.FC = () => {
               <div><strong>Email:</strong> {selectedOrder.user?.email || 'N/A'}</div>
               <div><strong>Order Date:</strong> {formatDate(selectedOrder.createdAt)}</div>
               <div><strong>Status:</strong> {getStatusTag(selectedOrder.deliveryStatus)}</div>
+              {selectedOrder.deliveryStatus === 'Cancelled' && (
+                <div style={{ gridColumn: 'span 2', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '0.75rem 1rem', marginTop: '0.5rem' }}>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#b91c1c', fontWeight: 700 }}>Cancellation Reason: </span>
+                    <span style={{ color: '#991b1b' }}>{selectedOrder.cancellationReason || 'No reason provided'}</span>
+                  </div>
+                  
+                  <div style={{ borderTop: '1px dashed #fca5a5', paddingTop: '0.5rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ color: '#374151', fontWeight: 700, fontSize: '0.85rem' }}>Refund Status: </span>
+                      {selectedOrder.isRefunded ? (
+                        <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '0.85rem' }}>
+                          <i className="pi pi-check-circle" style={{ marginRight: '4px' }} />
+                          {selectedOrder.refundDetails || 'Refund Completed'}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#d97706', fontWeight: 700, fontSize: '0.85rem' }}>
+                          <i className="pi pi-exclamation-circle" style={{ marginRight: '4px' }} />
+                          Not Refunded
+                        </span>
+                      )}
+                    </div>
+                    
+                    {!selectedOrder.isRefunded && (
+                      <Button
+                        type="button"
+                        label="Initiate Refund"
+                        icon="pi pi-refresh"
+                        severity="warning"
+                        className="p-button-sm"
+                        style={{ borderRadius: '6px' }}
+                        loading={refundLoading}
+                        onClick={() => handleInitiateRefund(selectedOrder._id)}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+              {selectedOrder.deliveryStatus === 'Pending' && 
+               (Date.now() - new Date(selectedOrder.createdAt).getTime() >= 10 * 60 * 1000) && (
+                <div style={{ gridColumn: 'span 2', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '0.75rem 1rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ color: '#b45309', fontWeight: 700 }}><i className="pi pi-exclamation-triangle" style={{ marginRight: '4px' }} />Status Notice: </span>
+                    <span style={{ color: '#92400e' }}>Delivery partner has not accepted this order yet.</span>
+                  </div>
+                  <Button
+                    type="button"
+                    label="Try Again (Restart Search)"
+                    icon="pi pi-refresh"
+                    severity="danger"
+                    className="p-button-sm"
+                    style={{ borderRadius: '6px' }}
+                    loading={retryLoading}
+                    onClick={() => handleRetryOrder(selectedOrder._id)}
+                  />
+                </div>
+              )}
             </div>
 
             <div style={{ ...styles.dialogSectionTitle, marginTop: '1.5rem' }}>Product Items</div>

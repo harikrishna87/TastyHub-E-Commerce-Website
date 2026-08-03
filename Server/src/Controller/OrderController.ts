@@ -239,6 +239,10 @@ const createOrder = async (req: Request, res: Response, next: NextFunction) => {
         shippingAddress: shippingAddress,
         paymentMethod: resolvedPaymentMethod,
         paymentId: paymentId || (resolvedPaymentMethod === 'gift_card' ? `GIFT-${Date.now()}` : (resolvedPaymentMethod === 'wallet' ? `WAL-${Date.now()}` : undefined)),
+        walletDeduction: appliedWalletDeduction,
+        giftCardDeduction: appliedGiftCardDeduction,
+        giftCardCode: giftCardCode || undefined,
+        isRefunded: false,
       });
       await newOrder.save({ session });
 
@@ -511,7 +515,7 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
       });
     }
 
-    if (!['Pending', 'Shipped', 'Delivered'].includes(status)) {
+    if (!['Pending', 'Accepted', 'Preparing', 'Pickup', 'Out for Delivery', 'Shipped', 'Delivered', 'Cancelled'].includes(status)) {
       console.log('❌ Invalid delivery status');
       return res.status(400).json({ success: false, message: 'Invalid delivery status' });
     }
@@ -671,4 +675,221 @@ const deleteOrder = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById, deleteOrder };
+const cancelOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid order ID format' });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // Only the user who placed it or an admin can cancel
+    if (order.user.toString() !== userId.toString() && req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'You are not authorized to cancel this order' });
+    }
+
+    // Verify 10-minute deadline (admin is exempt)
+    const orderAgeMs = Date.now() - new Date(order.createdAt).getTime();
+    const tenMinutesMs = 10 * 60 * 1000;
+    if (orderAgeMs > tenMinutesMs && req.user?.role !== 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cancellation window (10 minutes) has expired. You can no longer cancel this order.'
+      });
+    }
+
+    if (order.deliveryStatus === 'Delivered') {
+      return res.status(400).json({ success: false, message: 'Delivered orders cannot be cancelled.' });
+    }
+
+    if (order.deliveryStatus === 'Cancelled') {
+      return res.status(400).json({ success: false, message: 'Order is already cancelled.' });
+    }
+
+    // Cancel order
+    order.deliveryStatus = 'Cancelled';
+    order.cancellationReason = reason || 'Cancelled by customer';
+    await order.save();
+
+    // Populate order user for email notification
+    const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
+    if (populatedOrder) {
+      await EmailService.sendOrderStatusUpdate(populatedOrder, 'Cancelled').catch((err: any) => {
+        console.error('Failed to send cancellation email:', err);
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Order cancelled successfully',
+      order
+    });
+  } catch (error: any) {
+    console.error('Error cancelling order:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const initiateRefund = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid order ID format' });
+    }
+
+    const order: any = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.deliveryStatus !== 'Cancelled') {
+      return res.status(400).json({ success: false, message: 'Refunds can only be initiated for Cancelled orders.' });
+    }
+
+    if (order.isRefunded) {
+      return res.status(400).json({ success: false, message: 'Refund has already been completed for this order.' });
+    }
+
+    const user = await User.findById(order.user);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User associated with order not found' });
+    }
+
+    let refundedToWallet = 0;
+    let refundedToGiftCard = 0;
+
+    // Refund wallet deduction
+    if (order.walletDeduction && order.walletDeduction > 0) {
+      user.walletBalance = Number(((user.walletBalance || 0) + order.walletDeduction).toFixed(2));
+      refundedToWallet += order.walletDeduction;
+
+      // Create transaction record
+      const transactionRecord = new Transaction({
+        user: user._id,
+        type: 'Credit',
+        amount: order.walletDeduction,
+        description: `Wallet Refund for Cancelled Order #${order._id.toString().substring(0, 10)}`
+      });
+      await transactionRecord.save();
+    }
+
+    // Refund gift card deduction
+    if (order.giftCardCode && order.giftCardDeduction && order.giftCardDeduction > 0) {
+      const giftCard = await GiftCard.findOne({ code: order.giftCardCode.toUpperCase() });
+      if (giftCard) {
+        giftCard.balance = Number(((giftCard.balance || 0) + order.giftCardDeduction).toFixed(2));
+        giftCard.isActive = true;
+        await giftCard.save();
+        refundedToGiftCard += order.giftCardDeduction;
+      } else {
+        // Fallback: refund to user's wallet if gift card is not found
+        user.walletBalance = Number(((user.walletBalance || 0) + order.giftCardDeduction).toFixed(2));
+        refundedToWallet += order.giftCardDeduction;
+
+        const transactionRecord = new Transaction({
+          user: user._id,
+          type: 'Credit',
+          amount: order.giftCardDeduction,
+          description: `Gift Card Fallback Wallet Refund for Cancelled Order #${order._id.toString().substring(0, 10)}`
+        });
+        await transactionRecord.save();
+      }
+    }
+
+    // Save updated user
+    await user.save();
+
+    // Update order refund state
+    order.isRefunded = true;
+    order.deliveryStatus = 'Refunded';
+    order.refundDetails = `Refunded ₹${refundedToWallet.toFixed(2)} to Wallet and ₹${refundedToGiftCard.toFixed(2)} to Gift Card.`;
+    await order.save();
+
+    // Record system admin notification for audit
+    const adminNotify = new AdminNotification({
+      type: 'refund_initiated',
+      title: 'Order Refund Completed',
+      message: `Refunded ₹${refundedToWallet.toFixed(2)} (Wallet) & ₹${refundedToGiftCard.toFixed(2)} (GiftCard) for Cancelled Order #${order._id.toString().substring(0, 10)} to ${user.name}`,
+      userId: user._id,
+      orderId: order._id,
+      userName: user.name,
+      userEmail: user.email,
+      orderAmount: order.totalAmount,
+      isRead: false,
+    });
+    await adminNotify.save();
+
+    // Trigger confirmation email
+    const populatedOrder = await Order.findById(order._id).populate('user', 'name email');
+    if (populatedOrder) {
+      EmailService.sendOrderStatusUpdate(populatedOrder, 'Refunded' as any).catch((err: any) => {
+        console.error('Failed to send refund email:', err);
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Refund initiated and completed successfully',
+      refundDetails: order.refundDetails,
+      order
+    });
+  } catch (error: any) {
+    console.error('Error initiating refund:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const retryOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    if (!Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid order ID format' });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    if (order.user.toString() !== userId.toString() && req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'You are not authorized to update this order' });
+    }
+
+    if (order.deliveryStatus !== 'Pending') {
+      return res.status(400).json({ success: false, message: 'Only pending orders that have not been accepted can be retried.' });
+    }
+
+    // Reset the order creation time to now to restart the matching flow and cancellation window
+    order.createdAt = new Date();
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Searching for a new delivery partner. Resetting window.',
+      order
+    });
+  } catch (error: any) {
+    console.error('Error retrying order:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export { createOrder, getAllOrders, getUserOrders, updateOrderStatus, getOrderById, deleteOrder, cancelOrder, initiateRefund, retryOrder };
