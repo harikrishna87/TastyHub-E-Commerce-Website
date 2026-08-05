@@ -596,6 +596,151 @@ class EmailService {
       console.error('Failed to send Combo Deal purchase email:', error);
     }
   }
+
+  async sendContactInquiryEmail(inquiry: any): Promise<void> {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{
+      email: process.env.BREVO_FROM_EMAIL || 'admin@tastyhub.com',
+      name: 'TastyHub Admin'
+    }];
+    sendSmtpEmail.sender = {
+      email: process.env.BREVO_FROM_EMAIL || 'support@tastyhub.com',
+      name: 'TastyHub System'
+    };
+    sendSmtpEmail.subject = `New Contact Inquiry from ${inquiry.fullname}`;
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8e8e8; border-radius: 8px; }
+          .header { border-bottom: 2px solid #166534; padding-bottom: 10px; margin-bottom: 20px; font-size: 20px; font-weight: bold; color: #166534; }
+          .field { margin-bottom: 12px; }
+          .label { font-weight: bold; color: #166534; }
+          .message-box { background: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 4px; margin-top: 15px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">New Customer Inquiry Received</div>
+          <div class="field"><span class="label">Full Name:</span> ${inquiry.fullname}</div>
+          <div class="field"><span class="label">Email Address:</span> ${inquiry.email}</div>
+          <div class="field"><span class="label">Phone Number:</span> ${inquiry.phone}</div>
+          <div class="field"><span class="label">Preferred Dish:</span> ${inquiry.preferredDish}</div>
+          <div class="field"><span class="label">Dietary Choice:</span> ${inquiry.dietaryRestrictions}</div>
+          <div class="field"><span class="label">Inquiry Category:</span> ${inquiry.orderType}</div>
+          <div class="field"><span class="label">Guests:</span> ${inquiry.guestCount || 1}</div>
+          <div class="field"><span class="label">Event Date:</span> ${inquiry.eventDate || 'N/A'}</div>
+          <div class="message-box">
+            <div class="label" style="margin-bottom: 8px;">Customer Message:</div>
+            <p style="margin: 0; white-space: pre-wrap;">${inquiry.message}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log(`✅ Contact inquiry email sent successfully to admin via Brevo`);
+    } catch (error: any) {
+      console.error('❌ Failed to send contact inquiry email:', error);
+    }
+  }
+
+  async sendInquiryConfirmationToCustomer(inquiry: any): Promise<void> {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: inquiry.email, name: inquiry.fullname }];
+    sendSmtpEmail.sender = {
+      email: process.env.BREVO_FROM_EMAIL || 'support@tastyhub.com',
+      name: 'TastyHub Support'
+    };
+    sendSmtpEmail.subject = `Your inquiry sent to TastyHub successfully!`;
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8e8e8; border-radius: 8px; }
+          .header { border-bottom: 2px solid #166534; padding-bottom: 10px; margin-bottom: 20px; font-size: 20px; font-weight: bold; color: #166534; text-align: center; }
+          .field { margin-bottom: 12px; }
+          .label { font-weight: bold; color: #166534; }
+          .details { border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">Inquiry Received Successfully</div>
+          <p>Hello <strong>${inquiry.fullname}</strong>,</p>
+          <p>Thank you for reaching out! Your inquiry has been sent to TastyHub successfully. Our administration team is reviewing your request and will follow up with you shortly.</p>
+          
+          <div class="details">
+            <h4 style="margin: 0 0 10px 0; color: #166534;">Summary of Submitted Details:</h4>
+            <div class="field"><span class="label">Inquiry Category:</span> ${inquiry.orderType}</div>
+            <div class="field"><span class="label">Preferred Dish:</span> ${inquiry.preferredDish}</div>
+            <div class="field"><span class="label">Dietary Choice:</span> ${inquiry.dietaryRestrictions}</div>
+            <div class="field"><span class="label">Group Size:</span> ${inquiry.guestCount || 1} Guests</div>
+            <div class="field"><span class="label">Booking Date:</span> ${inquiry.eventDate || 'N/A'}</div>
+            <div class="field"><span class="label">Your Message:</span><br><span style="color: #666;">${inquiry.message}</span></div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log(`✅ Confirmation email sent to customer ${inquiry.email}`);
+    } catch (error: any) {
+      console.error('❌ Failed to send confirmation email to customer:', error);
+    }
+  }
+
+  async sendInquiryReplyToCustomer(inquiry: any, replyMessage: string): Promise<void> {
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.to = [{ email: inquiry.email, name: inquiry.fullname }];
+    sendSmtpEmail.sender = {
+      email: process.env.BREVO_FROM_EMAIL || 'support@tastyhub.com',
+      name: 'TastyHub Team'
+    };
+    sendSmtpEmail.subject = `Update on your TastyHub inquiry`;
+    sendSmtpEmail.htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8e8e8; border-radius: 8px; }
+          .header { border-bottom: 2px solid #166534; padding-bottom: 10px; margin-bottom: 20px; font-size: 20px; font-weight: bold; color: #166534; }
+          .reply-box { font-size: 15px; font-weight: 600; color: #166534; padding: 15px; background: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">Response to your Inquiry</div>
+          <p>Hello <strong>${inquiry.fullname}</strong>,</p>
+          <p>Our administrator has reviewed your inquiry regarding <strong>${inquiry.orderType}</strong>. Here is their response:</p>
+          
+          <div class="reply-box">
+            ${replyMessage}
+          </div>
+          
+          <p>If you have any further questions, feel free to reply directly to this email or submit a new contact request.</p>
+          <p>Best regards,<br>TastyHub Support Team</p>
+        </div>
+      </body>
+      </html>
+    `;
+    try {
+      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log(`✅ Admin reply email sent successfully to customer ${inquiry.email}`);
+    } catch (error: any) {
+      console.error('❌ Failed to send admin reply email to customer:', error);
+    }
+  }
 }
 
 export default new EmailService();

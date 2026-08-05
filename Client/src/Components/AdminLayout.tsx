@@ -186,6 +186,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { label: 'Orders', icon: 'pi pi-shopping-bag', path: '/admin/ordermanagement' },
     { label: 'Products', icon: 'pi pi-box', path: '/admin/productspage' },
     { label: 'Customers', icon: 'pi pi-users', path: '/admin/customers' },
+    { label: 'Enquiries', icon: 'pi pi-envelope', path: '/admin/inquiries' },
     {
       label: 'Delivery Management',
       icon: 'pi pi-truck',

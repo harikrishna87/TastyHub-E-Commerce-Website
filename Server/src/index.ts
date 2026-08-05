@@ -23,6 +23,8 @@ import helmet from "helmet";
 import { apiLimiter } from "./Middleware/RateLimitMiddleware";
 import { metricsMiddleware } from "./Middleware/MetricsMiddleware";
 import systemStatsRouter from "./Routes/SystemStatsRoutes";
+import chatRoutes from "./Routes/ChatRoutes";
+import inquiryRouter from "./Routes/InquiryRoutes";
 
 
 dotenv.config();
@@ -40,7 +42,8 @@ const requiredEnv = [
   "CLOUDINARY_API_KEY",
   "CLOUDINARY_API_SECRET",
   "GOOGLE_LOGIN_CLIENT_ID",
-  "GOOGLE_LOGIN_CLIENT_SECRET"
+  "GOOGLE_LOGIN_CLIENT_SECRET",
+  "GEMINI_API_KEY"
 ];
 requiredEnv.forEach((key) => {
   if (!process.env[key]) {
@@ -240,6 +243,8 @@ app.use("/api/promo", promoRouter);
 app.use("/api/restaurants", restaurantRouter);
 app.use("/api/offers", offerRouter);
 app.use("/api/reviews", reviewRouter);
+app.use("/api/chat", chatRoutes);
+app.use("/api/inquiries", inquiryRouter);
 
 // Unified Global Error Handling Middleware for API stability and security
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

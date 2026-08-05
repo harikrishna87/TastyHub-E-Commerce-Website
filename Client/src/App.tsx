@@ -11,7 +11,7 @@ import PrivacyPolicy from './Pages/Customer/PrivacyPolicy'
 import TermsOfService from './Pages/Customer/TermsOfService'
 import { AuthProvider, AuthContext } from './context/AuthContext'
 import AuthPage from './Pages/Customer/UserAuth'
-import VoiceAssistant from './Components/VoiceAssistant'
+import ChatbotWidget from './Components/ChatbotWidget'
 
 import ProtectedRoute from './Components/ProtectedRoute'
 import ProductsPage from './Pages/Admin/ProductsPage'
@@ -40,6 +40,7 @@ import DeliveryLandingPage from './Pages/Delivery/DeliveryLandingPage'
 import ComboDeals from './Pages/Customer/ComboDeals'
 import AdminAuth from './Pages/Admin/AdminAuth'
 import SystemStats from './Pages/Admin/SystemStats'
+import InquiriesManagement from './Pages/Admin/InquiriesManagement'
 
 
 const AppContent: React.FC = () => {
@@ -62,6 +63,7 @@ const AppContent: React.FC = () => {
           <Route path='/admin/productspage' element={<ProductsPage />} />
           <Route path='/admin/ordermanagement' element={<OrderManagement />} />
           <Route path='/admin/customers' element={<CustomersManagement />} />
+          <Route path='/admin/inquiries' element={<InquiriesManagement />} />
           <Route path='/admin/delivery' element={<DeliveryManagement />} />
           <Route path='/admin/coupons' element={<CouponsManagement />} />
           <Route path='/admin/restaurants' element={<RestaurantsManagement />} />
@@ -149,7 +151,7 @@ const AppContent: React.FC = () => {
         </Routes>
       </div>
       {!isDeliveryRoute && !isAuthRoute && <FoodFooter />}
-      {!isDeliveryRoute && !isAdminRoute && !isAuthRoute && <VoiceAssistant />}
+      {!isDeliveryRoute && !isAdminRoute && !isAuthRoute && <ChatbotWidget />}
     </>
   )
 }

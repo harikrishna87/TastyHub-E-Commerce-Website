@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import emailjs from '@emailjs/browser';
+import axios from 'axios';
 import { Card } from 'primereact/card';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
@@ -127,8 +127,10 @@ const Contact: React.FC = () => {
     email: '',
     phone: '',
     preferredDish: '',
-    dietaryRestrictions: '',
-    orderType: '',
+    dietaryRestrictions: 'none',
+    orderType: 'booking', // default to Table Booking
+    guestCount: 2,
+    eventDate: '',
     message: ''
   });
 
@@ -148,27 +150,32 @@ const Contact: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.fullname || !formData.email || !formData.phone || !formData.preferredDish || !formData.dietaryRestrictions || !formData.orderType || !formData.message) {
+    if (!formData.fullname || !formData.email || !formData.phone || !formData.preferredDish || !formData.message) {
       messageApi.error('Please fill in all required fields.');
       return;
     }
     setLoading(true);
-    emailjs.send('service_cypqzag', 'template_901b629', formData, '78l0nLUglTZmz0VAp')
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+    axios.post(`${backendUrl}/api/inquiries`, formData)
       .then(() => {
-        messageApi.success('Your message has been received. Our team will reach out soon.');
+        messageApi.success('Your enquiry sent to TastyHub successfully! A confirmation email has been dispatched.');
         setFormData({
           fullname: '',
           email: '',
           phone: '',
           preferredDish: '',
-          dietaryRestrictions: '',
-          orderType: '',
+          dietaryRestrictions: 'none',
+          orderType: 'booking',
+          guestCount: 2,
+          eventDate: '',
           message: ''
         });
       })
       .catch((error: any) => {
-        messageApi.error('Email transmission failed. Please try again later.');
-        console.error('EmailJS Error:', error);
+        messageApi.error('Submission failed. Please try again later.');
+        console.error('Inquiry Submission Error:', error);
       })
       .finally(() => setLoading(false));
   };
@@ -181,10 +188,10 @@ const Contact: React.FC = () => {
             CONNECT WITH TASTYHUB
           </span>
           <h1 style={{ color: '#166534', fontWeight: 900, fontSize: '3rem', margin: '0 0 1rem 0' }}>
-            Let's Start a Conversation
+            Table Bookings & Inquiries
           </h1>
           <p style={{ color: '#475569', fontSize: '1.15rem', maxWidth: '650px', margin: '0 auto', lineHeight: '1.6' }}>
-            Reach out for support, orders, catering, or feedback. We kept this page clean and consistent with the green and white customer theme.
+            Submit a reservation request, coordinate a catering event, or ask about private dining bookings. Our team will review and confirm your request.
           </p>
         </div>
 
@@ -221,23 +228,23 @@ const Contact: React.FC = () => {
             <Card className="contact-card" style={{ padding: '2rem' }}>
               <h3 style={{ color: '#166534', fontWeight: 800, fontSize: '1.5rem', margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <i className="pi pi-question-circle" style={{ color: '#22c55e', fontSize: '1.3rem' }} />
-                <span>Frequently Asked Questions</span>
+                <span>Booking FAQs</span>
               </h3>
 
               <Accordion className="faq-accordion" expandIcon="pi pi-chevron-right" collapseIcon="pi pi-chevron-down">
-                <AccordionTab header="Can I schedule my delivery in advance?">
+                <AccordionTab header="How long in advance should I book?">
                   <span style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.5, display: 'block' }}>
-                    Yes. During checkout, choose your preferred date and timeslot for scheduled delivery.
+                    We recommend requesting table reservations at least 24 hours in advance and catering bookings at least 7 days ahead.
                   </span>
                 </AccordionTab>
-                <AccordionTab header="How does wallet balance work?">
+                <AccordionTab header="Is there a minimum group size?">
                   <span style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.5, display: 'block' }}>
-                    If wallet payment is enabled during checkout, the available amount is deducted automatically before external payment.
+                    For standard tables, there is no minimum. For private dining events and custom catering services, we cater for groups of 10 or more.
                   </span>
                 </AccordionTab>
-                <AccordionTab header="How do I redeem gift cards?">
+                <AccordionTab header="How do I receive confirmation?">
                   <span style={{ color: '#475569', fontSize: '0.88rem', lineHeight: 1.5, display: 'block' }}>
-                    Open your profile, go to the Gift Cards tab, and redeem the code to credit your balance.
+                    You will receive an automated confirmation email immediately. Once an admin approves the booking, a confirmation reply will be emailed to you.
                   </span>
                 </AccordionTab>
               </Accordion>
@@ -247,8 +254,8 @@ const Contact: React.FC = () => {
           {/* Right Column (Form) */}
           <div style={{ flex: '2 2 500px' }}>
             <Card className="contact-card" style={{ height: '100%', padding: '3rem' }}>
-              <h3 style={{ color: '#166534', fontWeight: 800, fontSize: '1.5rem', margin: '0 0 0.25rem 0' }}>Send a Message</h3>
-              <p style={{ color: '#64748b', margin: '0 0 2.5rem 0' }}>Our team usually responds within one business hour.</p>
+              <h3 style={{ color: '#166534', fontWeight: 800, fontSize: '1.5rem', margin: '0 0 0.25rem 0' }}>Enquiry & Reservation Form</h3>
+              <p style={{ color: '#64748b', margin: '0 0 2.5rem 0' }}>Provide event details below to submit your corporate, dining, or table booking request.</p>
 
               <form onSubmit={handleSubmit}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
@@ -287,12 +294,12 @@ const Contact: React.FC = () => {
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ color: '#166534', fontWeight: 600 }}>Preferred Dish *</label>
+                    <label style={{ color: '#166534', fontWeight: 600 }}>Preferred Dish/Menu Selection *</label>
                     <InputText
                       value={formData.preferredDish}
                       onChange={(e) => setFormData({ ...formData, preferredDish: e.target.value })}
                       className="contact-input"
-                      placeholder="Artisan Veg Pizza"
+                      placeholder="e.g. Chicken Biryani / Multi-cuisine Buffet"
                       required
                     />
                   </div>
@@ -300,52 +307,81 @@ const Contact: React.FC = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ color: '#166534', fontWeight: 600 }}>Dietary Choices *</label>
+                    <label style={{ color: '#166534', fontWeight: 600 }}>Inquiry Type *</label>
                     <Dropdown
-                      value={formData.dietaryRestrictions || null}
+                      value={formData.orderType}
                       options={[
-                        { label: 'None', value: 'none' },
-                        { label: 'Pure Vegetarian', value: 'vegetarian' },
-                        { label: 'Non-Vegetarian', value: 'non-vegetarian' },
-                        { label: 'Other', value: 'other' }
-                      ]}
-                      onChange={(e) => setFormData({ ...formData, dietaryRestrictions: e.value })}
-                      placeholder="Select choice"
-                      className="contact-select"
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ color: '#166534', fontWeight: 600 }}>Inquiry Category *</label>
-                    <Dropdown
-                      value={formData.orderType || null}
-                      options={[
-                        { label: 'Takeaway', value: 'takeaway' },
-                        { label: 'Delivery', value: 'delivery' },
-                        { label: 'Catering', value: 'catering' },
-                        { label: 'Bulk Ordering', value: 'bulk-ordering' },
-                        { label: 'General Inquiry', value: 'inquiry' }
+                        { label: 'Table Reservation', value: 'Table Booking' },
+                        { label: 'Private Dining Event', value: 'Private Event' },
+                        { label: 'Catering Request', value: 'Catering Service' },
+                        { label: 'General Feedback', value: 'General Feedback' }
                       ]}
                       onChange={(e) => setFormData({ ...formData, orderType: e.value })}
                       placeholder="Select category"
                       className="contact-select"
                     />
                   </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ color: '#166534', fontWeight: 600 }}>Dietary Choices *</label>
+                    <Dropdown
+                      value={formData.dietaryRestrictions}
+                      options={[
+                        { label: 'None', value: 'none' },
+                        { label: 'Pure Vegetarian', value: 'vegetarian' },
+                        { label: 'Non-Vegetarian', value: 'non-vegetarian' },
+                        { label: 'Vegan', value: 'vegan' },
+                        { label: 'Gluten-Free', value: 'gluten-free' }
+                      ]}
+                      onChange={(e) => setFormData({ ...formData, dietaryRestrictions: e.value })}
+                      placeholder="Select choice"
+                      className="contact-select"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ color: '#166534', fontWeight: 600 }}>Booking/Event Date</label>
+                    <input
+                      type="date"
+                      value={formData.eventDate}
+                      onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
+                      className="contact-input"
+                      style={{ height: '48px' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ color: '#166534', fontWeight: 600 }}>Estimated Guest Count</label>
+                    <Dropdown
+                      value={formData.guestCount}
+                      options={[
+                        { label: '1 - 2 Guests', value: 2 },
+                        { label: '3 - 4 Guests', value: 4 },
+                        { label: '5 - 10 Guests', value: 10 },
+                        { label: '11 - 25 Guests', value: 25 },
+                        { label: '25+ Guests (Catering/Event)', value: 100 }
+                      ]}
+                      onChange={(e) => setFormData({ ...formData, guestCount: e.value })}
+                      placeholder="Select number of guests"
+                      className="contact-select"
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '2rem' }}>
-                  <label style={{ color: '#166534', fontWeight: 600 }}>Your Message *</label>
+                  <label style={{ color: '#166534', fontWeight: 600 }}>Message & Special Instructions *</label>
                   <InputTextarea
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     className="contact-input"
-                    placeholder="Tell us how we can help..."
+                    placeholder="Tell us about special food choices, seating preferences, or decorations..."
                     rows={5}
                     required
                   />
                 </div>
 
                 <button type="submit" disabled={loading} className="premium-btn">
-                  {loading ? 'Sending...' : <><i className="pi pi-send" /> Send Message</>}
+                  {loading ? 'Sending Request...' : <><i className="pi pi-send" /> Submit Enquiry</>}
                 </button>
               </form>
             </Card>
