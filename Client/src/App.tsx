@@ -33,6 +33,7 @@ import RestaurantsManagement from './Pages/Admin/RestaurantsManagement'
 import ComboDealsManagement from './Pages/Admin/ComboDealsManagement'
 import GiftCardsManagement from './Pages/Admin/GiftCardsManagement'
 import CartPage from './Pages/Customer/CartPage'
+import WishlistPage from './Pages/Customer/WishlistPage'
 import CustomersManagement from './Pages/Admin/CustomersManagement'
 import DeliveryAuth from './Pages/Delivery/DeliveryAuth'
 import DeliveryDashboard from './Pages/Delivery/DeliveryDashboard'
@@ -117,6 +118,8 @@ const AppContent: React.FC = () => {
           <Route path='/faq' element={<Navigate to="/user/faq" replace />} />
           <Route path='/user/cart' element={<CartPage />} />
           <Route path='/cart' element={<Navigate to="/user/cart" replace />} />
+          <Route path='/user/wishlist' element={<WishlistPage />} />
+          <Route path='/wishlist' element={<Navigate to="/user/wishlist" replace />} />
           <Route path='/user/checkout' element={<CheckoutPage />} />
           <Route path='/checkout' element={<Navigate to="/user/checkout" replace />} />
           <Route path='/user/newarrivals' element={<NewArrivals />} />

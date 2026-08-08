@@ -20,12 +20,12 @@ const Add_Cart_item = async (req: Request, res: Response): Promise<void> => {
         if (!cart) {
             cart = new Cart({ user: userId, items: [newItem] });
         } else {
-            const exists = cart.items.some(item => item.name.toLowerCase() === newItem.name.toLowerCase());
-            if (exists) {
-                res.status(400).json({ success: false, message: "Item already exists in cart" });
-                return;
+            const itemIndex = cart.items.findIndex(item => item.name.toLowerCase() === newItem.name.toLowerCase());
+            if (itemIndex > -1) {
+                cart.items[itemIndex].quantity += newItem.quantity || 1;
+            } else {
+                cart.items.push(newItem);
             }
-            cart.items.push(newItem);
         }
         await cart.save();
         res.status(200).json({

@@ -317,6 +317,165 @@ const Store: React.FC = () => {
         maxPrice: 1000,
         minRating: 0
     });
+    const [cartItems, setCartItems] = useState<any[]>([]);
+    const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+    const [togglingWishlist, setTogglingWishlist] = useState<{ [key: string]: boolean }>({});
+
+    const fetchCartItems = async () => {
+        if (!auth?.token) return;
+        try {
+            const res = await axios.get(`${backendUrl}/api/cart/get_cart_items`, {
+                headers: { Authorization: `Bearer ${auth.token}` },
+                withCredentials: true
+            });
+            if (res.data && res.data.Cart_Items) {
+                setCartItems(res.data.Cart_Items);
+            }
+        } catch (error) {
+            console.error("Error fetching cart items:", error);
+        }
+    };
+
+    const fetchWishlist = async () => {
+        if (!auth?.token) return;
+        try {
+            const res = await axios.get(`${backendUrl}/api/favorites/get_favorite_items`, {
+                headers: { Authorization: `Bearer ${auth.token}` },
+                withCredentials: true
+            });
+            if (res.data && res.data.success) {
+                setWishlistItems(res.data.Favorite_Items || []);
+            }
+        } catch (error) {
+            console.error("Error fetching wishlist items:", error);
+        }
+    };
+
+    const handleCartQuantityUpdate = async (productTitle: string, newQty: number) => {
+        if (!auth?.isAuthenticated) {
+            navigate('/user/auth');
+            return;
+        }
+
+        const existingItem = cartItems.find(item => item.name.toLowerCase() === productTitle.toLowerCase());
+        if (!existingItem) return;
+
+        const token = localStorage.getItem('token') || auth?.token;
+        const headers: any = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        if (newQty <= 0) {
+            setCartItems(prev => prev.filter(item => item.name.toLowerCase() !== productTitle.toLowerCase()));
+            try {
+                await axios.delete(`${backendUrl}/api/cart/delete_cart_item/${encodeURIComponent(existingItem.name)}`, {
+                    headers,
+                    withCredentials: true
+                });
+                messageApi.success("Item removed from cart");
+                if ((window as any).updateCartCount) {
+                    (window as any).updateCartCount();
+                }
+                window.dispatchEvent(new Event('cartUpdated'));
+            } catch (err) {
+                console.error(err);
+                messageApi.error("Failed to remove item");
+                fetchCartItems();
+            }
+        } else {
+            setCartItems(prev => prev.map(item => item.name.toLowerCase() === productTitle.toLowerCase() ? { ...item, quantity: newQty } : item));
+            try {
+                await axios.patch(`${backendUrl}/api/cart/update_cart_quantity`, 
+                    { _id: existingItem._id, quantity: newQty },
+                    { headers, withCredentials: true }
+                );
+                if ((window as any).updateCartCount) {
+                    (window as any).updateCartCount();
+                }
+                window.dispatchEvent(new Event('cartUpdated'));
+            } catch (err) {
+                console.error(err);
+                messageApi.error("Failed to update quantity");
+                fetchCartItems();
+            }
+        }
+    };
+
+    const handleWishlistToggle = async (product: Product) => {
+        if (!auth?.isAuthenticated) {
+            navigate('/user/auth');
+            return;
+        }
+
+        const title = product.title;
+        const existingFav = wishlistItems.find(item => item.name.toLowerCase() === title.toLowerCase());
+        const token = localStorage.getItem('token') || auth?.token;
+        const headers: any = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        setTogglingWishlist(prev => ({ ...prev, [product._id]: true }));
+
+        try {
+            if (existingFav) {
+                await axios.delete(`${backendUrl}/api/favorites/delete_favorite_item/${existingFav._id}`, {
+                    headers,
+                    withCredentials: true
+                });
+                setWishlistItems(prev => prev.filter(item => item._id !== existingFav._id));
+                messageApi.success(`"${title}" removed from wishlist`);
+            } else {
+                const favoriteItem = {
+                    name: product.title,
+                    image: product.image,
+                    original_price: product.price,
+                    discount_price: product.discountPrice ?? product.price,
+                    category: product.category,
+                    description: product.description || ''
+                };
+                const res = await axios.post(`${backendUrl}/api/favorites/add_item`, favoriteItem, {
+                    headers,
+                    withCredentials: true
+                });
+                if (res.data && res.data.success) {
+                    setWishlistItems(res.data.items || []);
+                    messageApi.success(`"${title}" added to wishlist`);
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            messageApi.error("Failed to update wishlist");
+        } finally {
+            setTogglingWishlist(prev => ({ ...prev, [product._id]: false }));
+        }
+    };
+
+    useEffect(() => {
+        if (auth?.isAuthenticated && auth?.token) {
+            fetchCartItems();
+            fetchWishlist();
+        } else {
+            setCartItems([]);
+            setWishlistItems([]);
+        }
+    }, [auth?.isAuthenticated, auth?.token]);
+
+    useEffect(() => {
+        const handleCartUpdate = () => {
+            fetchCartItems();
+        };
+        window.addEventListener('cartUpdated', handleCartUpdate);
+        return () => {
+            window.removeEventListener('cartUpdated', handleCartUpdate);
+        };
+    }, [auth?.token]);
+
     const messageApi = {
         success: (opts: any) => (window as any).showToast?.('success', 'Success', typeof opts === 'string' ? opts : opts.content || ''),
         error: (opts: any) => (window as any).showToast?.('error', 'Error', typeof opts === 'string' ? opts : opts.content || ''),
@@ -555,6 +714,8 @@ const Store: React.FC = () => {
             if ((window as any).updateCartCount) {
                 (window as any).updateCartCount();
             }
+            fetchCartItems();
+            window.dispatchEvent(new Event('cartUpdated'));
         } catch (error) {
             console.error("Error adding item to cart:", error);
 
@@ -968,6 +1129,38 @@ const Store: React.FC = () => {
                                                 {product.discountPercentage}% OFF
                                             </div>
                                         ) : null}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (!auth?.isAuthenticated) {
+                                                    navigate('/user/auth');
+                                                    return;
+                                                }
+                                                handleWishlistToggle(product);
+                                            }}
+                                            disabled={togglingWishlist[product._id]}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '12px',
+                                                left: '12px',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '32px',
+                                                height: '32px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                                                color: auth?.isAuthenticated && wishlistItems.some(item => item.name.toLowerCase() === product.title.toLowerCase()) ? '#ff4d4f' : '#9ca3af',
+                                                transition: 'all 0.2s',
+                                                zIndex: 10
+                                            }}
+                                            title="Wishlist"
+                                        >
+                                            <i className={togglingWishlist[product._id] ? "pi pi-spin pi-spinner" : (auth?.isAuthenticated && wishlistItems.some(item => item.name.toLowerCase() === product.title.toLowerCase()) ? "pi pi-heart-fill" : "pi pi-heart")} style={{ fontSize: '18px' }} />
+                                        </button>
                                     </div>
                                 );
 
@@ -1071,20 +1264,55 @@ const Store: React.FC = () => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <Button
-                                                    onClick={() => addToCart(product)}
-                                                    disabled={addingToCart[product._id]}
-                                                    label={addingToCart[product._id] ? "" : "Add to Cart"}
-                                                    icon={addingToCart[product._id] ? "pi pi-spin pi-spinner" : "pi pi-shopping-cart"}
-                                                    className="p-button-success p-button-sm"
-                                                    style={{
-                                                        borderRadius: '8px',
-                                                        fontWeight: 700,
-                                                        minWidth: '110px',
-                                                        height: '32px',
-                                                        padding: '0 8px'
-                                                    }}
-                                                />
+                                                {(() => {
+                                                    const cartItem = cartItems.find(item => item.name.toLowerCase() === product.title.toLowerCase());
+                                                    if (cartItem) {
+                                                        return (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #22c55e', borderRadius: '8px', padding: '2px', backgroundColor: '#f0fdf4' }}>
+                                                                <Button 
+                                                                    icon="pi pi-minus" 
+                                                                    className="p-button-success p-button-text p-button-sm"
+                                                                    style={{ padding: '0', width: '28px', height: '28px', borderRadius: '6px', minWidth: '28px' }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleCartQuantityUpdate(product.title, cartItem.quantity - 1);
+                                                                    }}
+                                                                />
+                                                                <span style={{ fontWeight: 'bold', minWidth: '20px', textAlign: 'center', color: '#15803d', fontSize: '14px' }}>
+                                                                    {cartItem.quantity}
+                                                                </span>
+                                                                <Button 
+                                                                    icon="pi pi-plus" 
+                                                                    className="p-button-success p-button-text p-button-sm"
+                                                                    style={{ padding: '0', width: '28px', height: '28px', borderRadius: '6px', minWidth: '28px' }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleCartQuantityUpdate(product.title, cartItem.quantity + 1);
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <Button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                addToCart(product);
+                                                            }}
+                                                            disabled={addingToCart[product._id]}
+                                                            label={addingToCart[product._id] ? "" : "Add to Cart"}
+                                                            icon={addingToCart[product._id] ? "pi pi-spin pi-spinner" : "pi pi-shopping-cart"}
+                                                            className="p-button-success p-button-sm"
+                                                            style={{
+                                                                borderRadius: '8px',
+                                                                fontWeight: 700,
+                                                                minWidth: '110px',
+                                                                height: '32px',
+                                                                padding: '0 8px'
+                                                            }}
+                                                        />
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </Card>

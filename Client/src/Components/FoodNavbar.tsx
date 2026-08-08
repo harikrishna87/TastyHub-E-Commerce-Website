@@ -329,46 +329,66 @@ const FoodNavbar: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {!isAdmin && (
-              <div style={{ position: 'relative', display: 'inline-flex' }}>
-                <button
-                  onClick={handleCartClick}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#1f2937'
-                  }}
-                  title="Cart"
-                >
-                  <i className="pi pi-shopping-cart" style={{ fontSize: '24px' }} />
-                </button>
-                {cartCount > 0 && (
-                  <span
+              <>
+                {auth?.isAuthenticated && (
+                  <button
+                    onClick={() => navigate('/user/wishlist')}
                     style={{
-                      position: 'absolute',
-                      top: '0px',
-                      right: '0px',
-                      transform: 'translate(20%, -20%)',
-                      backgroundColor: '#ff4d4f',
-                      color: 'white',
-                      borderRadius: '50%',
-                      padding: '2px 6px',
-                      fontSize: '11px',
-                      fontWeight: 'bold',
-                      lineHeight: 1,
-                      minWidth: '18px',
-                      textAlign: 'center',
-                      boxShadow: '0 0 0 2px #fff'
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ff4d4f'
                     }}
+                    title="Wishlist"
                   >
-                    {cartCount}
-                  </span>
+                    <i className="pi pi-heart-fill" style={{ fontSize: '22px' }} />
+                  </button>
                 )}
-              </div>
+                <div style={{ position: 'relative', display: 'inline-flex' }}>
+                  <button
+                    onClick={handleCartClick}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#1f2937'
+                    }}
+                    title="Cart"
+                  >
+                    <i className="pi pi-shopping-cart" style={{ fontSize: '24px' }} />
+                  </button>
+                  {cartCount > 0 && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '0px',
+                        right: '0px',
+                        transform: 'translate(20%, -20%)',
+                        backgroundColor: '#ff4d4f',
+                        color: 'white',
+                        borderRadius: '50%',
+                        padding: '2px 6px',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        lineHeight: 1,
+                        minWidth: '18px',
+                        textAlign: 'center',
+                        boxShadow: '0 0 0 2px #fff'
+                      }}
+                    >
+                      {cartCount}
+                    </span>
+                  )}
+                </div>
+              </>
             )}
 
             {auth?.isAuthenticated && (

@@ -34,6 +34,84 @@ const NewArrivals = () => {
     const [showProductModal, setShowProductModal] = useState<boolean>(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+    const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+    const [togglingWishlist, setTogglingWishlist] = useState<{ [key: string]: boolean }>({});
+
+    const fetchWishlist = async () => {
+        if (!auth?.token) return;
+        try {
+            const res = await axios.get(`${backendUrl}/api/favorites/get_favorite_items`, {
+                headers: { Authorization: `Bearer ${auth.token}` },
+                withCredentials: true
+            });
+            if (res.data && res.data.success) {
+                setWishlistItems(res.data.Favorite_Items || []);
+            }
+        } catch (error) {
+            console.error("Error fetching wishlist items:", error);
+        }
+    };
+
+    const handleWishlistToggle = async (product: Product) => {
+        if (!auth?.isAuthenticated) {
+            navigate('/user/auth');
+            return;
+        }
+
+        const title = product.name || product.title || 'Unnamed Product';
+        const existingFav = wishlistItems.find(item => item.name.toLowerCase() === title.toLowerCase());
+        const token = localStorage.getItem('token') || auth?.token;
+        const headers: any = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        setTogglingWishlist(prev => ({ ...prev, [product._id]: true }));
+
+        try {
+            if (existingFav) {
+                await axios.delete(`${backendUrl}/api/favorites/delete_favorite_item/${existingFav._id}`, {
+                    headers,
+                    withCredentials: true
+                });
+                setWishlistItems(prev => prev.filter(item => item._id !== existingFav._id));
+                showToastMsg('success', 'Removed', `"${title}" removed from wishlist`);
+            } else {
+                const favoriteItem = {
+                    name: title,
+                    image: product.image,
+                    original_price: product.price,
+                    discount_price: product.price,
+                    category: product.category,
+                    description: product.description || ''
+                };
+                const res = await axios.post(`${backendUrl}/api/favorites/add_item`, favoriteItem, {
+                    headers,
+                    withCredentials: true
+                });
+                if (res.data && res.data.success) {
+                    setWishlistItems(res.data.items || []);
+                    showToastMsg('success', 'Added', `"${title}" added to wishlist`);
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            showToastMsg('error', 'Error', "Failed to update wishlist");
+        } finally {
+            setTogglingWishlist(prev => ({ ...prev, [product._id]: false }));
+        }
+    };
+
+    useEffect(() => {
+        if (auth?.isAuthenticated && auth?.token) {
+            fetchWishlist();
+        } else {
+            setWishlistItems([]);
+        }
+    }, [auth?.isAuthenticated, auth?.token]);
+
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
     const showToastMsg = (severity: 'success' | 'error' | 'info' | 'warn', summary: string, detail: string) => {
@@ -269,6 +347,38 @@ const NewArrivals = () => {
                                         {(product as any).discountPercentage}% OFF
                                     </div>
                                 ) : null}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!auth?.isAuthenticated) {
+                                            navigate('/user/auth');
+                                            return;
+                                        }
+                                        handleWishlistToggle(product);
+                                    }}
+                                    disabled={togglingWishlist[product._id]}
+                                    style={{
+                                        position: 'absolute',
+                                        top: '12px',
+                                        right: '12px',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                                        color: auth?.isAuthenticated && wishlistItems.some(item => item.name.toLowerCase() === (product.name || product.title || '').toLowerCase()) ? '#ff4d4f' : '#9ca3af',
+                                        transition: 'all 0.2s',
+                                        zIndex: 10
+                                    }}
+                                    title="Wishlist"
+                                >
+                                    <i className={togglingWishlist[product._id] ? "pi pi-spin pi-spinner" : (auth?.isAuthenticated && wishlistItems.some(item => item.name.toLowerCase() === (product.name || product.title || '').toLowerCase()) ? "pi pi-heart-fill" : "pi pi-heart")} style={{ fontSize: '18px' }} />
+                                </button>
                                 <div style={{
                                     position: 'absolute',
                                     top: '12px',

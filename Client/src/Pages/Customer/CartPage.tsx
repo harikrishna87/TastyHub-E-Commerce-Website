@@ -179,18 +179,31 @@ const CartPage: React.FC = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div style={styles.emptyContainer}>
+      <div style={styles.container} className="cart-container">
         <Toast ref={toastRef} />
-        <div style={styles.emptyCard}>
-          <i className="pi pi-shopping-cart" style={styles.emptyIcon} />
-          <h2 style={styles.emptyTitle}>Your Cart is Empty</h2>
-          <p style={styles.emptySub}>Add delicious meals from our kitchen to fill it up!</p>
+        
+        {/* Header section matching wishlist page */}
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 800, color: '#1f2937' }}>My Shopping Cart</h2>
+          <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '0.9rem' }}>
+            0 items in your cart
+          </p>
+        </div>
+
+        {/* Empty state card taking full width matching wishlist page */}
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: '#f9fafb', borderRadius: '16px', border: '1px dashed #e5e7eb', width: '100%', boxSizing: 'border-box' }}>
+          <i className="pi pi-shopping-cart" style={{ fontSize: '4rem', color: '#cbd5e1', marginBottom: '1.5rem' }} />
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4b5563', margin: '0 0 8px 0' }}>Your Cart is Empty</h2>
+          <p style={{ color: '#9ca3af', maxWidth: '400px', margin: '0 auto 24px auto', fontSize: '0.95rem', lineHeight: '1.5' }}>
+            Add delicious food items to your cart and satisfy your cravings!
+          </p>
           <Button
             label="Explore Menu"
-            icon="pi pi-arrow-left"
+            icon="pi pi-arrow-right"
+            iconPos="right"
             onClick={() => navigate('/user/menu-items')}
             className="p-button-success"
-            style={{ borderRadius: '12px', padding: '0.75rem 1.5rem', fontWeight: 600 }}
+            style={{ borderRadius: '10px', padding: '10px 20px', fontWeight: 600 }}
           />
         </div>
       </div>
@@ -363,7 +376,7 @@ const styles = {
   container: {
     width: '100%',
     maxWidth: 'none',
-    padding: '2rem 5%',
+    padding: '24px 0',
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '2rem',
