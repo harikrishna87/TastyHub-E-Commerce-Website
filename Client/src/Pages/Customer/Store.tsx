@@ -304,6 +304,10 @@ const shuffleArray = (array: Product[]) => {
 };
 
 const Store: React.FC = () => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    const auth = useContext(AuthContext);
+    const navigate = useNavigate();
+
     const [products, setProducts] = useState<Product[]>([]);
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -491,9 +495,6 @@ const Store: React.FC = () => {
     const [showComboModal, setShowComboModal] = useState<boolean>(false);
     const productsPerPage = 12;
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
-    const auth = useContext(AuthContext);
-    const navigate = useNavigate();
 
     const fetchCombos = async () => {
         try {

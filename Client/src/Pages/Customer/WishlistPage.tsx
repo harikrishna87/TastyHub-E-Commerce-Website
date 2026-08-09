@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from 'primereact/card';
 import { Button } from 'primereact/button';
-import { Tag } from 'primereact/tag';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 
