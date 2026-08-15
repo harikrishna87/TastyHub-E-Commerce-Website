@@ -123,110 +123,36 @@ app.get("/api/health", (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", message: "API is healthy" });
 });
 
-// MONDAY - 2 notifications
-cron.schedule('0 11 * * 1', async () => {
-  console.log('🍽️ Monday: Sending notification at 11:00 AM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
+const scheduleWithRandomDelay = (cronExpression: string, slotName: string, maxDelayMinutes: number) => {
+  cron.schedule(cronExpression, () => {
+    const delayMs = Math.floor(Math.random() * maxDelayMinutes * 60 * 1000);
+    const delayMinutes = (delayMs / 1000 / 60).toFixed(1);
+    console.log(`⏰ [${slotName}] Cron triggered. Scheduled to send in ${delayMinutes} minutes (delay of ${delayMs}ms)`);
+    setTimeout(async () => {
+      try {
+        console.log(`🚀 [${slotName}] Delay finished. Sending dynamic Gemini notifications...`);
+        await sendScheduledDealsNotifications();
+      } catch (error) {
+        console.error(`❌ Error in delayed notification trigger for ${slotName}:`, error);
+      }
+    }, delayMs);
+  }, {
+    timezone: 'Asia/Kolkata'
+  });
+};
 
-cron.schedule('0 19 * * 1', async () => {
-  console.log('🌙 Monday: Sending notification at 7:00 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
+// Schedule 4 daily notifications at randomized times:
+// 1. Morning (Breakfast): Triggers at 9:00 AM IST, random delay up to 90 minutes (9:00 AM - 10:30 AM)
+scheduleWithRandomDelay('0 9 * * *', 'Morning/Breakfast', 90);
 
-// TUESDAY - 2 notifications
-cron.schedule('30 10 * * 2', async () => {
-  console.log('🌅 Tuesday: Sending notification at 10:30 AM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
+// 2. Lunch: Triggers at 1:00 PM IST, random delay up to 90 minutes (1:00 PM - 2:30 PM)
+scheduleWithRandomDelay('0 13 * * *', 'Lunch', 90);
 
-cron.schedule('30 18 * * 2', async () => {
-  console.log('🌙 Tuesday: Sending notification at 6:30 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
+// 3. Evening (Snacks): Triggers at 5:00 PM IST, random delay up to 90 minutes (5:00 PM - 6:30 PM)
+scheduleWithRandomDelay('0 17 * * *', 'Evening/Snacks', 90);
 
-// WEDNESDAY - 2 notifications
-cron.schedule('0 13 * * 3', async () => {
-  console.log('🍽️ Wednesday: Sending notification at 1:00 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-cron.schedule('0 20 * * 3', async () => {
-  console.log('🌙 Wednesday: Sending notification at 8:00 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-// THURSDAY - 2 notifications
-cron.schedule('30 12 * * 4', async () => {
-  console.log('🍽️ Thursday: Sending notification at 12:30 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-cron.schedule('15 19 * * 4', async () => {
-  console.log('🌙 Thursday: Sending notification at 7:15 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-// FRIDAY - 2 notifications
-cron.schedule('0 12 * * 5', async () => {
-  console.log('🍽️ Friday: Sending notification at 12:00 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-cron.schedule('30 20 * * 5', async () => {
-  console.log('🌙 Friday: Sending notification at 8:30 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-// SATURDAY - 2 notifications
-cron.schedule('30 11 * * 6', async () => {
-  console.log('🍽️ Saturday: Sending notification at 11:30 AM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-cron.schedule('0 20 * * 6', async () => {
-  console.log('🌙 Saturday: Sending notification at 8:00 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-// SUNDAY - 2 notifications
-cron.schedule('0 12 * * 0', async () => {
-  console.log('🍽️ Sunday: Sending notification at 12:00 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-cron.schedule('30 19 * * 0', async () => {
-  console.log('🌙 Sunday: Sending notification at 7:30 PM');
-  await sendScheduledDealsNotifications();
-}, {
-  timezone: 'Asia/Kolkata'
-});
+// 4. Dinner: Triggers at 8:30 PM IST, random delay up to 90 minutes (8:30 PM - 10:00 PM)
+scheduleWithRandomDelay('30 20 * * *', 'Dinner', 90);
 
 
 app.use("/api/auth", authRoutes);
