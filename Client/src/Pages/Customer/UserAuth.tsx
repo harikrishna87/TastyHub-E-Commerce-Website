@@ -4,7 +4,6 @@ import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 
-// PrimeReact Components
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Dialog } from 'primereact/dialog';
@@ -183,19 +182,16 @@ const UserAuth: React.FC = () => {
   const [guestLoading, setGuestLoading] = useState<boolean>(false);
   const [resendLoading, setResendLoading] = useState<boolean>(false);
 
-  // Form Fields
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [rememberMe, setRememberMe] = useState<boolean>(false);
 
-  // OTP Fields
   const [showOTPVerification, setShowOTPVerification] = useState<boolean>(false);
   const [registrationEmail, setRegistrationEmail] = useState<string>('');
   const [otpValues, setOtpValues] = useState<string[]>(['', '', '', '', '', '']);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Forgot Password Fields
   const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
   const [forgotPasswordStep, setForgotPasswordStep] = useState<number>(0);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState<string>('');
@@ -204,7 +200,6 @@ const UserAuth: React.FC = () => {
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
 
-  // Password toggle visibility states
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
@@ -888,7 +883,6 @@ const UserAuth: React.FC = () => {
         </div>
       )}
 
-      {/* OTP Dialog Overlay */}
       <Dialog
         header={<div style={{ fontWeight: 800, color: '#0f172a' }}>Verify Your Email</div>}
         visible={showOTPVerification}
@@ -932,7 +926,6 @@ const UserAuth: React.FC = () => {
         </div>
       </Dialog>
 
-      {/* Forgot Password Dialog */}
       <Dialog
         header={<div style={{ fontWeight: 800, color: '#0f172a' }}>Reset Password</div>}
         visible={showForgotPassword}

@@ -42,11 +42,9 @@ export default function DealsDiscounts() {
   const [loading, setLoading] = useState<boolean>(true);
   const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({});
   
-  // Pagination State
   const [first, setFirst] = useState<number>(0);
-  const [rows, setRows] = useState<number>(8); // 8 items per page
+  const [rows, setRows] = useState<number>(8);
 
-  // Dialog / Details Modal State
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState<boolean>(false);
 
@@ -317,14 +315,12 @@ export default function DealsDiscounts() {
 
       <div style={{ width: '100%' }}>
         
-        {/* Breadcrumb */}
         <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', fontSize: '0.88rem', color: '#64748b', fontWeight: 600 }}>
           <span style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>Home</span>
           <span>/</span>
           <span style={{ color: '#22c55e' }}>Deals & Discounts</span>
         </div>
 
-        {/* Hero Section */}
         <div style={{
           background: 'linear-gradient(135deg, #fef08a 0%, #fde047 100%)',
           borderRadius: '24px',
@@ -363,7 +359,6 @@ export default function DealsDiscounts() {
           </div>
         ) : (
           <div>
-            {/* Active Coupon Codes Section */}
             <div style={{ marginBottom: '4rem' }}>
               <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '1.5rem', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 Active Coupon Codes
@@ -447,7 +442,6 @@ export default function DealsDiscounts() {
               )}
             </div>
 
-            {/* Catalog Discounts Section */}
             <div style={{ marginBottom: '3rem' }}>
               <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '1.5rem', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 Direct Catalog Price Cuts
@@ -644,7 +638,6 @@ export default function DealsDiscounts() {
                     })}
                   </div>
 
-                  {/* Paginator */}
                   <Paginator 
                     first={first} 
                     rows={rows} 
@@ -661,7 +654,6 @@ export default function DealsDiscounts() {
         )}
       </div>
 
-      {/* PrimeReact Product Details Dialog */}
       <Dialog
         header={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#22c55e' }}>

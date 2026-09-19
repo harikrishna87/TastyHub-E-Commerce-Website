@@ -43,14 +43,12 @@ const ChatbotWidget: React.FC = () => {
     sessionStorage.setItem('tastybot_hide_greeting', 'true');
   };
 
-  // Save messages to sessionStorage whenever they change
   useEffect(() => {
     if (messages.length > 0) {
       sessionStorage.setItem('tastybot_messages', JSON.stringify(messages));
     }
   }, [messages]);
 
-  // Greet user dynamically and manage session clearing on login status change
   useEffect(() => {
     const fetchHistory = async () => {
       try {
@@ -77,7 +75,6 @@ const ChatbotWidget: React.FC = () => {
         console.error('Failed to load chat history from database:', err);
       }
 
-      // Fallback greeting if no database history exists
       const userName = user?.name ? `, ${user.name.split(' ')[0]}` : '';
       setMessages([
         {
@@ -90,7 +87,6 @@ const ChatbotWidget: React.FC = () => {
     };
 
     if (!user) {
-      // User logged out or guest session - clear previous chat to prevent leaks
       sessionStorage.removeItem('tastybot_messages');
       setMessages([
         {
@@ -101,7 +97,6 @@ const ChatbotWidget: React.FC = () => {
         },
       ]);
     } else {
-      // Logged in user - fetch persistent history from DB
       fetchHistory();
     }
   }, [user]);
@@ -116,14 +111,12 @@ const ChatbotWidget: React.FC = () => {
     { label: '🥗 Low Calorie Options', query: 'Show me healthy, low calorie vegetarian dishes' },
   ];
 
-  // Auto-scroll to bottom
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, loading, isOpen]);
 
-  // Alert new messages when chatbot is closed
   useEffect(() => {
     if (!isOpen && messages.length > 1 && messages[messages.length - 1].sender === 'bot') {
       setHasNewMessage(true);
@@ -153,13 +146,11 @@ const ChatbotWidget: React.FC = () => {
     setLoading(true);
 
     try {
-      // Map history for Gemini backend (removes standard systemInstruction because backend handles it)
       const chatHistory = messages.map((m) => ({
         role: m.sender === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }],
       }));
 
-      // Make API Request to endpoint
       const response = await axios.post(
         `${backendUrl}/api/chat`,
         {
@@ -218,7 +209,6 @@ const ChatbotWidget: React.FC = () => {
   const parseMarkdown = (text: string, isUserMessage: boolean) => {
     const lines = text.split('\n');
 
-    // If it's a single line of text (not a list), render inline so it sits next to the floated timestamp
     if (lines.length === 1 && !lines[0].trim().startsWith('- ') && !lines[0].trim().startsWith('* ')) {
       const parts = lines[0].split('**');
       return parts.map((part, i) => {
@@ -232,13 +222,11 @@ const ChatbotWidget: React.FC = () => {
     return lines.map((line, idx) => {
       let content = line;
 
-      // Handle bullet points
       const isBullet = content.trim().startsWith('- ') || content.trim().startsWith('* ');
       if (isBullet) {
         content = content.replace(/^[-*]\s+/, '');
       }
 
-      // Render bold tokens **text**
       const parts = content.split('**');
       const formattedLine = parts.map((part, i) => {
         if (i % 2 === 1) {
@@ -609,7 +597,6 @@ const ChatbotWidget: React.FC = () => {
         }
       `}</style>
 
-      {/* Floating Action Button (Launcher) */}
       {!isOpen && (
         <>
           {showGreetingCard && (
@@ -640,10 +627,8 @@ const ChatbotWidget: React.FC = () => {
         </>
       )}
 
-      {/* Chat Window Panel */}
       {isOpen && (
         <div className="tastybot-container">
-          {/* Header */}
           <div className="tastybot-header">
             <div className="tastybot-header-info">
               <div className="tastybot-avatar">
@@ -665,7 +650,6 @@ const ChatbotWidget: React.FC = () => {
             </button>
           </div>
 
-          {/* Messages Area */}
           <div className="tastybot-messages">
             {messages.map((msg) => (
               <div 
@@ -681,7 +665,6 @@ const ChatbotWidget: React.FC = () => {
               </div>
             ))}
 
-            {/* Typing Loader Indicator */}
             {loading && (
               <div className="tastybot-bubble tastybot-bubble-bot" style={{ padding: '10px 14px', width: 'fit-content' }}>
                 <div className="tastybot-typing-indicator">
@@ -694,7 +677,6 @@ const ChatbotWidget: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Suggestion Chips */}
           {!loading && (
             <div className="tastybot-chips-container">
               {suggestionChips.map((chip, index) => (
@@ -709,7 +691,6 @@ const ChatbotWidget: React.FC = () => {
             </div>
           )}
 
-          {/* Text Input Container */}
           <form 
             className="tastybot-input-container"
             onSubmit={(e) => {

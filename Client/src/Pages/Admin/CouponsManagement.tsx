@@ -46,11 +46,9 @@ const CouponsManagement: React.FC = () => {
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'coupons';
 
-  // Dialog visibility states
   const [couponDialogVisible, setCouponDialogVisible] = useState(false);
   const [discountDialogVisible, setDiscountDialogVisible] = useState(false);
 
-  // Coupon form state
   const [couponCode, setCouponCode] = useState('');
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
   const [discountValue, setDiscountValue] = useState(0);
@@ -58,13 +56,11 @@ const CouponsManagement: React.FC = () => {
   const [isAnnounce, setIsAnnounce] = useState(true);
   const [expiryDate, setExpiryDate] = useState('');
   
-  // Discount form state
   const [discName, setDiscName] = useState('');
   const [targetType, setTargetType] = useState<'product' | 'category'>('category');
   const [targetVal, setTargetVal] = useState('');
   const [discPercent, setDiscPercent] = useState(0);
 
-  // Lists & Loading states
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -75,7 +71,6 @@ const CouponsManagement: React.FC = () => {
   const [loadingDiscount, setLoadingDiscount] = useState(false);
   const [loadingLists, setLoadingLists] = useState(false);
 
-  // Fetch Products & Categories
   const fetchProducts = useCallback(async () => {
     try {
       setLoadingProducts(true);
@@ -89,7 +84,6 @@ const CouponsManagement: React.FC = () => {
       }
       setProducts(fetchedProducts);
 
-      // Extract unique categories
       const cats = Array.from(new Set(fetchedProducts.map(p => p.category))).filter(Boolean);
       setUniqueCategories(cats);
     } catch (err) {
@@ -99,7 +93,6 @@ const CouponsManagement: React.FC = () => {
     }
   }, [backendUrl]);
 
-  // Fetch Added Coupons
   const fetchCoupons = useCallback(async () => {
     if (!auth?.token) return;
     try {
@@ -116,7 +109,6 @@ const CouponsManagement: React.FC = () => {
     }
   }, [auth?.token, backendUrl]);
 
-  // Fetch Active Catalog Discounts
   const fetchDiscounts = useCallback(async () => {
     if (!auth?.token) return;
     try {
@@ -133,7 +125,6 @@ const CouponsManagement: React.FC = () => {
     }
   }, [auth?.token, backendUrl]);
 
-  // Initialize data on mount
   useEffect(() => {
     const init = async () => {
       setLoadingLists(true);
@@ -146,12 +137,10 @@ const CouponsManagement: React.FC = () => {
     init();
   }, [auth?.token, fetchProducts, fetchCoupons, fetchDiscounts]);
 
-  // Reset target value when target type changes
   useEffect(() => {
     setTargetVal('');
   }, [targetType]);
 
-  // Delete Coupon
   const handleDeleteCoupon = async (id: string) => {
     if (!auth?.token) return;
     if (!window.confirm('Are you sure you want to delete this coupon code?')) return;
@@ -174,7 +163,6 @@ const CouponsManagement: React.FC = () => {
     }
   };
 
-  // Delete Discount
   const handleDeleteDiscount = async (id: string) => {
     if (!auth?.token) return;
     if (!window.confirm('Are you sure you want to delete this catalog discount?')) return;
@@ -197,7 +185,6 @@ const CouponsManagement: React.FC = () => {
     }
   };
 
-  // Form submission: Coupon
   const handleCreateCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth?.token) return;
@@ -265,7 +252,6 @@ const CouponsManagement: React.FC = () => {
     }
   };
 
-  // Form submission: Discount
   const handleCreateDiscount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth?.token) return;
@@ -330,7 +316,6 @@ const CouponsManagement: React.FC = () => {
     }
   };
 
-  // --- RENDERING TEMPLATES ---
   
   const couponTypeTemplate = (row: Coupon) => (
     <Tag 
@@ -404,10 +389,8 @@ const CouponsManagement: React.FC = () => {
         />
       </div>
 
-      {/* Stacked Tables Display Section */}
       <div style={styles.tablesBlock}>
         {activeTab === 'coupons' ? (
-          /* Active Coupons List */
           <div style={styles.tablePanel}>
             <h2 style={{ ...styles.cardTitle, marginBottom: '1rem' }}>
               <i className="pi pi-list" style={styles.cardIcon('#3b82f6')} />
@@ -451,7 +434,6 @@ const CouponsManagement: React.FC = () => {
             </DataTable>
           </div>
         ) : (
-          /* Active Catalog Discounts List */
           <div style={styles.tablePanel}>
             <h2 style={{ ...styles.cardTitle, marginBottom: '1rem' }}>
               <i className="pi pi-percentage" style={styles.cardIcon('#22c55e')} />
@@ -495,7 +477,6 @@ const CouponsManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Create Coupon Modal */}
       <Dialog
         header="Create Coupon Code"
         visible={couponDialogVisible}
@@ -596,7 +577,6 @@ const CouponsManagement: React.FC = () => {
         </form>
       </Dialog>
 
-      {/* Create Catalog Discount Modal */}
       <Dialog
         header="Create Direct Markdown Discount"
         visible={discountDialogVisible}

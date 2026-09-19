@@ -85,10 +85,8 @@ export default function ComboDeals() {
       const token = auth.token || localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      // 1. Clear cart
       await axios.delete(`${backendUrl}/api/cart/clear_cart`, { headers, withCredentials: true });
 
-      // 2. Add each item in combo to cart
       for (const prod of combo.products) {
         const cartItem = {
           name: prod.title,
@@ -97,12 +95,11 @@ export default function ComboDeals() {
           description: prod.description,
           quantity: 1,
           original_price: prod.price,
-          discount_price: prod.price // combo deal has overall fixed pricing at checkout!
+          discount_price: prod.price
         };
         await axios.post(`${backendUrl}/api/cart/add_item`, cartItem, { headers, withCredentials: true });
       }
 
-      // Notify and redirect
       toastRef.current?.show({
         severity: 'success',
         summary: 'Combo Cart Populated',
@@ -143,14 +140,12 @@ export default function ComboDeals() {
 
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
-        {/* Breadcrumbs */}
         <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', fontSize: '0.88rem', color: '#64748b', fontWeight: 600 }}>
           <span style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>Home</span>
           <span>/</span>
           <span style={{ color: '#22c55e' }}>Combo Deals</span>
         </div>
 
-        {/* Hero Section */}
         <div style={{
           background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
           borderRadius: '24px',
@@ -256,7 +251,6 @@ export default function ComboDeals() {
                     </div>
                   )}
 
-                  {/* Items list */}
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginBottom: '1.5rem', flex: 1 }}>
                     <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.75rem' }}>
                       Products Included ({combo.products.length})
@@ -284,7 +278,6 @@ export default function ComboDeals() {
                     </div>
                   </div>
 
-                  {/* Checkout buttons */}
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginTop: 'auto' }}>
                     <Button 
                       label={isAlreadyClaimed ? 'Already Claimed ✓' : isExpired ? 'Deal Expired' : 'Buy Feast Combo'} 

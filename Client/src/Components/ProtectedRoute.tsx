@@ -18,8 +18,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
   }
 
   const { isAuthenticated, isLoading, user } = auth;
-  // Track if this instance was ever authenticated. If so, it means the user logged out intentionally
-  // during this route mount, so we should skip showing the login error toast.
   const wasAuthenticatedRef = useRef(isAuthenticated);
 
   if (isAuthenticated && !wasAuthenticatedRef.current) {

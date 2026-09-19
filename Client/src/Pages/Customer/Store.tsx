@@ -37,18 +37,6 @@ interface FilterOptions {
     minRating: number;
 }
 
-// const SkeletonPulse = ({ height = '20px', width = '100%', className = '', style = {} }) => (
-//     <div
-//         className={`skeleton-pulse \${className}`}
-//         style={{
-//             height,
-//             width,
-//             backgroundColor: '#e8f5e8',
-//             borderRadius: '6px',
-//             ...style
-//         }}
-//     />
-// );
 
 const customStoreStyles = `
 .customer-content-wrapper .pi.search-icon-inside {
@@ -801,21 +789,6 @@ const Store: React.FC = () => {
         setModalLoading(false);
     };
 
-    // const renderStars = (ratingValue: number) => {
-    //     const stars = [];
-    //     const floor = Math.floor(ratingValue);
-    //     const hasHalf = ratingValue % 1 !== 0;
-    //     for (let i = 1; i <= 5; i++) {
-    //         if (i <= floor) {
-    //             stars.push(<i key={i} className="pi pi-star-fill" style={{ color: '#facc15', fontSize: '13px', marginRight: '2px' }} />);
-    //         } else if (i === floor + 1 && hasHalf) {
-    //             stars.push(<i key={i} className="pi pi-star-fill" style={{ color: '#facc15', fontSize: '13px', marginRight: '2px', opacity: 0.7 }} />);
-    //         } else {
-    //             stars.push(<i key={i} className="pi pi-star" style={{ color: '#d1d5db', fontSize: '13px', marginRight: '2px' }} />);
-    //         }
-    //     }
-    //     return <div style={{ display: 'flex', alignItems: 'center' }}>{stars}</div>;
-    // };
 
     if (loading) {
         return (
@@ -1355,7 +1328,6 @@ const Store: React.FC = () => {
                 </div>
             </div>
 
-            {/* Combo Deals Modal */}
             <Dialog
                 visible={showComboModal}
                 onHide={() => setShowComboModal(false)}
@@ -1498,7 +1470,6 @@ const Store: React.FC = () => {
                 </div>
             </Dialog>
 
-            {/* Product Details Modal */}
             <Dialog
                 header={
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#22c55e' }}>

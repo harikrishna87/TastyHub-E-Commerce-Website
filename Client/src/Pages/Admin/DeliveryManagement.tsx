@@ -215,7 +215,7 @@ const DeliveryManagement: React.FC = () => {
         setWithdrawalRequests(prev =>
           prev.map(req => (req._id === id ? { ...req, status } : req))
         );
-        fetchExecutives(); // Update executives listing in case balance changes
+        fetchExecutives();
         toast.current?.show({
           severity: 'success',
           summary: 'Status Updated',
@@ -238,7 +238,6 @@ const DeliveryManagement: React.FC = () => {
     }
   };
 
-  // Toggle Delivery Executive active status
   const handleToggleDEStatus = async (exec: Executive) => {
     const isActive = exec.isActive !== false;
     const actionText = isActive ? 'deactivate' : 'activate';
@@ -396,15 +395,12 @@ const DeliveryManagement: React.FC = () => {
   };
 
   const getGroupedReviews = () => {
-    // 1. Filter: rating < 3 (strictly below 3 stars)
     let filtered = deliveryReviews.filter(r => r.rating < 3);
 
-    // 2. Filter by selected partner if set
     if (partnerFilter) {
       filtered = filtered.filter(r => r.deliveryExecutive?._id === partnerFilter);
     }
 
-    // 3. Group by user._id
     const groups: { [key: string]: any[] } = {};
     filtered.forEach(r => {
       const userId = r.user?._id || 'unknown';
@@ -414,19 +410,16 @@ const DeliveryManagement: React.FC = () => {
       groups[userId].push(r);
     });
 
-    // 4. Build displayedRows
     const displayedRows: any[] = [];
     Object.keys(groups).forEach(userId => {
       const userReviews = groups[userId];
       if (userReviews.length === 1) {
-        // Flat row
         displayedRows.push({
           ...userReviews[0],
           isGroup: false
         });
       } else {
-        // Group row
-        const latest = userReviews[0]; // reviews are sorted by createdAt desc in backend
+        const latest = userReviews[0];
         displayedRows.push({
           _id: `group-${userId}`,
           isGroup: true,
@@ -473,33 +466,30 @@ const DeliveryManagement: React.FC = () => {
             return (
               <div key={idx} style={{ position: 'relative', paddingLeft: '1.25rem' }}>
                 
-                {/* Curved Connector Line */}
                 <div style={{
                   position: 'absolute',
                   left: '-15px',
                   top: '0px',
                   width: '15px',
-                  height: '24px', // connects to the middle of the child row
+                  height: '24px',
                   borderLeft: '1.5px dashed #cbd5e1',
                   borderBottom: '1.5px dashed #cbd5e1',
                   borderBottomLeftRadius: '6px',
                   pointerEvents: 'none'
                 }} />
 
-                {/* Straight Vertical Line to continue to the next child */}
                 {!isLast && (
                   <div style={{
                     position: 'absolute',
                     left: '-15px',
                     top: '24px',
-                    bottom: '-12px', // bridges the gap to the next child item
+                    bottom: '-12px',
                     width: '15px',
                     borderLeft: '1.5px dashed #cbd5e1',
                     pointerEvents: 'none'
                   }} />
                 )}
 
-                {/* Child Row Panel */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -512,7 +502,6 @@ const DeliveryManagement: React.FC = () => {
                   gap: '1.5rem',
                   flexWrap: 'wrap'
                 }}>
-                  {/* Delivery Partner */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '180px' }}>
                     <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginRight: '4px' }}>Partner:</span>
                     <img
@@ -524,7 +513,6 @@ const DeliveryManagement: React.FC = () => {
                     <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>{r.deliveryExecutive?.name || 'N/A'}</span>
                   </div>
 
-                  {/* Order Reference */}
                   <div style={{ minWidth: '110px' }}>
                     <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Order ID</span>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#475569', fontWeight: 600 }}>
@@ -532,7 +520,6 @@ const DeliveryManagement: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Star Rating */}
                   <div style={{ minWidth: '120px' }}>
                     <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Rating</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -541,7 +528,6 @@ const DeliveryManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Feedback Text comment */}
                   <div style={{ flex: '1 1 250px', minWidth: '220px' }}>
                     <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Feedback Description</span>
                     <span style={{ fontSize: '0.82rem', color: '#334155', fontStyle: 'italic', lineHeight: '1.4' }}>
@@ -549,7 +535,6 @@ const DeliveryManagement: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Submitted Date */}
                   <div style={{ minWidth: '120px', textAlign: 'right' }}>
                     <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Submitted On</span>
                     <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 500 }}>
@@ -904,7 +889,6 @@ const DeliveryManagement: React.FC = () => {
           </div>
         </>
       )}
-      {/* Payout Bank Details Modal */}
       <Dialog
         visible={payoutDialogVisible}
         onHide={() => {
@@ -924,7 +908,6 @@ const DeliveryManagement: React.FC = () => {
         {selectedPayout && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem', fontFamily: 'Inter, sans-serif' }}>
             
-            {/* Executive Profile Section - Flex row layout */}
             <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', paddingBottom: '1.25rem', borderBottom: '1px solid #f1f5f9' }}>
               <img
                 src={selectedPayout.deliveryExecutive?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
@@ -941,7 +924,6 @@ const DeliveryManagement: React.FC = () => {
                   {selectedPayout.deliveryExecutive?.email}
                 </span>
                 
-                {/* Payout details combined here */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.4rem' }}>
                   <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#166534' }}>
                     ₹{selectedPayout.amount.toFixed(2)}
@@ -958,7 +940,6 @@ const DeliveryManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Bank details card */}
             <div>
               <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Bank Account / UPI Details
@@ -968,13 +949,11 @@ const DeliveryManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Date requested */}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748b' }}>
               <span>Requested Date:</span>
               <span style={{ fontWeight: 600 }}>{formatDate(selectedPayout.requestDate)}</span>
             </div>
 
-            {/* Actions for pending payouts in modal */}
             {selectedPayout.status === 'Pending' && (
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
                 <Button

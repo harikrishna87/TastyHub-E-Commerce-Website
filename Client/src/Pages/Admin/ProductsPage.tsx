@@ -246,7 +246,6 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  // --- TABLE COLUMN TEMPLATES ---
 
   const imageTemplate = (row: Product) => (
     <img
@@ -350,7 +349,6 @@ const ProductsPage: React.FC = () => {
         </DataTable>
       </div>
 
-      {/* Product Form Dialog */}
       <Dialog
         header={editingProduct ? 'Edit Restaurant Product' : 'Add New Restaurant Product'}
         visible={isModalVisible}
@@ -364,7 +362,6 @@ const ProductsPage: React.FC = () => {
         }
       >
         <div style={styles.formGrid}>
-          {/* Title */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Product Title *</label>
             <input
@@ -376,7 +373,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.title && <span style={styles.errorText}>{formErrors.title}</span>}
           </div>
 
-          {/* Price */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Price (₹) *</label>
             <input
@@ -388,7 +384,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.price && <span style={styles.errorText}>{formErrors.price}</span>}
           </div>
 
-          {/* Category */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Category *</label>
             <Dropdown
@@ -406,7 +401,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.category && <span style={styles.errorText}>{formErrors.category}</span>}
           </div>
 
-          {/* Calories */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Calories (kcal)</label>
             <input
@@ -418,7 +412,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.calories && <span style={styles.errorText}>{formErrors.calories}</span>}
           </div>
 
-          {/* Image URL */}
           <div style={{ ...styles.formGroup, gridColumn: 'span 2' }}>
             <label style={styles.label}>Product Image URL *</label>
             <input
@@ -430,7 +423,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.image && <span style={styles.errorText}>{formErrors.image}</span>}
           </div>
 
-          {/* Description */}
           <div style={{ ...styles.formGroup, gridColumn: 'span 2' }}>
             <label style={styles.label}>Description *</label>
             <textarea
@@ -442,7 +434,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.description && <span style={styles.errorText}>{formErrors.description}</span>}
           </div>
 
-          {/* Rating Rate */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Initial Rating (0-5)</label>
             <input
@@ -455,7 +446,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.rate && <span style={styles.errorText}>{formErrors.rate}</span>}
           </div>
 
-          {/* Rating Count */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Rating Reviews Count</label>
             <input
@@ -467,7 +457,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.count && <span style={styles.errorText}>{formErrors.count}</span>}
           </div>
 
-          {/* Age Recommendation */}
           <div style={{ ...styles.formGroup, gridColumn: 'span 2' }}>
             <label style={styles.label}>Age Recommendation *</label>
             <input
@@ -480,7 +469,6 @@ const ProductsPage: React.FC = () => {
             {formErrors.ageRecommendation && <span style={styles.errorText}>{formErrors.ageRecommendation}</span>}
           </div>
 
-          {/* Ingredients list */}
           <div style={{ ...styles.formGroup, gridColumn: 'span 2' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <label style={styles.label}>Ingredients *</label>

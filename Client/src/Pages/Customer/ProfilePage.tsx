@@ -52,13 +52,6 @@ interface IGiftCard {
   redeemedToWallet?: boolean;
 }
 
-// interface ITransaction {
-//   _id: string;
-//   type: 'Credit' | 'Debit';
-//   amount: number;
-//   description: string;
-//   createdAt: string;
-// }
 
 interface ICoupon {
   _id: string;
@@ -175,7 +168,7 @@ const CancelCountdown: React.FC<{ createdAt: string; onExpire: () => void }> = (
   useEffect(() => {
     const calculateTime = () => {
       const createdTime = new Date(createdAt).getTime();
-      const expiryTime = createdTime + 10 * 60 * 1000; // 10 minutes
+      const expiryTime = createdTime + 10 * 60 * 1000;
       const difference = expiryTime - Date.now();
 
       if (difference <= 0) {
@@ -232,15 +225,12 @@ const ProfilePage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [_, setImageUploading] = useState<boolean>(false);
 
-  // Tab State
   const [activeIndex, setActiveIndex] = useState<number>(0);
 
-  // Modal visibilities
   const [showAddressModal, setShowAddressModal] = useState<boolean>(false);
   const [showPasswordModal, setShowPasswordModal] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
-  // Form states - Address
   const [addressForm, setAddressForm] = useState<ShippingAddress>({
     fullName: '',
     phone: '',
@@ -252,15 +242,12 @@ const ProfilePage: React.FC = () => {
     country: ''
   });
 
-  // Form states - Password
   const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
 
-  // Form states - Delete password verification
   const [deletePassword, setDeletePassword] = useState<string>('');
 
-  // Admin operational settings states
   const [storeName, setStoreName] = useState('TastyHub');
   const [storeStatus, setStoreStatus] = useState<'Open' | 'Closed'>('Open');
   const [freeDeliveryMin, setFreeDeliveryMin] = useState(500);
@@ -269,18 +256,14 @@ const ProfilePage: React.FC = () => {
   const [supportPhone, setSupportPhone] = useState('+91 9876543210');
   const [savingSettings, setSavingSettings] = useState(false);
 
-  // Unified Lists States
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState<boolean>(false);
   const [myGiftCards, setMyGiftCards] = useState<IGiftCard[]>([]);
   const totalGiftCardBalance = myGiftCards.reduce((acc, gc) => acc + (gc.balance || 0), 0);
   const [loadingGiftCards, setLoadingGiftCards] = useState<boolean>(false);
-  // const [transactions, setTransactions] = useState<ITransaction[]>([]);
-  // const [loadingTransactions, setLoadingTransactions] = useState<boolean>(false);
   const [coupons, setCoupons] = useState<ICoupon[]>([]);
   const [loadingCoupons, setLoadingCoupons] = useState<boolean>(false);
 
-  // Buy/Redeem Gift Card fields
   const [selectedPresetAmount, setSelectedPresetAmount] = useState<number>(1000);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [giftCardRecipientEmail, setGiftCardRecipientEmail] = useState<string>('');
@@ -292,7 +275,6 @@ const ProfilePage: React.FC = () => {
   const [successCard, setSuccessCard] = useState<{ code: string; amount: number; isSelf: boolean } | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
-  // Order Details Modal states
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [selectedOrderForStatus, setSelectedOrderForStatus] = useState<any>(null);
@@ -305,7 +287,6 @@ const ProfilePage: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const receiptContentRef = useRef<HTMLDivElement>(null);
 
-  // Review Modals states
   const [isProductReviewVisible, setIsProductReviewVisible] = useState<boolean>(false);
   const [isDeliveryReviewVisible, setIsDeliveryReviewVisible] = useState<boolean>(false);
   const [selectedOrderForReview, setSelectedOrderForReview] = useState<any>(null);
@@ -322,7 +303,6 @@ const ProfilePage: React.FC = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch Admin settings
   const fetchSettings = async () => {
     try {
       const token = authContext?.token || localStorage.getItem('token');
@@ -379,7 +359,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Fetch User profile details
   const fetchUserProfile = async () => {
     try {
       setFetchLoading(true);
@@ -419,7 +398,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Lists fetchers for Customer Unified view
   const fetchOrdersList = async () => {
     const token = authContext?.token || localStorage.getItem('token');
     if (!token) return;
@@ -462,18 +440,15 @@ const ProfilePage: React.FC = () => {
     const token = authContext?.token || localStorage.getItem('token');
     if (!token) return;
     try {
-      // setLoadingTransactions(true);
       const res = await axios.get(`${backendUrl}/api/promo/transactions/my`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
       if (res.data.success) {
-        // setTransactions(res.data.transactions || []);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      // setLoadingTransactions(false);
     }
   };
 
@@ -529,7 +504,6 @@ const ProfilePage: React.FC = () => {
       fetchTransactionsList();
       fetchCouponsList();
 
-      // Load Razorpay Script
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.async = true;
@@ -542,7 +516,6 @@ const ProfilePage: React.FC = () => {
     }
   }, [profileData?.role]);
 
-  // Image Upload Logic
   const triggerFileSelect = () => {
     fileInputRef.current?.click();
   };
@@ -582,7 +555,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Submit Shipping Address
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -609,7 +581,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Submit Password Change
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
@@ -644,7 +615,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Submit Delete Account
   const handleDeleteAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deletePassword) {
@@ -678,7 +648,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Dynamic Gift Cards purchasing
   const getPurchaseAmount = () => {
     if (customAmount) {
       const parsed = parseFloat(customAmount);
@@ -821,7 +790,6 @@ const ProfilePage: React.FC = () => {
     toast.current?.show({ severity: 'info', summary: 'Copied', detail: 'Code copied to clipboard' });
   };
 
-  // Orders table view operations
   const showModal = (order: any) => {
     setSelectedOrder(order);
     setIsModalVisible(true);
@@ -878,7 +846,6 @@ const ProfilePage: React.FC = () => {
         setIsStatusModalVisible(false);
         setSelectedOrderForStatus(null);
         setOrderToCancel(null);
-        // Refresh orders list
         fetchOrdersList();
       }
     } catch (err: any) {
@@ -914,11 +881,9 @@ const ProfilePage: React.FC = () => {
           summary: 'Search Restarted',
           detail: 'Searching for a new delivery partner.'
         });
-        // Update status modal data dynamically
         if (selectedOrderForStatus && selectedOrderForStatus._id === orderId) {
           setSelectedOrderForStatus(response.data.order);
         }
-        // Refresh orders list
         fetchOrdersList();
       }
     } catch (err: any) {
@@ -1093,7 +1058,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Style helper
   const presetButtonStyle = (amount: number) => ({
     padding: '0.85rem 1.5rem',
     borderRadius: '10px',
@@ -1121,7 +1085,6 @@ const ProfilePage: React.FC = () => {
     <div style={{ padding: '0.25rem', fontFamily: 'Inter, sans-serif' }}>
       <Toast ref={toast} className="custom-toast" />
 
-      {/* Header Info Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #15803d 0%, #166534 100%)',
         borderRadius: '16px',
@@ -1171,12 +1134,9 @@ const ProfilePage: React.FC = () => {
         )}
       </div>
 
-      {/* Modern Profile and Tab Panel unifying all parts */}
       <div style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)', overflow: 'hidden', backgroundColor: '#ffffff', padding: '1.5rem' }}>
         {profileData?.role === 'admin' ? (
-          /* REDESIGNED ADMIN CONFIGURATION AND METADATA PANEL */
           <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-            {/* Left Column: Store Configuration */}
             <div style={{ flex: '2 1 500px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #f0fdf4', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1216,7 +1176,6 @@ const ProfilePage: React.FC = () => {
               </form>
             </div>
 
-            {/* Right Column: Security & Metadata */}
             <div style={{ flex: '1 1 320px', borderLeft: '1px solid #e5e7eb', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1.5px solid #f0fdf4', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
@@ -1252,7 +1211,6 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
         ) : profileData?.role === 'delivery_executive' ? (
-          /* REDESIGNED DELIVERY EXECUTIVE SINGLE PANEL */
           <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
             <div style={{ flex: '2 1 450px' }}>
               <div style={{ borderBottom: '1.5px solid #f0fdf4', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
@@ -1283,7 +1241,6 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
             </div>
-            {/* Right Security actions panel */}
             <div className="profile-security-sidebar" style={{ flex: '1 1 300px', borderLeft: '1px solid #f3f4f6', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem' }}>Security & Account</h3>
               <Button label="Change Password" icon="pi pi-key" severity="success" outlined onClick={() => setShowPasswordModal(true)} style={{ borderRadius: '8px', width: '100%' }} />
@@ -1291,7 +1248,6 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
         ) : (
-          /* CUSTOMER PROFILE WITH HORIZONTAL BUTTON TABS */
           <div>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
               {[
@@ -1343,10 +1299,8 @@ const ProfilePage: React.FC = () => {
             </div>
 
             <div style={{ marginTop: '1.5rem' }}>
-              {/* Panel 0: Account Details */}
               {activeIndex === 0 && (
                 <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                  {/* Left Address panel */}
                   <div style={{ flex: '2 1 450px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1401,7 +1355,6 @@ const ProfilePage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Right Security actions panel */}
                   <div className="profile-security-sidebar" style={{ flex: '1 1 300px', borderLeft: '1px solid #f3f4f6', paddingLeft: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#1f2937', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.5rem' }}>Security & Account</h3>
                     <Button label="Change Password" icon="pi pi-key" severity="success" outlined onClick={() => setShowPasswordModal(true)} style={{ borderRadius: '8px', width: '100%' }} />
@@ -1410,7 +1363,6 @@ const ProfilePage: React.FC = () => {
                 </div>
               )}
 
-              {/* Panel 1: Order History */}
               {activeIndex === 1 && (
                 <div style={{ marginTop: '0.5rem' }}>
                   <div style={{ borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', backgroundColor: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
@@ -1556,19 +1508,15 @@ const ProfilePage: React.FC = () => {
                 </div>
               )}
 
-              {/* Panel 2: Gift Cards */}
               {activeIndex === 2 && (
                 <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {/* Top Row: Actions */}
                   <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                    {/* Purchase Action Card */}
                     <div style={{ flex: '1 1 350px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
                       <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, color: '#1f2937' }}>Prepaid Dining Gift Cards</h3>
                       <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: '#64748b', lineHeight: 1.4 }}>Buy dining Gift Cards for yourself or send them directly to a friend's email address as a premium gift.</p>
                       <Button label="Buy Gift Card" icon="pi pi-credit-card" severity="success" onClick={() => setPurchaseModalOpen(true)} style={{ borderRadius: '8px' }} />
                     </div>
 
-                    {/* Redeem Action Card */}
                     <div style={{ flex: '1 1 350px', border: '1px solid #b7eb8f', borderRadius: '12px', padding: '1.5rem', backgroundColor: '#f0fdf4', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01)' }}>
                       <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 700, color: '#166534' }}>Have a gift card code?</h3>
                       <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: '#15803d', lineHeight: 1.4 }}>Redeem received gift card credentials instantly to top up your personal dining wallet balance.</p>
@@ -1576,7 +1524,6 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Bottom Row: Logs Table */}
                   <div style={{ border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.5rem', backgroundColor: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>Personal Gift Cards Log</h4>
@@ -1628,7 +1575,6 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Purchase Gift Card Modal */}
                   <Dialog
                     header={<div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803d', fontWeight: 'bold' }}><i className="pi pi-credit-card"></i><span>Purchase Dining Gift Card</span></div>}
                     visible={purchaseModalOpen}
@@ -1665,7 +1611,6 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </Dialog>
 
-                  {/* Purchase Success Dialog */}
                   <Dialog
                     header={<div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold' }}><i className="pi pi-check-circle"></i><span>Purchase Successful!</span></div>}
                     visible={showSuccessModal}
@@ -1733,7 +1678,6 @@ const ProfilePage: React.FC = () => {
                 </div>
               )}
 
-              {/* Panel 3: Dynamic Coupons */}
               {activeIndex === 3 && (
                 <div style={{ marginTop: '0.5rem' }}>
                   <h3 style={{ margin: '0 0 1.25rem 0', fontWeight: 800, color: '#1f2937' }}>Available Coupon Codes Announcements</h3>
@@ -1775,7 +1719,6 @@ const ProfilePage: React.FC = () => {
         )}
       </div>
 
-      {/* Migrated Order Details modal */}
       {selectedOrder && (
         <Dialog
           header={
@@ -1857,7 +1800,6 @@ const ProfilePage: React.FC = () => {
               ))}
             </div>
 
-            {/* PDF hidden invoice container */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
               <div ref={receiptContentRef} style={{ width: '320px', padding: '20px', fontFamily: '"Courier New", Courier, monospace', fontSize: '12px', color: '#000', backgroundColor: '#fff' }}>
                 <div style={{ textAlign: 'center', marginBottom: '15px' }}>
@@ -1902,7 +1844,6 @@ const ProfilePage: React.FC = () => {
         </Dialog>
       )}
 
-      {/* Tracker Status modal */}
       {selectedOrderForStatus && (
         <Dialog
           header={
@@ -1937,7 +1878,6 @@ const ProfilePage: React.FC = () => {
           `}</style>
           
           <div className="delivery-scoped-font">
-            {/* Conditional Cancellation Window Display */}
             {selectedOrderForStatus.deliveryStatus !== 'Cancelled' && 
              selectedOrderForStatus.deliveryStatus !== 'Refunded' && 
              selectedOrderForStatus.deliveryStatus !== 'Delivered' &&  
@@ -1975,7 +1915,6 @@ const ProfilePage: React.FC = () => {
               </div>
             )}
             
-            {/* If order is Pending and 10-Min cancellation window is EXPIRED, show "Delivery partner not accepted" & "Try Again" button */}
             {selectedOrderForStatus.deliveryStatus === 'Pending' && 
              (Date.now() - new Date(selectedOrderForStatus.createdAt).getTime() >= 10 * 60 * 1000) && (
               <div style={{
@@ -2021,7 +1960,6 @@ const ProfilePage: React.FC = () => {
               </div>
             )}
             
-            {/* If order is already cancelled, show cancellation details */}
             {selectedOrderForStatus.deliveryStatus === 'Cancelled' && (
               <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <i className="pi pi-times-circle" style={{ fontSize: '2rem', color: '#ef4444' }} />
@@ -2034,7 +1972,6 @@ const ProfilePage: React.FC = () => {
               </div>
             )}
             
-            {/* If order is already refunded, show refund details */}
             {selectedOrderForStatus.deliveryStatus === 'Refunded' && (
               <div style={{ background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <i className="pi pi-undo" style={{ fontSize: '2rem', color: '#3b82f6' }} />
@@ -2052,7 +1989,6 @@ const ProfilePage: React.FC = () => {
         </Dialog>
       )}
 
-      {/* Cancellation Reason Dialog */}
       {orderToCancel && (
         <Dialog
           header={
@@ -2108,7 +2044,6 @@ const ProfilePage: React.FC = () => {
         </Dialog>
       )}
 
-      {/* Address Edit Dialog Modal */}
       <Dialog visible={showAddressModal} onHide={() => setShowAddressModal(false)} header={<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem', width: '100%' }}><i className="pi pi-map-marker" style={{ color: '#15803d', fontSize: '1.2rem' }}></i><span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1f2937' }}>Configure Delivery Address</span></div>} style={{ width: '540px', maxWidth: '95vw', borderRadius: '12px' }} modal>
         <form onSubmit={handleAddressSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}><label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Recipient Name *</label><InputText value={addressForm.fullName} onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })} required style={styles.formInput} placeholder="e.g. Hari Krishna" /></div>
@@ -2130,7 +2065,6 @@ const ProfilePage: React.FC = () => {
         </form>
       </Dialog>
 
-      {/* Password Change Dialog Modal */}
       <Dialog visible={showPasswordModal} onHide={() => setShowPasswordModal(false)} header={<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem', width: '100%' }}><i className="pi pi-key" style={{ color: '#15803d', fontSize: '1.2rem' }}></i><span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1f2937' }}>Update Account Password</span></div>} style={{ width: '440px', maxWidth: '95vw', borderRadius: '12px' }} modal>
         <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}><label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Current Password *</label><InputText type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required style={styles.formInput} placeholder="••••••••" /></div>
@@ -2143,7 +2077,6 @@ const ProfilePage: React.FC = () => {
         </form>
       </Dialog>
 
-      {/* Delete Account Dialog Modal */}
       <Dialog visible={showDeleteModal} onHide={() => setShowDeleteModal(false)} header={<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem', width: '100%' }}><i className="pi pi-exclamation-triangle" style={{ color: '#ef4444', fontSize: '1.2rem' }}></i><span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#ef4444' }}>Danger: Delete Account</span></div>} style={{ width: '440px', maxWidth: '95vw', borderRadius: '12px' }} modal>
         <form onSubmit={handleDeleteAccountSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
           <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '8px', padding: '1rem', color: '#991b1b', fontSize: '0.82rem', lineHeight: '1.5' }}>
@@ -2157,7 +2090,6 @@ const ProfilePage: React.FC = () => {
         </form>
       </Dialog>
 
-      {/* Redeem Card Dialog Modal */}
       <Dialog visible={redeemModalOpen} onHide={() => setRedeemModalOpen(false)} header={<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid #f3f4f6', paddingBottom: '0.75rem', width: '100%' }}><i className="pi pi-wallet" style={{ color: '#15803d', fontSize: '1.2rem' }}></i><span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1f2937' }}>Redeem Gift Card to Wallet</span></div>} style={{ width: '400px', maxWidth: '95vw', borderRadius: '12px' }} modal>
         <form onSubmit={handleRedeemGiftCard} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}><label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Enter Gift Card Code *</label><InputText value={redeemCode} onChange={(e) => setRedeemCode(e.target.value.toUpperCase())} required style={styles.formInput} placeholder="e.g. GIFT-XXXX-YYYY" /></div>
@@ -2168,7 +2100,6 @@ const ProfilePage: React.FC = () => {
         </form>
       </Dialog>
 
-      {/* Rate Products Dialog Modal */}
       {selectedOrderForReview && isProductReviewVisible && (
         <Dialog 
           visible={isProductReviewVisible} 
@@ -2229,7 +2160,6 @@ const ProfilePage: React.FC = () => {
         </Dialog>
       )}
 
-      {/* Rate Delivery Partner Dialog Modal */}
       {selectedOrderForReview && isDeliveryReviewVisible && (
         <Dialog 
           visible={isDeliveryReviewVisible} 

@@ -33,12 +33,10 @@ const GiftCards: React.FC = () => {
   const [purchasing, setPurchasing] = useState<boolean>(false);
   const [redeeming, setRedeeming] = useState<boolean>(false);
 
-  // Buy Gift Card fields
   const [selectedPresetAmount, setSelectedPresetAmount] = useState<number>(1000);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [recipientEmail, setRecipientEmail] = useState<string>('');
 
-  // Redeem Card dialog state
   const [redeemModalOpen, setRedeemModalOpen] = useState<boolean>(false);
   const [redeemCode, setRedeemCode] = useState<string>('');
   const [successCard, setSuccessCard] = useState<{ code: string; amount: number; isSelf: boolean } | null>(null);
@@ -46,7 +44,6 @@ const GiftCards: React.FC = () => {
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  // Fetch My Gift Cards
   const fetchMyGiftCards = useCallback(async () => {
     if (!auth?.token) {
       setLoadingCards(false);
@@ -75,7 +72,6 @@ const GiftCards: React.FC = () => {
     }
   }, [auth?.token, backendUrl]);
 
-  // Load Razorpay Script on mount
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -91,7 +87,6 @@ const GiftCards: React.FC = () => {
     };
   }, [fetchMyGiftCards]);
 
-  // Get active purchase amount
   const getPurchaseAmount = () => {
     if (customAmount) {
       const parsed = parseFloat(customAmount);
@@ -100,7 +95,6 @@ const GiftCards: React.FC = () => {
     return selectedPresetAmount;
   };
 
-  // Buy Gift Card using Razorpay payment
   const handlePurchaseGiftCard = async () => {
     if (!auth?.isAuthenticated) {
       navigate('/user/auth');
@@ -119,11 +113,9 @@ const GiftCards: React.FC = () => {
     try {
       setPurchasing(true);
 
-      // 1. Fetch Razorpay API key
       const keyRes = await axios.get<{ key: string }>(`${backendUrl}/razorpay/getkey`);
       const razorpayKey = keyRes.data.key;
 
-      // 2. Initialize payment process on backend to get Razorpay order object
       const processRes = await axios.post(
         `${backendUrl}/razorpay/payment/process`,
         { amount },
@@ -136,7 +128,6 @@ const GiftCards: React.FC = () => {
 
       const rzpOrder = processRes.data.order;
 
-      // 3. Configure Razorpay checkout options
       const options = {
         key: razorpayKey,
         amount: rzpOrder.amount,
@@ -152,7 +143,6 @@ const GiftCards: React.FC = () => {
         handler: async function (response: any) {
           if (response.razorpay_payment_id) {
             try {
-              // 4. Hit Promo giftcard creation endpoint after successful payment validation
               const res = await axios.post(
                 `${backendUrl}/api/promo/giftcards`,
                 {
@@ -174,12 +164,10 @@ const GiftCards: React.FC = () => {
                   isSelf
                 });
                 
-                // Reset form fields
                 setCustomAmount('');
                 setRecipientEmail('');
                 setShowSuccessModal(true);
                 
-                // Refresh list
                 fetchMyGiftCards();
               }
             } catch (err: any) {
@@ -212,7 +200,6 @@ const GiftCards: React.FC = () => {
     }
   };
 
-  // Redeem Gift Card
   const handleRedeemGiftCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth?.isAuthenticated) {
@@ -245,7 +232,6 @@ const GiftCards: React.FC = () => {
           detail: res.data.message || 'Wallet balance updated successfully!'
         });
         
-        // Update user context wallet balance if supported
         if (auth?.login && auth.user && auth.token && res.data.walletBalance !== undefined) {
           auth.login({ ...auth.user, walletBalance: res.data.walletBalance } as any, auth.token);
         }
@@ -300,7 +286,6 @@ const GiftCards: React.FC = () => {
     }
   };
 
-  // Helper copy code
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast.current?.show({
@@ -310,7 +295,6 @@ const GiftCards: React.FC = () => {
     });
   };
 
-  // Preset button styling helper
   const presetButtonStyle = (amount: number) => ({
     padding: '0.85rem 1.5rem',
     borderRadius: '10px',
@@ -329,7 +313,6 @@ const GiftCards: React.FC = () => {
     <div style={{ padding: '0.25rem', fontFamily: 'Inter, sans-serif' }}>
       <Toast ref={toast} className="custom-toast" />
 
-      {/* Header section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
         <div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: 0 }}>
@@ -353,10 +336,8 @@ const GiftCards: React.FC = () => {
         />
       </div>
 
-      {/* Side-by-side purchase and promo settings */}
       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'stretch', marginBottom: '2.5rem' }}>
         
-        {/* Left Buy Gift Card configuration */}
         <div style={{
           flex: '1 1 450px',
           backgroundColor: '#ffffff',
@@ -373,7 +354,6 @@ const GiftCards: React.FC = () => {
               Purchase Gift Card
             </h3>
             
-            {/* Presets Grid */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#4b5563' }}>Select Denomination</label>
               <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
@@ -384,7 +364,6 @@ const GiftCards: React.FC = () => {
               </div>
             </div>
 
-            {/* Custom Amount */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.25rem' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#4b5563' }}>Or Custom Amount (₹)</label>
               <InputText
@@ -396,7 +375,6 @@ const GiftCards: React.FC = () => {
               />
             </div>
 
-            {/* Optional Recipient Email */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#4b5563' }}>Recipient Email</label>
@@ -429,7 +407,6 @@ const GiftCards: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Info Section / How it works */}
         <div style={{
           flex: '1 1 350px',
           backgroundColor: '#ffffff',
@@ -480,7 +457,6 @@ const GiftCards: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Gift Card History table */}
       <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)', padding: '1.5rem', overflow: 'hidden' }}>
         <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.15rem', fontWeight: 700, color: '#1f2937' }}>
           My Gift Cards History
@@ -582,7 +558,6 @@ const GiftCards: React.FC = () => {
         </div>
       </div>
 
-      {/* Redeem Card Dialog Modal */}
       <Dialog
         visible={redeemModalOpen}
         onHide={() => setRedeemModalOpen(false)}
@@ -627,7 +602,6 @@ const GiftCards: React.FC = () => {
         </form>
       </Dialog>
 
-      {/* Purchase Success Dialog */}
       <Dialog
         header={<div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold' }}><i className="pi pi-check-circle"></i><span>Purchase Successful!</span></div>}
         visible={showSuccessModal}

@@ -15,20 +15,16 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // State for live clock
   const [timeStr, setTimeStr] = useState<string>('');
   const [dateStr, setDateStr] = useState<string>('');
   
-  // State for greeting
   const [greeting, setGreeting] = useState<string>('Good Morning');
 
-  // Notifications state
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [notifyDrawerOpen, setNotifyDrawerOpen] = useState<boolean>(false);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  // Fetch Notifications
   const fetchNotifications = useCallback(async () => {
     if (!auth?.token) return;
     try {
@@ -279,7 +275,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           display: none !important;
         }
       `}</style>
-      {/* Sidebar Panel */}
       <aside style={styles.sidebar}>
         <div style={styles.logoSection}>
           <img src="/logo.png" alt="TastyHub Logo" style={styles.logoImg} onError={(e)=>{(e.target as any).src='https://primefaces.org/cdn/primereact/images/logo.png'}} />
@@ -344,7 +339,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                             paddingLeft: '1.5rem',
                           }}
                         >
-                          {/* Curved Connector Line */}
                           <div style={{
                             position: 'absolute',
                             left: '-20px',
@@ -357,13 +351,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                             pointerEvents: 'none'
                           }} />
                           
-                          {/* Straight Vertical Line to continue to the next child */}
                           {!isLast && (
                             <div style={{
                               position: 'absolute',
                               left: '-20px',
                               top: '50%',
-                              bottom: '-6px', // bridges the 0.2rem gap to the next item
+                              bottom: '-6px',
                               width: '20px',
                               borderLeft: '1.5px solid #cbd5e1',
                               pointerEvents: 'none'
@@ -401,9 +394,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </button>
       </aside>
 
-      {/* Main Content Side */}
       <div style={styles.mainSide}>
-        {/* Top Header */}
         <header style={styles.header}>
           <div>
             <h1 style={styles.greetingTitle}>
@@ -418,7 +409,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
 
           <div style={styles.headerRight}>
-            {/* Notification Icon (Toggles Sidebar) */}
             <div style={styles.notifyContainer} onClick={() => setNotifyDrawerOpen(true)}>
               <div style={styles.notifyBell}>
                 <i className="pi pi-bell" style={{ fontSize: '1.35rem', color: '#15803d' }} />
@@ -426,7 +416,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            {/* Admin Profile Detail Card */}
             <div style={styles.adminProfileCard}>
               <img
                 src={adminImage}
@@ -442,13 +431,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Content Body */}
         <main style={styles.contentBody}>
           {children}
         </main>
       </div>
 
-      {/* Slide right-to-left notification drawer */}
       <Sidebar
         visible={notifyDrawerOpen}
         onHide={() => setNotifyDrawerOpen(false)}
@@ -595,7 +582,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   );
 };
 
-// Sleek CSS-in-JS style styles matching the first mockup image
 const styles = {
   layoutContainer: {
     display: 'flex',
@@ -634,7 +620,7 @@ const styles = {
   logoText: {
     fontSize: '1.4rem',
     fontWeight: 800,
-    color: '#15803d', // TastyHub primary Green
+    color: '#15803d',
     letterSpacing: '-0.5px',
   },
   navSection: {
@@ -665,7 +651,7 @@ const styles = {
     borderRadius: '12px',
     textDecoration: 'none',
     color: '#15803d',
-    backgroundColor: '#dcfce7', // Soft green background
+    backgroundColor: '#dcfce7',
     fontSize: '0.92rem',
     fontWeight: 600,
     boxShadow: '0 4px 12px rgba(34, 197, 94, 0.08)',
@@ -689,7 +675,7 @@ const styles = {
     borderRadius: '8px',
     textDecoration: 'none',
     color: '#15803d',
-    backgroundColor: '#f0fdf4', // Soft green background
+    backgroundColor: '#f0fdf4',
     fontSize: '0.85rem',
     fontWeight: 600,
     boxShadow: '0 2px 6px rgba(34, 197, 94, 0.04)',
@@ -733,7 +719,7 @@ const styles = {
     flexDirection: 'column' as const,
     minHeight: '100vh',
     width: 'calc(100% - 260px)',
-    minWidth: 0, // fixes horizontal overflow
+    minWidth: 0,
   },
   header: {
     backgroundColor: '#ffffff',
@@ -844,7 +830,7 @@ const styles = {
   },
   contentBody: {
     padding: '2rem',
-    paddingTop: 'calc(75px + 2rem)', // To push down from fixed header
+    paddingTop: 'calc(75px + 2rem)',
     flex: 1,
     backgroundColor: '#f8fafc',
     overflowY: 'auto' as const,

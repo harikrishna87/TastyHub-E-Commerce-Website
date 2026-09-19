@@ -91,7 +91,6 @@ const CartPage: React.FC = () => {
     if (newQty < 1) return;
     if (!auth?.token) return;
 
-    // Optimistic UI update
     setCartItems(prev => prev.map(item => item._id === _id ? { ...item, quantity: newQty } : item));
 
     try {
@@ -115,14 +114,13 @@ const CartPage: React.FC = () => {
     } catch (err) {
       console.error(err);
       toastRef.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to update quantity', life: 2000 });
-      fetchCartItems(); // Rollback
+      fetchCartItems();
     }
   };
 
   const handleDeleteItem = async (name: string) => {
     if (!auth?.token) return;
 
-    // Optimistic UI update
     setCartItems(prev => prev.filter(item => item.name !== name));
 
     try {
@@ -147,7 +145,7 @@ const CartPage: React.FC = () => {
     } catch (err) {
       console.error(err);
       toastRef.current?.show({ severity: 'error', summary: 'Error', detail: 'Failed to delete item', life: 2000 });
-      fetchCartItems(); // Rollback
+      fetchCartItems();
     }
   };
 
@@ -174,7 +172,6 @@ const CartPage: React.FC = () => {
   const delivery = freeDelivery ? 0 : deliveryCharge;
   const finalTotal = subtotal + delivery;
 
-  // Free delivery progress percentage
   const freeDeliveryProgress = Math.min((subtotal / freeDeliveryThreshold) * 100, 100);
 
   if (cartItems.length === 0) {
@@ -182,7 +179,6 @@ const CartPage: React.FC = () => {
       <div style={styles.container} className="cart-container">
         <Toast ref={toastRef} />
         
-        {/* Header section matching wishlist page */}
         <div style={{ marginBottom: '2rem' }}>
           <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 800, color: '#1f2937' }}>My Shopping Cart</h2>
           <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '0.9rem' }}>
@@ -190,7 +186,6 @@ const CartPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Empty state card taking full width matching wishlist page */}
         <div style={{ textAlign: 'center', padding: '60px 20px', background: '#f9fafb', borderRadius: '16px', border: '1px dashed #e5e7eb', width: '100%', boxSizing: 'border-box' }}>
           <i className="pi pi-shopping-cart" style={{ fontSize: '4rem', color: '#cbd5e1', marginBottom: '1.5rem' }} />
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4b5563', margin: '0 0 8px 0' }}>Your Cart is Empty</h2>
@@ -214,7 +209,6 @@ const CartPage: React.FC = () => {
     <div style={styles.container} className="cart-container">
       <Toast ref={toastRef} />
 
-      {/* Glassmorphic header section */}
       <div style={styles.header}>
         <h1 style={styles.title}>My Shopping Cart</h1>
         <p style={styles.sub}>Review selected items and proceed to secure checkout</p>
@@ -222,7 +216,6 @@ const CartPage: React.FC = () => {
 
       <div style={styles.mainGrid} className="cart-main-grid">
         
-        {/* Left column: Cart Items list */}
         <div style={styles.itemsColumn} className="cart-items-column hide-scrollbar">
           {cartItems.map((item) => (
             <div key={item._id} style={styles.itemCard} className="cart-item-card">
@@ -238,7 +231,6 @@ const CartPage: React.FC = () => {
                   <h3 style={styles.itemName}>{item.name}</h3>
                 </div>
 
-                {/* Quantity selectors */}
                 <div style={styles.qtyPanel}>
                   <button
                     onClick={() => handleQuantityUpdate(item._id, item.quantity - 1)}
@@ -256,7 +248,6 @@ const CartPage: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Price block */}
                 <div style={styles.priceRow}>
                   {item.original_price > item.discount_price && (
                     <span style={styles.origPrice}>₹{(item.original_price * item.quantity).toFixed(2)}</span>
@@ -264,7 +255,6 @@ const CartPage: React.FC = () => {
                   <span style={styles.discPrice}>₹{(item.discount_price * item.quantity).toFixed(2)}</span>
                 </div>
 
-                {/* Delete button positioned absolutely at top right */}
                 <Button
                   icon="pi pi-trash"
                   className="p-button-text p-button-danger p-button-sm"
@@ -287,7 +277,6 @@ const CartPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Right column: Totals summary card */}
         <div style={styles.summaryColumn} className="cart-summary-column">
           <div style={styles.summaryCard}>
             <h2 style={styles.summaryTitle}>
@@ -296,7 +285,6 @@ const CartPage: React.FC = () => {
             </h2>
             <div style={styles.summarySub}>Complete summary of charges</div>
 
-            {/* Free delivery progress bar */}
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '6px', fontWeight: 600 }}>
                 {freeDelivery ? (

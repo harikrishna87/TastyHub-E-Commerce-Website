@@ -51,7 +51,6 @@ const PaymentOverview: React.FC = () => {
     fetchOrders();
   }, [fetchOrders]);
 
-  // --- TEMPLATE FORMATTERS ---
 
   const orderIdTemplate = (row: IOrder) => (
     <code style={{ color: '#64748b', fontWeight: 600 }}>{row._id.substring(0, 10)}...</code>
@@ -100,7 +99,7 @@ const PaymentOverview: React.FC = () => {
     if (method === 'cod') {
       isPaid = delivery === 'Delivered';
     } else {
-      isPaid = true; // online, gift_card, etc.
+      isPaid = true;
     }
     
     return (

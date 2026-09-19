@@ -32,7 +32,7 @@ const FeaturedRestaurants: React.FC<FeaturedRestaurantsProps> = ({
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filterType, setFilterType] = useState<string>('all'); // all, veg, nonveg, highly-rated
+  const [filterType, setFilterType] = useState<string>('all');
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -62,12 +62,10 @@ const FeaturedRestaurants: React.FC<FeaturedRestaurantsProps> = ({
   };
 
   const filteredRestaurants = restaurants.filter(rest => {
-    // Search match
     const matchesSearch = rest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rest.cuisines.some(c => c.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (rest.popularDish && rest.popularDish.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    // Filter match
     if (filterType === 'veg') {
       return matchesSearch && rest.isVeg;
     } else if (filterType === 'nonveg') {

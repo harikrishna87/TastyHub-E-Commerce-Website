@@ -179,7 +179,6 @@ const WishlistPage: React.FC = () => {
   return (
     <div style={{ padding: '24px 0', width: '100%', minHeight: '80vh', boxSizing: 'border-box' }}>
       
-      {/* Title Section (Clean Text Heading) */}
       <div style={{ marginBottom: '2rem' }}>
         <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 800, color: '#1f2937' }}>My Wishlist</h2>
         <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '0.9rem' }}>
@@ -229,7 +228,6 @@ const WishlistPage: React.FC = () => {
                 }}
                 className="wishlist-item-card"
               >
-                {/* Left Image */}
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   <img
                     src={item.image}
@@ -267,9 +265,7 @@ const WishlistPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Right Content */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', overflow: 'hidden' }}>
-                  {/* Category, Title and Price Row */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', gap: '8px' }}>
                     <div style={{ overflow: 'hidden' }}>
                       <span style={{ fontSize: '0.73rem', textTransform: 'uppercase', color: '#22c55e', fontWeight: 800, letterSpacing: '0.75px' }}>
@@ -304,7 +300,6 @@ const WishlistPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Action buttons (Add to Cart & Remove) */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
                     <Button
                       onClick={() => handleAddToCart(item)}

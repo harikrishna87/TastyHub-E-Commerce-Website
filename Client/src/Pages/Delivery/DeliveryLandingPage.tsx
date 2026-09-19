@@ -17,7 +17,6 @@ export default function DeliveryLandingPage() {
       minHeight: '100vh',
       overflowX: 'hidden'
     }}>
-      {/* Premium Hero Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
         color: '#ffffff',
@@ -26,7 +25,6 @@ export default function DeliveryLandingPage() {
         textAlign: 'center',
         borderBottomRightRadius: '80px'
       }}>
-        {/* Soft floating glow elements */}
         <div style={{
           position: 'absolute',
           top: '10%',
@@ -123,7 +121,6 @@ export default function DeliveryLandingPage() {
         </div>
       </div>
 
-      {/* Modern Wave Divider Overlay */}
       <div style={{
         marginTop: '-50px',
         position: 'relative',
@@ -160,7 +157,6 @@ export default function DeliveryLandingPage() {
         </div>
       </div>
 
-      {/* Main Core Benefits Section */}
       <div style={{ maxWidth: '1200px', margin: '6rem auto 4rem auto', padding: '0 2rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
           <h2 style={{ fontSize: '2.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.75rem', letterSpacing: '-0.75px' }}>
@@ -176,7 +172,6 @@ export default function DeliveryLandingPage() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '2.5rem'
         }}>
-          {/* Card 1 */}
           <Card style={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: 'none' }} className="p-3">
             <div style={{
               width: '50px',
@@ -196,7 +191,6 @@ export default function DeliveryLandingPage() {
             </p>
           </Card>
 
-          {/* Card 2 */}
           <Card style={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: 'none' }} className="p-3">
             <div style={{
               width: '50px',
@@ -216,7 +210,6 @@ export default function DeliveryLandingPage() {
             </p>
           </Card>
 
-          {/* Card 3 */}
           <Card style={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: 'none' }} className="p-3">
             <div style={{
               width: '50px',
@@ -238,7 +231,6 @@ export default function DeliveryLandingPage() {
         </div>
       </div>
 
-      {/* Ride Steps Timeline */}
       <div style={{
         background: '#f1f5f9',
         padding: '5rem 2rem',
@@ -311,7 +303,6 @@ export default function DeliveryLandingPage() {
         </div>
       </div>
 
-      {/* Call to Action Footer Area */}
       <div style={{
         textAlign: 'center',
         padding: '6rem 2rem',
@@ -340,7 +331,6 @@ export default function DeliveryLandingPage() {
         />
       </div>
 
-      {/* Tiny clean footer */}
       <div style={{
         borderTop: '1px solid #e2e8f0',
         padding: '2rem',

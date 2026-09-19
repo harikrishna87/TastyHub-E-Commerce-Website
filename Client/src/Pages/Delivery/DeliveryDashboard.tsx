@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 
-// PrimeReact UI Components
 import { InputSwitch } from 'primereact/inputswitch';
 import { Card } from 'primereact/card';
 import { Button } from 'primereact/button';
@@ -337,7 +336,7 @@ const OrderCountdown: React.FC<{ createdAt: string; onExpire: () => void }> = ({
   useEffect(() => {
     const calculateTime = () => {
       const createdTime = new Date(createdAt).getTime();
-      const expiryTime = createdTime + 60 * 60 * 1000; // 1 hour
+      const expiryTime = createdTime + 60 * 60 * 1000;
       const difference = expiryTime - Date.now();
 
       if (difference <= 0) {
@@ -389,17 +388,13 @@ const DeliveryDashboard: React.FC = () => {
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Profile data
   const [profileData, setProfileData] = useState<any>(null);
 
-  // Navigation tabs
   const [activeTab, setActiveTab] = useState<'overview' | 'new-orders' | 'active-transits' | 'earnings' | 'profile'>('overview');
 
-  // Logistics state
   const [allOrders, setAllOrders] = useState<any[]>([]);
   const [availableOrders, setAvailableOrders] = useState<any[]>([]);
   
-  // Filtered views
   const [activeOrders, setActiveOrders] = useState<any[]>([]);
   const [completedOrders, setCompletedOrders] = useState<any[]>([]);
 
@@ -437,19 +432,16 @@ const DeliveryDashboard: React.FC = () => {
 
   const [isOnline, setIsOnline] = useState<boolean>(false);
 
-  // Cash collection prompt modal state
   const [codDialogVisible, setCodDialogVisible] = useState<boolean>(false);
   const [codOrderToDeliver, setCodOrderToDeliver] = useState<any>(null);
   const [codChecked, setCodChecked] = useState<boolean>(false);
 
-  // Time & Greeting states
   const [timeStr, setTimeStr] = useState<string>('');
   const [dateStr, setDateStr] = useState<string>('');
   const [greeting, setGreeting] = useState<string>('Good Morning');
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  // Retrieve details
   const deName = authContext?.user?.name || 'Logistics Executive';
   const deEmail = authContext?.user?.email || 'carrier@tastyhub.com';
 
@@ -506,9 +498,7 @@ const DeliveryDashboard: React.FC = () => {
     }
   };
 
-  // Wallet & Withdrawal states
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  // const [loadingWithdrawals, setLoadingWithdrawals] = useState<boolean>(false);
   const [withdrawDialogVisible, setWithdrawDialogVisible] = useState<boolean>(false);
   const [withdrawAmount, setWithdrawAmount] = useState<number | ''>('');
   const [accountantName, setAccountantName] = useState<string>('');
@@ -516,7 +506,6 @@ const DeliveryDashboard: React.FC = () => {
   const [ifscCode, setIfscCode] = useState<string>('');
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState<boolean>(false);
 
-  // Tracking Dialog states
   const [trackingOrder, setTrackingOrder] = useState<any | null>(null);
   const [trackingVisible, setTrackingVisible] = useState<boolean>(false);
 
@@ -524,7 +513,6 @@ const DeliveryDashboard: React.FC = () => {
     const token = authContext?.token || localStorage.getItem('token');
     if (!token) return;
     try {
-      // setLoadingWithdrawals(true);
       const res = await axios.get(`${backendUrl}/api/delivery/withdrawals`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
@@ -535,7 +523,6 @@ const DeliveryDashboard: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch withdrawal requests:', err);
     } finally {
-      // setLoadingWithdrawals(false);
     }
   }, [authContext?.token, backendUrl]);
 
@@ -548,7 +535,6 @@ const DeliveryDashboard: React.FC = () => {
       }
       const headers = { Authorization: `Bearer ${token}` };
 
-      // Get Duty Profile Availability & Wallet Balance
       try {
         const meRes = await axios.get(`${backendUrl}/api/auth/getme`, { headers, withCredentials: true });
         if (meRes.data.success) {
@@ -560,7 +546,6 @@ const DeliveryDashboard: React.FC = () => {
         console.error('Failed to sync profile status:', err);
       }
 
-      // Fetch withdrawals to sync withdrawable calculations
       try {
         const res = await axios.get(`${backendUrl}/api/delivery/withdrawals`, { headers, withCredentials: true });
         if (res.data.success) {
@@ -570,7 +555,6 @@ const DeliveryDashboard: React.FC = () => {
         console.error('Failed to fetch withdrawal requests:', err);
       }
 
-      // Fetch Available Restaurant orders (Pending & Executive-less)
       try {
         const avRes = await axios.get(`${backendUrl}/api/delivery/orders/available`, { headers, withCredentials: true });
         if (avRes.data.success) {
@@ -580,14 +564,12 @@ const DeliveryDashboard: React.FC = () => {
         console.error('Failed to fetch available orders:', err);
       }
 
-      // Fetch All orders assigned to this executive (both active and completed)
       try {
         const acRes = await axios.get(`${backendUrl}/api/delivery/orders/my-accepted`, { headers, withCredentials: true });
         if (acRes.data.success) {
           const list = acRes.data.orders || [];
           setAllOrders(list);
           
-          // Dynamically split in-flight transit vs historical delivered on client
           const active = list.filter((o: any) => o.deliveryStatus !== 'Delivered');
           const completed = list.filter((o: any) => o.deliveryStatus === 'Delivered');
           
@@ -619,7 +601,6 @@ const DeliveryDashboard: React.FC = () => {
 
     fetchDashboardData();
 
-    // Clock ticker implementation
     const updateClock = () => {
       const now = new Date();
       setTimeStr(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
@@ -685,15 +666,11 @@ const DeliveryDashboard: React.FC = () => {
           duration: 4
         });
         
-        // Optimistically/instantly update client state
         const acceptedOrder = res.data.order;
         if (acceptedOrder) {
-          // Remove from available orders
           setAvailableOrders(prev => prev.filter(o => o._id !== orderId));
-          // Add to allOrders and activeOrders
           setAllOrders(prev => [acceptedOrder, ...prev.filter(o => o._id !== orderId)]);
           setActiveOrders(prev => [acceptedOrder, ...prev.filter(o => o._id !== orderId)]);
-          // Sync tracking state
           setTrackingOrder(acceptedOrder);
         }
         
@@ -711,7 +688,6 @@ const DeliveryDashboard: React.FC = () => {
   };
 
   const handleUpdateStatus = async (orderId: string, currentStatus: string, paymentMethod: string, totalAmount: number, customerName: string) => {
-    // Determine next sequential state in order status workflow
     let nextStatus = '';
     if (currentStatus === 'Accepted') nextStatus = 'Preparing';
     else if (currentStatus === 'Preparing') nextStatus = 'Pickup';
@@ -720,7 +696,6 @@ const DeliveryDashboard: React.FC = () => {
 
     if (!nextStatus) return;
 
-    // Cash on Delivery checks: require DE to explicitly confirm cash collected from customer
     if (nextStatus === 'Delivered' && paymentMethod === 'cod') {
       setCodOrderToDeliver({ orderId, totalAmount, customerName });
       setCodChecked(false);
@@ -728,7 +703,6 @@ const DeliveryDashboard: React.FC = () => {
       return;
     }
 
-    // Direct transition for online payments or non-final states
     await executeStatusTransition(orderId, nextStatus);
   };
 
@@ -754,7 +728,6 @@ const DeliveryDashboard: React.FC = () => {
           duration: 4
         });
         
-        // Optimistically/instantly update client state
         const updatedOrder = res.data.order;
         if (updatedOrder) {
           setAllOrders(prev => prev.map(o => o._id === orderId ? updatedOrder : o));
@@ -765,7 +738,6 @@ const DeliveryDashboard: React.FC = () => {
           } else {
             setActiveOrders(prev => prev.map(o => o._id === orderId ? updatedOrder : o));
           }
-          // Sync tracking state in real-time
           setTrackingOrder(updatedOrder);
         }
         
@@ -861,19 +833,15 @@ const DeliveryDashboard: React.FC = () => {
     );
   }
 
-  // Calculate today's earnings sum based on standard 30 rupees flat commission rate
   const totalCompletedDeliveries = completedOrders.length;
   const totalEarnings = totalCompletedDeliveries * 30;
 
-  // Calculate withdrawable balance dynamically:
-  // Lifetime Earnings minus the sum of withdrawal requests that are Pending or Approved
   const withdrawnOrPendingAmount = withdrawals
     .filter((w: any) => w.status === 'Pending' || w.status === 'Approved')
     .reduce((sum: number, w: any) => sum + (w.amount || 0), 0);
 
   const withdrawableBalance = Math.max(0, totalEarnings - withdrawnOrPendingAmount);
 
-  // Calculate percentage of progress in sequential stepper matching current active order's state
   const getStepperWidth = (status: string) => {
     if (status === 'Accepted') return '0%';
     if (status === 'Preparing') return '25%';
@@ -978,7 +946,6 @@ const DeliveryDashboard: React.FC = () => {
   return (
     <div className="delivery-layout-container">
       <Toast ref={toastRef} />
-      {/* Sidebar navigation panel */}
       <aside className="delivery-sidebar">
         <div className="delivery-logo-section">
           <img src="/logo.png" alt="TastyHub Logo" className="delivery-logo-img" onError={(e)=>{(e.target as any).src='https://primefaces.org/cdn/primereact/images/logo.png'}} />
@@ -1033,9 +1000,7 @@ const DeliveryDashboard: React.FC = () => {
         </button>
       </aside>
 
-      {/* Main workspace container */}
       <div className="delivery-main-side">
-        {/* Top header navigation */}
         <header className="delivery-header">
           <div>
             <h1 className="delivery-greeting-title">
@@ -1050,7 +1015,6 @@ const DeliveryDashboard: React.FC = () => {
           </div>
 
           <div className="delivery-header-right">
-            {/* Real-time online quick status display */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: isOnline ? '#dcfce7' : '#fee2e2', padding: '6px 12px', borderRadius: '20px', border: `1px solid ${isOnline ? '#bbf7d0' : '#fecaca'}` }}>
               <span style={{ height: '8px', width: '8px', borderRadius: '50%', backgroundColor: isOnline ? '#22c55e' : '#ef4444', display: 'inline-block' }}></span>
               <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isOnline ? '#15803d' : '#991b1b' }}>
@@ -1073,13 +1037,10 @@ const DeliveryDashboard: React.FC = () => {
           </div>
         </header>
 
-        {/* Content body workspace switcher */}
         <main className="delivery-content-body">
           
-          {/* TAB 1: OVERVIEW PAGE */}
           {activeTab === 'overview' && (
             <div>
-              {/* Metrics Panels */}
               <div className="grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                 <div className="premium-metric-card">
                   <div>
@@ -1114,7 +1075,6 @@ const DeliveryDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Brief Quick Overview List */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
                 <Card title={<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><i className="pi pi-list" style={{ color: '#15803d' }}></i><span>Current Transit Summary</span></div>} style={{ borderRadius: '16px' }}>
                   {activeOrders.length === 0 ? (
@@ -1176,7 +1136,6 @@ const DeliveryDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 2: NEW ORDERS PAGE */}
           {activeTab === 'new-orders' && (
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
@@ -1276,7 +1235,6 @@ const DeliveryDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 3: ACTIVE TRANSITS PAGE */}
           {activeTab === 'active-transits' && (
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
@@ -1364,8 +1322,6 @@ const DeliveryDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 4: PAYOUT HISTORY PAGE */}
-          {/* TAB 4: PAYOUT HISTORY PAGE */}
           {activeTab === 'earnings' && (
             <div>
               <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -1389,7 +1345,6 @@ const DeliveryDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* Earnings summary stats card */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <i className="pi pi-check-circle" style={{ fontSize: '2rem', color: '#22c55e', background: '#f0fdf4', padding: '10px', borderRadius: '8px' }} />
@@ -1416,9 +1371,7 @@ const DeliveryDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Grid of Two Tables */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
-                {/* Left: Deliveries list */}
                 <div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem' }}>Historical Deliveries</h3>
                   <Card style={{ borderRadius: '16px', overflow: 'hidden' }}>
@@ -1450,7 +1403,6 @@ const DeliveryDashboard: React.FC = () => {
                   </Card>
                 </div>
 
-                {/* Right: Withdrawals list */}
                 <div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem' }}>Withdrawal Requests</h3>
                   <Card style={{ borderRadius: '16px', overflow: 'hidden' }}>
@@ -1494,7 +1446,6 @@ const DeliveryDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 5: DUTY PROFILE PAGE */}
           {activeTab === 'profile' && (
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
@@ -1503,7 +1454,6 @@ const DeliveryDashboard: React.FC = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
-                {/* General profile information card */}
                 <Card style={{ borderRadius: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '1.5rem 0' }}>
                     <img 
@@ -1545,7 +1495,6 @@ const DeliveryDashboard: React.FC = () => {
                   </div>
                 </Card>
 
-                {/* Duty Switch Availability Controller */}
                 <Card title={<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><i className="pi pi-cog" style={{ color: '#15803d' }}></i><span>Duty Operations Control</span></div>} style={{ borderRadius: '16px' }}>
                   <div style={{ padding: '0.5rem 0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -1586,7 +1535,6 @@ const DeliveryDashboard: React.FC = () => {
         </main>
       </div>
 
-      {/* Cash on Delivery prompt Modal Dialog */}
       <Dialog 
         header={<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><i className="pi pi-money-bill" style={{ color: '#15803d' }}></i><span>Cash Collection Verification</span></div>} 
         visible={codDialogVisible} 
@@ -1650,7 +1598,6 @@ const DeliveryDashboard: React.FC = () => {
         </div>
       </Dialog>
 
-      {/* Payout Withdrawal Request Dialog */}
       <Dialog 
         header={<div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><i className="pi pi-money-bill" style={{ color: '#22c55e' }}></i><span>Request Payout Withdrawal</span></div>} 
         visible={withdrawDialogVisible} 
@@ -1737,7 +1684,6 @@ const DeliveryDashboard: React.FC = () => {
         </div>
       </Dialog>
 
-      {/* Dynamic Order Tracking Modal Dialog */}
       <Dialog 
         header={`Logistics Tracking - Order Ref #${trackingOrder?._id?.substring(0, 10)}`}
         visible={trackingVisible} 
@@ -1753,7 +1699,6 @@ const DeliveryDashboard: React.FC = () => {
       >
         {trackingOrder && (
           <div style={{ padding: '0.5rem 0' }}>
-            {/* Stepper */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1rem 0 2rem 0', position: 'relative' }}>
               <div style={{ position: 'absolute', top: '15px', left: '10%', right: '10%', height: '2px', backgroundColor: '#e2e8f0', zIndex: 1 }}>
                 <div style={{ height: '100%', backgroundColor: '#22c55e', width: getStepperWidth(trackingOrder.deliveryStatus), transition: 'width 0.3s ease' }} />
@@ -1817,10 +1762,8 @@ const DeliveryDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Stepper button inside Modal */}
             {trackingOrder.deliveryStatus !== 'Delivered' && (
               <div style={{ marginTop: '1.5rem' }}>
-                {/* If the order is NOT accepted yet, show Accept button */}
                 {availableOrders.some(av => av._id === trackingOrder._id) ? (
                   <Button 
                     label="Accept & Dispatch order" 

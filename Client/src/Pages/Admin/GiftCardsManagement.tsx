@@ -33,14 +33,12 @@ const GiftCardsManagement: React.FC = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const toast = useRef<Toast>(null);
 
-  // States
   const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [giftCardDialogVisible, setGiftCardDialogVisible] = useState<boolean>(false);
   const [redeemingCode, setRedeemingCode] = useState<string | null>(null);
 
-  // Form State
   const [amount, setAmount] = useState<number>(0);
 
   const fetchGiftCards = async () => {
@@ -52,7 +50,6 @@ const GiftCardsManagement: React.FC = () => {
         },
         withCredentials: true
       };
-      // Fetch all gift cards in the system
       const response = await axios.get(`${backendUrl}/api/promo/giftcards/all`, config);
       if (response.data.success) {
         setGiftCards(response.data.giftCards);
@@ -168,7 +165,6 @@ const GiftCardsManagement: React.FC = () => {
     }
   };
 
-  // --- RENDERING TEMPLATES ---
   const ownerTemplate = (row: GiftCard) => {
     if (typeof row.owner === 'object' && row.owner !== null) {
       return (
@@ -236,7 +232,6 @@ const GiftCardsManagement: React.FC = () => {
         />
       </div>
 
-      {/* Audit Cards list */}
       <div style={styles.tablePanel}>
         <h2 style={{ ...styles.cardTitle, marginBottom: '1.5rem' }}>
           <i className="pi pi-list" style={styles.cardIcon('#eab308')} />
@@ -287,7 +282,6 @@ const GiftCardsManagement: React.FC = () => {
         </DataTable>
       </div>
 
-      {/* Generate Gift Card Dialog */}
       <Dialog
         header="Generate Prepaid Gift Card"
         visible={giftCardDialogVisible}

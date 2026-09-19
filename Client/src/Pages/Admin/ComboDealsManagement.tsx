@@ -33,14 +33,12 @@ const ComboDealsManagement: React.FC = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const toast = useRef<Toast>(null);
 
-  // State
   const [combos, setCombos] = useState<ComboDeal[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [comboDialogVisible, setComboDialogVisible] = useState<boolean>(false);
 
-  // Form State
   const [name, setName] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [comboPrice, setComboPrice] = useState<number>(0);
@@ -158,7 +156,6 @@ const ComboDealsManagement: React.FC = () => {
     }
   };
 
-  // --- DATATABLE RENDERING TEMPLATES ---
   const productsTemplate = (row: ComboDeal) => {
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -237,7 +234,6 @@ const ComboDealsManagement: React.FC = () => {
         />
       </div>
 
-      {/* Combos list */}
       <div style={styles.tablePanel}>
         <h2 style={{ ...styles.cardTitle, marginBottom: '1.5rem' }}>
           <i className="pi pi-list" style={styles.cardIcon('#22c55e')} />
@@ -268,7 +264,6 @@ const ComboDealsManagement: React.FC = () => {
         </DataTable>
       </div>
 
-      {/* Create Combo Dialog */}
       <Dialog
         header="Create Combo Bundle"
         visible={comboDialogVisible}
@@ -326,7 +321,6 @@ const ComboDealsManagement: React.FC = () => {
             />
           </div>
 
-          {/* Product selection multi checkbox */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Select Bundled Products * (Choose multiple)</label>
             <div style={styles.productSelectionBox}>

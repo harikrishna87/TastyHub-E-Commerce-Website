@@ -105,12 +105,10 @@ const ShoppingInfo: React.FC = () => {
     <div style={{ padding: '24px', backgroundColor: 'transparent', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ width: '100%' }}>
         
-        {/* Breadcrumb Container */}
         <div style={{ marginBottom: '24px' }}>
           <BreadCrumb model={breadcrumbItems} home={breadcrumbHome} style={{ background: 'transparent', border: 'none', padding: 0 }} />
         </div>
 
-        {/* Title Section */}
         <div style={{ color: '#22c55e', padding: '10px 0 24px 0', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <i className="pi pi-shopping-cart" style={{ fontSize: '40px' }} />
@@ -124,7 +122,6 @@ const ShoppingInfo: React.FC = () => {
         </div>
 
         <div style={{ padding: '0 8px' }}>
-          {/* Quick Help Alert */}
           <div style={{
             display: 'flex',
             alignItems: 'start',
@@ -145,7 +142,6 @@ const ShoppingInfo: React.FC = () => {
             </div>
           </div>
 
-          {/* How to Order Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -231,7 +227,6 @@ const ShoppingInfo: React.FC = () => {
             </div>
           </Card>
 
-          {/* Delivery Areas & Times Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -295,7 +290,6 @@ const ShoppingInfo: React.FC = () => {
             </div>
           </Card>
 
-          {/* Payment Options Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -334,7 +328,6 @@ const ShoppingInfo: React.FC = () => {
             </div>
           </Card>
 
-          {/* Order Process Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -393,7 +386,6 @@ const ShoppingInfo: React.FC = () => {
             </div>
           </Card>
 
-          {/* Quality Guarantee Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -445,7 +437,6 @@ const ShoppingInfo: React.FC = () => {
             </div>
           </Card>
 
-          {/* Operating Hours Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -513,7 +504,6 @@ const ShoppingInfo: React.FC = () => {
             </div>
           </Card>
 
-          {/* Contact Information Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -587,7 +577,6 @@ const ShoppingInfo: React.FC = () => {
             </div>
           </Card>
 
-          {/* Footer Divider */}
           <div style={{ textAlign: 'center', padding: '24px 0', borderTop: '1px solid #e5e7eb' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
               <i className="pi pi-shopping-cart" />

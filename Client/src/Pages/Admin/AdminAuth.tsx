@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 
-// PrimeReact Components
 import { Checkbox } from 'primereact/checkbox';
 import { Toast } from 'primereact/toast';
 import { Button } from 'primereact/button';

@@ -471,22 +471,6 @@ const ProductSelection: React.FC<ProductSelectionProps> = ({
     }
   };
 
-  // const renderStars = (rating: number | undefined | { rate: number; count: number }) => {
-  //   const rate = typeof rating === 'object' ? rating.rate : (rating || 0);
-  //   const stars = [];
-  //   const floor = Math.floor(rate);
-  //   const hasHalf = rate % 1 !== 0;
-  //   for (let i = 1; i <= 5; i++) {
-  //     if (i <= floor) {
-  //       stars.push(<i key={i} className="pi pi-star-fill" style={{ color: '#facc15', fontSize: '13px', marginRight: '2px' }} />);
-  //     } else if (i === floor + 1 && hasHalf) {
-  //       stars.push(<i key={i} className="pi pi-star-fill" style={{ color: '#facc15', fontSize: '13px', marginRight: '2px', opacity: 0.7 }} />);
-  //     } else {
-  //       stars.push(<i key={i} className="pi pi-star" style={{ color: '#d1d5db', fontSize: '13px', marginRight: '2px' }} />);
-  //     }
-  //   }
-  //   return <div style={{ display: 'flex', alignItems: 'center' }}>{stars}</div>;
-  // };
 
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   const showPagination = selectedCategory && filteredProducts.length > productsPerPage && totalPages > 1;

@@ -127,7 +127,7 @@ const SystemStats: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState<number>(10); // Default to 10s auto-refresh
+  const [refreshInterval, setRefreshInterval] = useState<number>(10);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const fetchStats = useCallback(async (showSilence: boolean = false) => {
@@ -166,7 +166,6 @@ const SystemStats: React.FC = () => {
     }
   }, [auth?.token, backendUrl]);
 
-  // Set up polling interval
   useEffect(() => {
     fetchStats(false);
   }, [fetchStats]);
@@ -180,7 +179,6 @@ const SystemStats: React.FC = () => {
     return () => clearInterval(interval);
   }, [fetchStats, refreshInterval]);
 
-  // Format Helper: Bytes to human readable
   const formatBytes = (bytes: number, decimals: number = 2): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -190,7 +188,6 @@ const SystemStats: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
 
-  // Format Helper: Seconds to human readable uptime
   const formatUptime = (seconds: number): string => {
     const d = Math.floor(seconds / (3600 * 24));
     const h = Math.floor((seconds % (3600 * 24)) / 3600);
@@ -204,7 +201,6 @@ const SystemStats: React.FC = () => {
     return dDisplay + hDisplay + mDisplay + sDisplay;
   };
 
-  // Chart Configurations
   const statusCodeChartData = useMemo(() => {
     if (!stats) return { labels: [], datasets: [] };
     const sc = stats.apiStats.statusCodes;
@@ -229,13 +225,12 @@ const SystemStats: React.FC = () => {
     };
   }, [stats]);
 
-  // Endpoint Latency breakdown
   const endpointChartData = useMemo(() => {
     if (!stats || !stats.apiStats.endpoints) return { labels: [], datasets: [] };
     const endps = stats.apiStats.endpoints;
     const sortedEndpoints = Object.entries(endps)
       .sort((a, b) => b[1].avgTime - a[1].avgTime)
-      .slice(0, 7); // Show top 7 slowest endpoints
+      .slice(0, 7);
 
     const labels = sortedEndpoints.map(([name]) => name);
     const avgTimes = sortedEndpoints.map(([, data]) => parseFloat(data.avgTime.toFixed(1)));
@@ -255,7 +250,6 @@ const SystemStats: React.FC = () => {
     };
   }, [stats]);
 
-  // Columns templates
   const methodTemplate = (row: any) => {
     const method = row.method.toUpperCase();
     let bg = '#e2e8f0';
@@ -371,7 +365,6 @@ const SystemStats: React.FC = () => {
         }
       `}</style>
 
-      {/* Header bar controls */}
       <section style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>System Performance Stats</h2>
@@ -421,10 +414,8 @@ const SystemStats: React.FC = () => {
         </div>
       )}
 
-      {/* Health Status Panels */}
       {stats && (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-          {/* API Health */}
           <div className="stat-card-hover" style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>API Status</div>
@@ -436,7 +427,6 @@ const SystemStats: React.FC = () => {
             <div className={apiHealth === 'healthy' ? 'status-dot-green' : 'status-dot-red'} style={{ width: '12px', height: '12px' }} />
           </div>
 
-          {/* Database Health */}
           <div className="stat-card-hover" style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Database status</div>
@@ -448,7 +438,6 @@ const SystemStats: React.FC = () => {
             <div className={dbHealth === 'healthy' ? 'status-dot-green' : 'status-dot-red'} style={{ width: '12px', height: '12px' }} />
           </div>
 
-          {/* Uptime Health */}
           <div className="stat-card-hover" style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Server Uptime</div>
@@ -466,24 +455,20 @@ const SystemStats: React.FC = () => {
         </section>
       )}
 
-      {/* Core APM KPIs */}
       {stats && (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
-          {/* Total API requests */}
           <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total HTTP Requests</div>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: '0.3rem 0' }}>{stats.apiStats.totalRequests}</div>
             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Since process started</span>
           </div>
 
-          {/* Active Connections */}
           <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Requests</div>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: '0.3rem 0' }}>{stats.apiStats.activeRequests}</div>
             <span style={{ fontSize: '0.75rem', color: '#22c55e', fontWeight: 600 }}>Concurrent connections</span>
           </div>
 
-          {/* Average Latency */}
           <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Avg Response Time</div>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#15803d', margin: '0.3rem 0' }}>
@@ -492,7 +477,6 @@ const SystemStats: React.FC = () => {
             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>API middleware latency</span>
           </div>
 
-          {/* Heap Memory usage */}
           <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.25rem' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Node Heap Usage</div>
             <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', margin: '0.3rem 0' }}>
@@ -509,10 +493,8 @@ const SystemStats: React.FC = () => {
         </section>
       )}
 
-      {/* Visual Analytics Charts */}
       {stats && (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '1.5rem' }}>
-          {/* Status code donut */}
           <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '360px' }}>
             <div style={{ marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1f2937', margin: 0 }}>Request Status Distribution</h3>
@@ -523,7 +505,6 @@ const SystemStats: React.FC = () => {
             </div>
           </div>
 
-          {/* Endpoint Latency breakdown */}
           <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '360px' }}>
             <div style={{ marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1f2937', margin: 0 }}>Slowest Endpoint Analysis</h3>
@@ -542,7 +523,6 @@ const SystemStats: React.FC = () => {
         </section>
       )}
 
-      {/* Recent Requests Logs Table */}
       {stats && (
         <section style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.01)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -571,10 +551,8 @@ const SystemStats: React.FC = () => {
         </section>
       )}
 
-      {/* System Architecture Metadata */}
       {stats && (
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
-          {/* MongoDB Metadata */}
           <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1f2937', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
               <i className="pi pi-database" style={{ marginRight: '0.4rem', color: '#15803d' }}></i> MongoDB Information
@@ -633,7 +611,6 @@ const SystemStats: React.FC = () => {
             </div>
           </div>
 
-          {/* Node OS Metadata */}
           <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1f2937', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>
               <i className="pi pi-server" style={{ marginRight: '0.4rem', color: '#15803d' }}></i> Host Environment

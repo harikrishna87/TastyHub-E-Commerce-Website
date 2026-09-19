@@ -159,12 +159,10 @@ const ReturnsExchanges: React.FC = () => {
     <div style={{ padding: '24px', backgroundColor: 'transparent', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ width: '100%' }}>
         
-        {/* Breadcrumb Container */}
         <div style={{ marginBottom: '24px' }}>
           <BreadCrumb model={breadcrumbItems} home={breadcrumbHome} style={{ background: 'transparent', border: 'none', padding: 0 }} />
         </div>
 
-        {/* Title Section */}
         <div style={{ color: '#22c55e', padding: '10px 0 24px 0', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <i className="pi pi-refresh" style={{ fontSize: '40px' }} />
@@ -178,7 +176,6 @@ const ReturnsExchanges: React.FC = () => {
         </div>
 
         <div style={{ padding: '0 8px' }}>
-          {/* Quick Help Alert */}
           <div style={{
             display: 'flex',
             alignItems: 'start',
@@ -199,7 +196,6 @@ const ReturnsExchanges: React.FC = () => {
             </div>
           </div>
 
-          {/* Return & Exchange Policies Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -252,7 +248,6 @@ const ReturnsExchanges: React.FC = () => {
             </div>
           </Card>
 
-          {/* Eligible Return Reasons Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -298,7 +293,6 @@ const ReturnsExchanges: React.FC = () => {
             </div>
           </Card>
 
-          {/* Return Process Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -332,7 +326,6 @@ const ReturnsExchanges: React.FC = () => {
             </div>
           </Card>
 
-          {/* Refund Methods Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -387,7 +380,6 @@ const ReturnsExchanges: React.FC = () => {
             </div>
           </Card>
 
-          {/* Customer Satisfaction Process Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -430,7 +422,6 @@ const ReturnsExchanges: React.FC = () => {
             </div>
           </Card>
 
-          {/* Important Notes Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -467,7 +458,6 @@ const ReturnsExchanges: React.FC = () => {
             </div>
           </Card>
 
-          {/* Contact Us Card */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

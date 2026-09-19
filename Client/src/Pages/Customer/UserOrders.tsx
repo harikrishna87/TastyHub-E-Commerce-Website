@@ -211,7 +211,7 @@ const CancelCountdown: React.FC<{ createdAt: string; onExpire: () => void }> = (
   useEffect(() => {
     const calculateTime = () => {
       const createdTime = new Date(createdAt).getTime();
-      const expiryTime = createdTime + 10 * 60 * 1000; // 10 minutes
+      const expiryTime = createdTime + 10 * 60 * 1000;
       const difference = expiryTime - Date.now();
 
       if (difference <= 0) {
@@ -294,7 +294,6 @@ const UserOrders: React.FC = () => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     
-    // Inject styles
     const styleElement = document.createElement('style');
     styleElement.innerHTML = customStyles;
     document.head.appendChild(styleElement);
@@ -401,7 +400,6 @@ const UserOrders: React.FC = () => {
         setIsStatusModalVisible(false);
         setSelectedOrderForStatus(null);
         setOrderToCancel(null);
-        // Refresh orders list
         fetchUserOrders();
       }
     } catch (err: any) {
@@ -428,11 +426,9 @@ const UserOrders: React.FC = () => {
       
       if (response.data.success) {
         messageApi.success('Searching for a new delivery partner.');
-        // Update status modal data dynamically
         if (selectedOrderForStatus && selectedOrderForStatus._id === orderId) {
           setSelectedOrderForStatus(response.data.order);
         }
-        // Refresh orders list
         fetchUserOrders();
       }
     } catch (err: any) {
@@ -489,10 +485,6 @@ const UserOrders: React.FC = () => {
     }
   };
 
-  // const truncateText = (text: string, maxLength: number) => {
-  //   if (text.length <= maxLength) return text;
-  //   return text.substring(0, maxLength) + '...';
-  // };
 
   const getStatusTag = (status: OrderDeliveryStatus) => {
     switch (status) {
@@ -862,7 +854,6 @@ const UserOrders: React.FC = () => {
               </div>
             )}
             
-            {/* Receipt container for printing */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
               <div ref={receiptContentRef} style={{
                   width: '320px',
@@ -952,7 +943,6 @@ const UserOrders: React.FC = () => {
           `}</style>
           
           <div className="delivery-scoped-font" style={{ padding: '8px 0' }}>
-            {/* Conditional Cancellation Window Display */}
             {selectedOrderForStatus.deliveryStatus !== 'Cancelled' && 
              selectedOrderForStatus.deliveryStatus !== 'Refunded' && 
              selectedOrderForStatus.deliveryStatus !== 'Delivered' &&   
@@ -990,7 +980,6 @@ const UserOrders: React.FC = () => {
               </div>
             )}
             
-            {/* If order is Pending and 10-Min cancellation window is EXPIRED, show "Delivery partner not accepted" & "Try Again" button */}
             {selectedOrderForStatus.deliveryStatus === 'Pending' && 
              (Date.now() - new Date(selectedOrderForStatus.createdAt).getTime() >= 10 * 60 * 1000) && (
               <div style={{
@@ -1036,7 +1025,6 @@ const UserOrders: React.FC = () => {
               </div>
             )}
             
-            {/* If order is already cancelled, show cancellation details */}
             {selectedOrderForStatus.deliveryStatus === 'Cancelled' && (
               <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <i className="pi pi-times-circle" style={{ fontSize: '2rem', color: '#ef4444' }} />
@@ -1049,7 +1037,6 @@ const UserOrders: React.FC = () => {
               </div>
             )}
             
-            {/* If order is already refunded, show refund details */}
             {selectedOrderForStatus.deliveryStatus === 'Refunded' && (
               <div style={{ background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: '16px', padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <i className="pi pi-undo" style={{ fontSize: '2rem', color: '#3b82f6' }} />
@@ -1068,7 +1055,6 @@ const UserOrders: React.FC = () => {
         </Dialog>
       )}
 
-      {/* Cancellation Reason Dialog */}
       {orderToCancel && (
         <Dialog
           header={

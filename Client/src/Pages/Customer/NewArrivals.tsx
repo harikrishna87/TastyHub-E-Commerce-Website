@@ -300,12 +300,10 @@ const NewArrivals = () => {
             `}</style>
             <div style={{ width: '100%' }}>
                 
-                {/* Breadcrumb */}
                 <div style={{ marginBottom: '24px' }}>
                     <BreadCrumb model={breadcrumbItems} home={breadcrumbHome} style={{ background: 'transparent', border: 'none', padding: 0 }} />
                 </div>
 
-                {/* Title section */}
                 <div style={{ marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                         <i className="pi pi-star-fill" style={{ fontSize: '32px', color: '#22c55e' }} />
@@ -318,7 +316,6 @@ const NewArrivals = () => {
                     </p>
                 </div>
 
-                {/* Products Grid */}
                 <div className="responsive-grid">
                     {products.map((product, index) => {
                         const ratingValue = typeof product.rating === 'object' ? product.rating.rate : (product.rating || 0);
@@ -511,7 +508,6 @@ const NewArrivals = () => {
                     })}
                 </div>
 
-                {/* Footer divider block */}
                 <div style={{ textAlign: 'center', padding: '24px 0', borderTop: '1px solid #e5e7eb' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
                         <i className="pi pi-star" />
@@ -520,7 +516,6 @@ const NewArrivals = () => {
                 </div>
             </div>
 
-            {/* PrimeReact Product Details Dialog */}
             <Dialog
                 header={
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#22c55e' }}>

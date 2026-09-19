@@ -72,14 +72,11 @@ const OrderAnalytics: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const hasFetchedRef = useRef(false);
   
-  // Active chart timeframe: 'weekly' | 'monthly' | 'yearly'
   const [chartTimeframe, setChartTimeframe] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
 
-  // Dialogs for viewing all top customers / transactions
   const [custDialogVisible, setCustDialogVisible] = useState<boolean>(false);
   const [txDialogVisible, setTxDialogVisible] = useState<boolean>(false);
 
-  // Reusable Customer Profile Dialog State
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [customerModalVisible, setCustomerModalVisible] = useState<boolean>(false);
 
@@ -142,7 +139,6 @@ const OrderAnalytics: React.FC = () => {
         fetchCustomers();
       }
 
-      // Auto-refresh stats every 30 seconds silently in the background
       const interval = setInterval(() => {
         fetchOrders();
         fetchCustomers();
@@ -152,15 +148,12 @@ const OrderAnalytics: React.FC = () => {
     }
   }, [auth?.token, fetchOrders, fetchCustomers]);
 
-  // Open Customer details Modal
   const handleCustomerClick = (customerEmailOrId: string) => {
-    // Find matching customer from list
     const matched = customers.find(c => c.email === customerEmailOrId || c._id === customerEmailOrId);
     if (matched) {
       setSelectedCustomer(matched);
       setCustomerModalVisible(true);
     } else {
-      // Fallback search within orders
       const orderWithUser = orders.find(o => {
         const u = o.user;
         if (typeof u === 'object') {
@@ -184,7 +177,6 @@ const OrderAnalytics: React.FC = () => {
     }
   };
 
-  // Filter orders for the selected customer in modal
   const selectedCustomerOrders = useMemo(() => {
     if (!selectedCustomer) return [];
     return orders.filter(o => {
@@ -193,7 +185,6 @@ const OrderAnalytics: React.FC = () => {
     });
   }, [selectedCustomer, orders]);
 
-  // Aggregate stats for selected customer in modal
   const selectedCustomerStats = useMemo(() => {
     if (selectedCustomerOrders.length === 0) {
       return { totalSpent: 0, orderCount: 0 };
@@ -205,7 +196,6 @@ const OrderAnalytics: React.FC = () => {
     };
   }, [selectedCustomerOrders]);
 
-  // Calculations for Metrics
   const stats = useMemo(() => {
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
@@ -222,7 +212,6 @@ const OrderAnalytics: React.FC = () => {
     const deliveryRate = totalOrders > 0 ? Math.round((deliveredCount / totalOrders) * 100) : 0;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Last 7 days earnings
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const recentEarning = orders
@@ -245,7 +234,6 @@ const OrderAnalytics: React.FC = () => {
     };
   }, [orders]);
 
-  // Top Customers Data
   const topCustomers = useMemo(() => {
     const customersMap: { [key: string]: { _id: string; name: string; email: string; image?: string; orderCount: number; totalSpent: number } } = {};
     
@@ -267,16 +255,12 @@ const OrderAnalytics: React.FC = () => {
       .sort((a, b) => b.totalSpent - a.totalSpent);
   }, [orders]);
 
-  // Latest Transactions Data
   const latestTransactions = useMemo(() => {
     return [...orders]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [orders]);
 
-  // Chart Configurations
-  // Weekly Performance Chart (Line Chart for Revenue, Bar for Orders, Bar for Customers)
 
-  // 2. Weekly Performance Chart (Line Chart for Revenue, Bar for Orders, Bar for Customers)
   const weeklyChartData = useMemo(() => {
     const dates: string[] = [];
     const dateObjects: Date[] = [];
@@ -359,7 +343,6 @@ const OrderAnalytics: React.FC = () => {
 
   const weeklyChartOptions = commonChartOptions;
 
-  // 3. Order Status Distribution (Doughnut Chart)
   const doughnutChartData = useMemo(() => {
     return {
       labels: ['Pending', 'Preparing', 'Out For Delivery', 'Delivered', 'Cancelled'],
@@ -381,9 +364,7 @@ const OrderAnalytics: React.FC = () => {
     };
   }, [stats]);
 
-  // 4. Yearly Analysis Data (Line Chart for Revenue, Bar for Orders, Bar for Customers)
 
-  // 4. Yearly Analysis Data (Line Chart for Revenue, Bar for Orders, Bar for Customers)
   const yearlyChartData = useMemo(() => {
     const yearsSet = new Set<string>();
     orders.forEach(o => {
@@ -459,7 +440,6 @@ const OrderAnalytics: React.FC = () => {
 
   const yearlyChartOptions = commonChartOptions;
 
-  // 5. Monthly Performance (Line Chart for Revenue, Bar for Orders, Bar for Customers)
   const monthlyChartData = useMemo(() => {
     const monthNames: string[] = [];
     const monthlyRevenue: number[] = [];
@@ -543,7 +523,6 @@ const OrderAnalytics: React.FC = () => {
 
   const monthlyChartOptions = commonChartOptions;
 
-  // Consolidate timeframe data
   const activeChartData = useMemo(() => {
     if (chartTimeframe === 'weekly') return weeklyChartData;
     if (chartTimeframe === 'monthly') return monthlyChartData;
@@ -556,7 +535,6 @@ const OrderAnalytics: React.FC = () => {
     return yearlyChartOptions;
   }, [chartTimeframe, weeklyChartOptions, monthlyChartOptions, yearlyChartOptions]);
 
-  // Button group styling helper
   const getButtonStyle = (frame: 'weekly' | 'monthly' | 'yearly') => ({
     fontSize: '0.78rem',
     padding: '0.4rem 0.85rem',
@@ -569,7 +547,6 @@ const OrderAnalytics: React.FC = () => {
     transition: 'all 0.2s ease',
   });
 
-  // Table Formatters
   const customerTemplate = (row: any) => {
     const userImg = row.image || row.user?.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
     return (
@@ -666,7 +643,6 @@ const OrderAnalytics: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {/* KPI Cards Grid */}
       <section style={styles.kpiGrid}>
         <div style={styles.kpiCard}>
           <div style={styles.kpiLeft}>
@@ -725,7 +701,6 @@ const OrderAnalytics: React.FC = () => {
         </div>
       </section>
 
-      {/* Mini Grid Stats */}
       <section style={styles.miniGrid}>
         <div style={styles.miniCard}>
           <div style={styles.miniTitle}>AVERAGE ORDER VALUE</div>
@@ -768,9 +743,7 @@ const OrderAnalytics: React.FC = () => {
         </div>
       </section>
 
-      {/* Primary Performance Charts - Consolidated */}
       <section style={styles.chartSplit}>
-        {/* Weekly/Monthly/Yearly Consolidated Chart */}
         <div style={{ ...styles.cardPanel, flex: 2 }}>
           <div style={styles.cardHeader}>
             <div>
@@ -779,7 +752,6 @@ const OrderAnalytics: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-              {/* Dynamic Toggle buttons */}
               <div style={{ display: 'flex', gap: '0.2rem', backgroundColor: '#f1f5f9', padding: '0.25rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <button onClick={() => setChartTimeframe('weekly')} style={getButtonStyle('weekly')}>Weekly</button>
                 <button onClick={() => setChartTimeframe('monthly')} style={getButtonStyle('monthly')}>Monthly</button>
@@ -804,7 +776,6 @@ const OrderAnalytics: React.FC = () => {
           </div>
         </div>
 
-        {/* Status Distribution Doughnut Chart */}
         <div style={{ ...styles.cardPanel, flex: 1 }}>
           <div style={styles.cardHeader}>
             <div>
@@ -822,9 +793,7 @@ const OrderAnalytics: React.FC = () => {
         </div>
       </section>
 
-      {/* Top Tables Section (Reduced font sizes) */}
       <section style={styles.tableSplit}>
-        {/* Top Spending Customers */}
         <div style={{ ...styles.cardPanel, flex: 1 }}>
           <div style={styles.tableHeaderLine}>
             <h2 style={styles.cardTitle}>Top Customers</h2>
@@ -849,7 +818,6 @@ const OrderAnalytics: React.FC = () => {
           </DataTable>
         </div>
 
-        {/* Latest Transactions */}
         <div style={{ ...styles.cardPanel, flex: 1.2 }}>
           <div style={styles.tableHeaderLine}>
             <h2 style={styles.cardTitle}>Latest Transactions</h2>
@@ -875,7 +843,6 @@ const OrderAnalytics: React.FC = () => {
         </div>
       </section>
 
-      {/* Dialog for Top Customers */}
       <Dialog header="Top Spending Customers" visible={custDialogVisible} style={{ width: '60vw', borderRadius: '12px' }} onHide={() => setCustDialogVisible(false)}>
         <DataTable value={topCustomers} paginator rows={10} responsiveLayout="scroll" tableStyle={{ minWidth: '50rem' }} style={{ fontSize: '0.85rem' }}>
           <Column field="name" header="Customer Name" body={customerTemplate} />
@@ -885,7 +852,6 @@ const OrderAnalytics: React.FC = () => {
         </DataTable>
       </Dialog>
 
-      {/* Dialog for All Transactions Log */}
       <Dialog header="All Transactions Log" visible={txDialogVisible} style={{ width: '70vw', borderRadius: '12px' }} onHide={() => setTxDialogVisible(false)}>
         <DataTable value={latestTransactions} paginator rows={10} responsiveLayout="scroll" tableStyle={{ minWidth: '60rem' }} style={{ fontSize: '0.85rem' }}>
           <Column field="_id" header="Order ID" body={(r) => <code style={{ color: '#64748b' }}>{r._id}</code>} />
@@ -897,7 +863,6 @@ const OrderAnalytics: React.FC = () => {
         </DataTable>
       </Dialog>
 
-      {/* Reusable Customer Profile Dialog (Combined profile + order history) */}
       <Dialog
         visible={customerModalVisible}
         onHide={() => {
@@ -916,9 +881,7 @@ const OrderAnalytics: React.FC = () => {
       >
         {selectedCustomer && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem', fontFamily: 'Inter, sans-serif' }}>
-            {/* Header Cards Info - Flex side-by-side */}
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-              {/* Profile Card */}
               <div style={{ flex: '1 1 300px', display: 'flex', gap: '1rem', padding: '1.25rem', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                 <Avatar
                   image={selectedCustomer.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
@@ -937,7 +900,6 @@ const OrderAnalytics: React.FC = () => {
                 </div>
               </div>
 
-              {/* Stats Card */}
               <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '1.25rem', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Total Orders</span>
@@ -950,7 +912,6 @@ const OrderAnalytics: React.FC = () => {
               </div>
             </div>
 
-            {/* Aggregated Order History */}
             <div>
               <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', fontWeight: 700, color: '#1f2937' }}>
                 Order History ({selectedCustomerOrders.length})
@@ -1016,7 +977,6 @@ const OrderAnalytics: React.FC = () => {
               </div>
             </div>
             
-            {/* Close button container */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
               <Button
                 label="Close Profile"
@@ -1036,7 +996,6 @@ const OrderAnalytics: React.FC = () => {
   );
 };
 
-// Premium Styles matching the mockup dashboard precisely
 const styles = {
   kpiGrid: {
     display: 'grid',

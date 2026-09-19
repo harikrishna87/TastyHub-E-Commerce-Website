@@ -79,7 +79,6 @@ const AppContent: React.FC = () => {
     )
   }
 
-  // Delivery Executive Layout (screens are full height and width, completely clean of customer headers/footers)
   if (auth?.isAuthenticated && auth.user?.role === 'delivery_executive') {
     return (
       <Routes>

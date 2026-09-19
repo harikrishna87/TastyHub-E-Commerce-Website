@@ -70,12 +70,10 @@ const CustomersManagement: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [globalFilter, setGlobalFilter] = useState<string>('');
   
-  // Selected customer for modal
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(null);
   const [customerModalVisible, setCustomerModalVisible] = useState<boolean>(false);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  // Fetch Customers list
   const fetchCustomers = useCallback(async () => {
     if (!auth?.token) {
       setLoading(false);
@@ -89,7 +87,6 @@ const CustomersManagement: React.FC = () => {
       };
       const res = await axios.get(`${backendUrl}/api/auth/customers`, config);
       if (res.data.success) {
-        // Filter out admins from showing in standard customers lists
         const filtered = (res.data.users || []).filter((u: ICustomer) => u.role === 'user');
         setCustomers(filtered);
       }
@@ -105,7 +102,6 @@ const CustomersManagement: React.FC = () => {
     }
   }, [auth?.token, backendUrl]);
 
-  // Fetch all orders to aggregate customer spendings
   const fetchAllOrders = useCallback(async () => {
     if (!auth?.token) return;
     try {
@@ -127,7 +123,6 @@ const CustomersManagement: React.FC = () => {
     fetchAllOrders();
   }, [fetchCustomers, fetchAllOrders]);
 
-  // Handle Toggle Customer Status (Activate/Deactivate)
   const handleToggleCustomerStatus = async (customer: ICustomer) => {
     const isActive = customer.isActive !== false;
     const actionText = isActive ? 'deactivate' : 'activate';
@@ -158,13 +153,11 @@ const CustomersManagement: React.FC = () => {
     }
   };
 
-  // Open Customer details Modal
   const openCustomerDetails = (customer: ICustomer) => {
     setSelectedCustomer(customer);
     setCustomerModalVisible(true);
   };
 
-  // Filter orders for the selected customer
   const selectedCustomerOrders = useMemo(() => {
     if (!selectedCustomer) return [];
     return orders.filter(o => {
@@ -173,7 +166,6 @@ const CustomersManagement: React.FC = () => {
     });
   }, [selectedCustomer, orders]);
 
-  // Aggregate stats
   const selectedCustomerStats = useMemo(() => {
     if (selectedCustomerOrders.length === 0) {
       return { totalSpent: 0, orderCount: 0 };
@@ -185,7 +177,6 @@ const CustomersManagement: React.FC = () => {
     };
   }, [selectedCustomerOrders]);
 
-  // Headers & templates for customer table
   const imageBodyTemplate = (rowData: ICustomer) => {
     const avatarSrc = rowData.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
     return (
@@ -273,7 +264,6 @@ const CustomersManagement: React.FC = () => {
     );
   };
 
-  // Header element
   const header = (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
       <h3 style={{ margin: 0, color: '#1f2937', fontWeight: 700 }}>Customers Directory</h3>
@@ -289,7 +279,6 @@ const CustomersManagement: React.FC = () => {
     </div>
   );
 
-  // Empty table template
   const emptyTableTemplate = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3.5rem 1rem', color: '#6b7280' }}>
@@ -309,12 +298,10 @@ const CustomersManagement: React.FC = () => {
     );
   }
 
-  // Custom Toast templates
   return (
     <div style={{ padding: '0.25rem' }}>
       <Toast ref={toast} className="custom-toast" />
 
-      {/* Title block */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: 0 }}>
@@ -326,7 +313,6 @@ const CustomersManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Customers DataTable */}
       <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 4px 18px rgba(0, 0, 0, 0.02)', padding: '1.5rem', overflow: 'hidden' }}>
         <DataTable
           value={customers}
@@ -352,7 +338,6 @@ const CustomersManagement: React.FC = () => {
         </DataTable>
       </div>
 
-      {/* Beautiful Aggregated Customer Dialog */}
       <Dialog
         visible={customerModalVisible}
         onHide={() => {
@@ -371,9 +356,7 @@ const CustomersManagement: React.FC = () => {
       >
         {selectedCustomer && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem', fontFamily: 'Inter, sans-serif' }}>
-            {/* Header Cards Info - Flex side-by-side */}
             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-              {/* Profile Card */}
               <div style={{ flex: '1 1 300px', display: 'flex', gap: '1rem', padding: '1.25rem', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                 <Avatar
                   image={selectedCustomer.image || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y'}
@@ -392,7 +375,6 @@ const CustomersManagement: React.FC = () => {
                 </div>
               </div>
 
-              {/* Stats Card */}
               <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '1.25rem', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Total Orders</span>
@@ -405,7 +387,6 @@ const CustomersManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Aggregated Order History Header */}
             <div>
               <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem', fontWeight: 700, color: '#1f2937' }}>
                 Order History ({selectedCustomerOrders.length})
@@ -458,7 +439,7 @@ const CustomersManagement: React.FC = () => {
                       if (method === 'cod') {
                         isPaid = delivery === 'Delivered';
                       } else {
-                        isPaid = true; // online, gift_card, etc.
+                        isPaid = true;
                       }
                       
                       return (
@@ -482,7 +463,6 @@ const CustomersManagement: React.FC = () => {
               </div>
             </div>
             
-            {/* Close button container */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
               <Button
                 label="Close Profile"

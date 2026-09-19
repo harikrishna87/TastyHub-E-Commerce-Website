@@ -173,12 +173,10 @@ const FAQ: React.FC = () => {
     <div style={{ padding: '24px', backgroundColor: 'transparent', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
       <div style={{ width: '100%' }}>
         
-        {/* Breadcrumb Container */}
         <div style={{ marginBottom: '24px' }}>
           <BreadCrumb model={breadcrumbItems} home={breadcrumbHome} style={{ background: 'transparent', border: 'none', padding: 0 }} />
         </div>
 
-        {/* Title Section */}
         <div style={{ color: '#22c55e', padding: '10px 0 24px 0', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <i className="pi pi-question-circle" style={{ fontSize: '40px' }} />
@@ -192,7 +190,6 @@ const FAQ: React.FC = () => {
         </div>
 
         <div style={{ padding: '0 8px' }}>
-          {/* Quick Help Alert */}
           <div style={{
             display: 'flex',
             alignItems: 'start',
@@ -213,7 +210,6 @@ const FAQ: React.FC = () => {
             </div>
           </div>
 
-          {/* FAQ Categories Accordions */}
           {faqCategories.map((category, categoryIndex) => (
             <Card
               key={categoryIndex}
@@ -267,7 +263,6 @@ const FAQ: React.FC = () => {
             </Card>
           ))}
 
-          {/* Popular Questions Section */}
           <Card
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -359,7 +354,6 @@ const FAQ: React.FC = () => {
             </div>
           </Card>
 
-          {/* Footer Last Updated */}
           <div style={{ textAlign: 'center', padding: '24px 0', borderTop: '1px solid #e5e7eb', marginTop: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#6b7280', fontSize: '14px' }}>
               <i className="pi pi-check-circle" />

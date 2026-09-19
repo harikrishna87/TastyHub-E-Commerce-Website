@@ -48,12 +48,10 @@ const PrivacyPolicy: React.FC = () => {
   return (
     <div style={{ padding: '24px', backgroundColor: 'transparent', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
       
-      {/* Breadcrumb */}
       <div style={{ marginBottom: '24px' }}>
         <BreadCrumb model={breadcrumbItems} home={breadcrumbHome} style={{ background: 'transparent', border: 'none', padding: 0 }} />
       </div>
 
-      {/* Header section */}
       <div style={{
         color: '#22c55e',
         padding: '10px 0 30px 0',
@@ -72,7 +70,6 @@ const PrivacyPolicy: React.FC = () => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
-        {/* Core Notice */}
         <div style={{
           padding: '1.5rem',
           borderRadius: '16px',
@@ -92,7 +89,6 @@ const PrivacyPolicy: React.FC = () => {
           </div>
         </div>
 
-        {/* Dynamic Accordion panels for full document */}
         <Accordion activeIndex={0} style={{ borderRadius: '16px', overflow: 'hidden' }}>
           <AccordionTab header={
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#1f2937' }}>
@@ -205,7 +201,6 @@ const PrivacyPolicy: React.FC = () => {
           </AccordionTab>
         </Accordion>
 
-        {/* Corporate details Card */}
         <Card style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
           <h3 style={{ margin: '0 0 1rem 0', fontWeight: 800, color: '#1f2937', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <i className="pi pi-envelope" style={{ color: '#22c55e' }} />
@@ -242,7 +237,6 @@ const PrivacyPolicy: React.FC = () => {
           </div>
         </Card>
 
-        {/* Footer info */}
         <div style={{ textAlign: 'center', padding: '2rem 0', color: '#9ca3af', fontSize: '0.88rem', borderTop: '1px solid #f3f4f6' }}>
           <i className="pi pi-refresh" style={{ marginRight: '6px' }} />
           <span>Last Updated: {new Date().toDateString()} • Privacy Protection Verified</span>

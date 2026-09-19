@@ -45,13 +45,11 @@ const RestaurantsManagement: React.FC = () => {
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'restaurants';
 
-  // Lists and loading
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [banners, setBanners] = useState<OfferBanner[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Restaurant Dialog & Form States
   const [restDialog, setRestDialog] = useState<boolean>(false);
   const [editingRest, setEditingRest] = useState<Restaurant | null>(null);
   const [restName, setRestName] = useState<string>('');
@@ -66,7 +64,6 @@ const RestaurantsManagement: React.FC = () => {
   const [restPopular, setRestPopular] = useState<string>('');
   const [restIsVeg, setRestIsVeg] = useState<boolean>(true);
 
-  // Banner Dialog & Form States
   const [bannerDialog, setBannerDialog] = useState<boolean>(false);
   const [editingBanner, setEditingBanner] = useState<OfferBanner | null>(null);
   const [bannerTitle, setBannerTitle] = useState<string>('');
@@ -76,7 +73,6 @@ const RestaurantsManagement: React.FC = () => {
   const [bannerDiscText, setBannerDiscText] = useState<string>('');
   const [bannerIsActive, setBannerIsActive] = useState<boolean>(true);
 
-  // Fetch initial data
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -89,7 +85,6 @@ const RestaurantsManagement: React.FC = () => {
       if (restRes.data.success) setRestaurants(restRes.data.data || []);
       if (bannerRes.data.success) setBanners(bannerRes.data.data || []);
       
-      // Extract unique categories from products to pre-populate dropdown
       const prodData = prodRes.data.data || [];
       const uniqueCats = [...new Set(prodData.map((p: any) => p.category))] as string[];
       setCategories(uniqueCats.filter(Boolean));
@@ -105,7 +100,6 @@ const RestaurantsManagement: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Open Restaurant Form for Add
   const openNewRest = () => {
     setEditingRest(null);
     setRestName('');
@@ -122,7 +116,6 @@ const RestaurantsManagement: React.FC = () => {
     setRestDialog(true);
   };
 
-  // Open Restaurant Form for Edit
   const editRest = (rest: Restaurant) => {
     setEditingRest(rest);
     setRestName(rest.name);
@@ -139,7 +132,6 @@ const RestaurantsManagement: React.FC = () => {
     setRestDialog(true);
   };
 
-  // Save Restaurant (Add or Update)
   const saveRestaurant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!restName || !restCat || !restImg || !restDelivery || !restCost) {
@@ -168,7 +160,6 @@ const RestaurantsManagement: React.FC = () => {
       };
 
       if (editingRest) {
-        // Update
         const res = await axios.put(`${backendUrl}/api/restaurants/${editingRest._id}`, payload, config);
         if (res.data.success) {
           toastRef.current?.show({ severity: 'success', summary: 'Success', detail: 'Restaurant updated successfully.' });
@@ -176,7 +167,6 @@ const RestaurantsManagement: React.FC = () => {
           fetchData();
         }
       } else {
-        // Create
         const res = await axios.post(`${backendUrl}/api/restaurants`, payload, config);
         if (res.data.success) {
           toastRef.current?.show({ severity: 'success', summary: 'Success', detail: 'Restaurant created successfully.' });
@@ -190,7 +180,6 @@ const RestaurantsManagement: React.FC = () => {
     }
   };
 
-  // Delete Restaurant
   const deleteRest = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this restaurant profile?')) return;
 
@@ -210,7 +199,6 @@ const RestaurantsManagement: React.FC = () => {
     }
   };
 
-  // Open Banner Form for Add
   const openNewBanner = () => {
     setEditingBanner(null);
     setBannerTitle('');
@@ -222,7 +210,6 @@ const RestaurantsManagement: React.FC = () => {
     setBannerDialog(true);
   };
 
-  // Open Banner Form for Edit
   const editBanner = (banner: OfferBanner) => {
     setEditingBanner(banner);
     setBannerTitle(banner.title);
@@ -234,7 +221,6 @@ const RestaurantsManagement: React.FC = () => {
     setBannerDialog(true);
   };
 
-  // Save Banner (Add or Update)
   const saveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bannerTitle || !bannerSubtitle || !bannerImg || !bannerLinkCat || !bannerDiscText) {
@@ -258,7 +244,6 @@ const RestaurantsManagement: React.FC = () => {
       };
 
       if (editingBanner) {
-        // Update
         const res = await axios.put(`${backendUrl}/api/offers/${editingBanner._id}`, payload, config);
         if (res.data.success) {
           toastRef.current?.show({ severity: 'success', summary: 'Success', detail: 'Offer banner updated.' });
@@ -266,7 +251,6 @@ const RestaurantsManagement: React.FC = () => {
           fetchData();
         }
       } else {
-        // Create
         const res = await axios.post(`${backendUrl}/api/offers`, payload, config);
         if (res.data.success) {
           toastRef.current?.show({ severity: 'success', summary: 'Success', detail: 'Offer banner created.' });
@@ -280,7 +264,6 @@ const RestaurantsManagement: React.FC = () => {
     }
   };
 
-  // Delete Banner
   const deleteBanner = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this promotional banner?')) return;
 
@@ -300,7 +283,6 @@ const RestaurantsManagement: React.FC = () => {
     }
   };
 
-  // Table Column Templates
   const imageTemplate = (rowData: any) => (
     <img 
       src={rowData.image} 
@@ -380,7 +362,6 @@ const RestaurantsManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* Restaurants Table */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}>
               <i className="pi pi-shop" style={{ color: '#15803d' }} /> Active Dining Restaurants
@@ -418,7 +399,6 @@ const RestaurantsManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* Banners Table */}
           <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '1.5rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 1rem 0' }}>
               <i className="pi pi-images" style={{ color: '#15803d' }} /> Main Screen Promotion Banners
@@ -436,7 +416,6 @@ const RestaurantsManagement: React.FC = () => {
         </>
       )}
 
-      {/* Restaurant Dialog Dialog */}
       <Dialog 
         header={editingRest ? "Modify Restaurant Profile" : "Register New Gourmet Restaurant"} 
         visible={restDialog} 
@@ -508,7 +487,6 @@ const RestaurantsManagement: React.FC = () => {
         </form>
       </Dialog>
 
-      {/* Banner Dialog Dialog */}
       <Dialog 
         header={editingBanner ? "Modify Promotion Slide" : "Upload New Promotion Banner"} 
         visible={bannerDialog} 

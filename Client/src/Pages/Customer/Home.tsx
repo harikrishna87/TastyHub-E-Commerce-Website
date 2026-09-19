@@ -127,7 +127,6 @@ export default function Homepage() {
     };
   }, []);
 
-  // Handle voice/URL search query parameters
   useEffect(() => {
     const searchParam = searchParams.get('search');
     if (searchParam) {
@@ -144,7 +143,6 @@ export default function Homepage() {
     }
   }, [searchParams, setSearchParams]);
 
-  // Fetch products & banners dynamically from server endpoints
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
@@ -154,7 +152,6 @@ export default function Homepage() {
           axios.get(`${backendUrl}/api/offers`)
         ]);
 
-        // Process Products
         const data = prodRes.data.data;
         const typedProducts: Product[] = data.map((item: any) => ({
           _id: item._id,
@@ -173,7 +170,6 @@ export default function Homepage() {
         setFeaturedProducts(shuffledProducts.slice(0, 8));
         setSelectedProducts(shuffleArray<Product>([...shuffledProducts]).slice(0, productsPerPage));
 
-        // Process Unique Categories Discounts
         const uniqueCategories = [...new Set(typedProducts.map(product => product.category))];
         const discounts: { [key: string]: number } = {};
         uniqueCategories.forEach(category => {
@@ -181,7 +177,6 @@ export default function Homepage() {
         });
         setCategoryDiscounts(discounts);
 
-        // Process Promotional Banners under Admin Control
         if (bannerRes.data.success) {
           const activeBanners = (bannerRes.data.data || []).filter((b: OfferBanner) => b.isActive);
           setBanners(activeBanners.length > 0 ? activeBanners : defaultBanners);
@@ -200,7 +195,6 @@ export default function Homepage() {
     fetchHomeData();
   }, [productsPerPage, backendUrl]);
 
-  // Handle category & search filters combined
   useEffect(() => {
     let results = [...products];
 
@@ -220,7 +214,6 @@ export default function Homepage() {
     setCurrentPage(1);
   }, [selectedCategory, searchQuery, products]);
 
-  // Handle paginate list
   useEffect(() => {
     const indexOfLastProduct = currentPage * productsPerPage;
     const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -287,7 +280,6 @@ export default function Homepage() {
     );
   };
 
-  // PrimeReact Carousel Slide Template
   const bannerTemplate = (banner: OfferBanner) => {
     return (
       <div 
@@ -357,7 +349,6 @@ export default function Homepage() {
           alignItems: 'center',
           gap: '1.5rem'
         }}>
-          {/* Glowing Server Icon */}
           <div style={{
             position: 'relative',
             width: '90px',
@@ -405,7 +396,6 @@ export default function Homepage() {
             </p>
           </div>
 
-          {/* Technical Details */}
           <div style={{
             width: '100%',
             backgroundColor: '#f8fafc',
@@ -433,7 +423,6 @@ export default function Homepage() {
             </div>
           </div>
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '0.5rem' }}>
             <Button
               label="Go to Home"
@@ -459,7 +448,6 @@ export default function Homepage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'transparent', position: 'relative', overflow: 'hidden' }}>
       
-      {/* PrimeReact Active Deals Offer Banners Carousel (Controlled by Admin APIs) */}
       {banners.length > 0 && (
         <div style={{ marginBottom: '3rem' }}>
           <Carousel 
@@ -475,7 +463,6 @@ export default function Homepage() {
         </div>
       )}
 
-      {/* Hero section fall-back if banners carousel is empty */}
       {banners.length === 0 && (
         <div style={{
           background: 'linear-gradient(135deg, #0b1a11 0%, #1c3622 100%)',
@@ -500,7 +487,6 @@ export default function Homepage() {
         </div>
       )}
 
-      {/* Primary Search Banner */}
       <div style={{ 
         backgroundColor: '#ffffff', 
         borderRadius: '16px', 
@@ -532,7 +518,6 @@ export default function Homepage() {
         </div>
       </div>
 
-      {/* "What's on your mind?" Bubble Slider */}
       <div style={{ marginBottom: '3rem' }}>
         <h3 style={{ fontWeight: 700, marginBottom: '1.5rem', letterSpacing: '-0.5px', fontSize: '1.5rem', color: '#0f172a', margin: '0 0 1.5rem 0' }}>
           What's on your mind?
@@ -557,13 +542,11 @@ export default function Homepage() {
         </div>
       </div>
 
-      {/* Dynamic popular restaurants explorer component */}
       <FeaturedRestaurants 
         onSelectCategory={handleCategoryClick} 
         selectedCategory={selectedCategory} 
       />
 
-      {/* Continuous scroll Featured items */}
       <div style={{ marginBottom: '4rem' }}>
         <FeaturedProducts
           featuredProducts={featuredProducts}
@@ -573,7 +556,6 @@ export default function Homepage() {
         />
       </div>
 
-      {/* Active browser selections */}
       <div id="our-selection-section" style={{ scrollMarginTop: '100px', marginBottom: '4rem' }}>
         {searchQuery && (
           <div style={{ 
@@ -611,7 +593,6 @@ export default function Homepage() {
       </div>
 
 
-      {/* Testimonials */}
       <div style={{ marginBottom: '4rem' }}>
         <Testimonials />
       </div>

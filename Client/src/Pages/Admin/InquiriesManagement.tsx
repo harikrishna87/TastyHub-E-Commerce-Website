@@ -59,9 +59,7 @@ const InquiriesManagement: React.FC = () => {
 
       if (res.data.success) {
         (window as any).showToast?.('success', 'Success', 'Response email successfully sent to customer!');
-        // Refresh local items
         fetchInquiries();
-        // Clear reply box
         setReplies(prev => ({ ...prev, [id]: '' }));
       }
     } catch (err) {

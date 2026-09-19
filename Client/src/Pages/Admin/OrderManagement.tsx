@@ -157,12 +157,10 @@ const OrderManagement: React.FC = () => {
           detail: response.data.message || 'Refund successfully completed'
         });
         
-        // Update the order in state so that the modal updates instantly!
         if (selectedOrder && selectedOrder._id === orderId) {
           setSelectedOrder(prev => prev ? { ...prev, isRefunded: true, deliveryStatus: 'Refunded', refundDetails: response.data.refundDetails } : null);
         }
         
-        // Refresh full orders list
         fetchOrders();
       }
     } catch (err: any) {
@@ -196,12 +194,10 @@ const OrderManagement: React.FC = () => {
           detail: 'Searching for a new delivery partner successfully.'
         });
         
-        // Update the order in state so that the modal updates instantly!
         if (selectedOrder && selectedOrder._id === orderId) {
           setSelectedOrder(response.data.order);
         }
         
-        // Refresh full orders list
         fetchOrders();
       }
     } catch (err: any) {
@@ -283,7 +279,6 @@ const OrderManagement: React.FC = () => {
     setAddressVisible(true);
   };
 
-  // Plain Text Status Tag for Dialogs
   const getStatusTag = (status: OrderDeliveryStatus) => {
     let severity: "success" | "warning" | "info" | "danger" | null = 'info';
     if (status === 'Delivered') severity = 'success';
@@ -296,7 +291,6 @@ const OrderManagement: React.FC = () => {
     return <Tag value={status} severity={severity} style={{ borderRadius: '6px' }} />;
   };
 
-  // --- TEMPLATES FOR DATATABLE COLUMNS ---
 
   const orderIdTemplate = (row: IOrder) => (
     <code style={{ color: '#64748b', fontWeight: 600 }}>{row._id.substring(0, 10)}...</code>
@@ -345,7 +339,7 @@ const OrderManagement: React.FC = () => {
     if (method === 'cod') {
       isPaid = delivery === 'Delivered';
     } else {
-      isPaid = true; // online, gift_card, etc.
+      isPaid = true;
     }
     
     return (
@@ -358,7 +352,6 @@ const OrderManagement: React.FC = () => {
     );
   };
 
-  // Custom UI status change dropdown template
   const statusDropdownTemplate = (row: IOrder) => {
     const isUpdating = statusUpdateLoading === row._id;
     const statusColor = row.deliveryStatus === 'Delivered' ? '#22c55e' : 
@@ -423,7 +416,6 @@ const OrderManagement: React.FC = () => {
   return (
     <div style={styles.container}>
       <Toast ref={toast} />
-      {/* Title Header Section */}
       <div style={styles.headerRow}>
         <div>
           <h1 style={styles.title}>Order Management</h1>
@@ -436,7 +428,6 @@ const OrderManagement: React.FC = () => {
         </button>
       </div>
 
-      {/* Main DataTable panel (Strip KPI summary cards) */}
       <div style={styles.tablePanel}>
         <DataTable
           value={sortedOrders}
@@ -465,7 +456,6 @@ const OrderManagement: React.FC = () => {
         </DataTable>
       </div>
 
-      {/* Product Details Modal (Dialog) */}
       <Dialog
         header={
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#22c55e' }}>
@@ -570,7 +560,6 @@ const OrderManagement: React.FC = () => {
         )}
       </Dialog>
 
-      {/* Shipping Address Modal (Dialog) */}
       <Dialog
         header={
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#22c55e' }}>

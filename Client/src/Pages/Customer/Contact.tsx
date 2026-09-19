@@ -128,7 +128,7 @@ const Contact: React.FC = () => {
     phone: '',
     preferredDish: '',
     dietaryRestrictions: 'none',
-    orderType: 'booking', // default to Table Booking
+    orderType: 'booking',
     guestCount: 2,
     eventDate: '',
     message: ''
@@ -196,7 +196,6 @@ const Contact: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'stretch' }}>
-          {/* Left Column */}
           <div style={{ flex: '1 1 350px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <Card className="contact-card" style={{ padding: '2rem' }}>
               <h3 style={{ color: '#166534', fontWeight: 800, fontSize: '1.5rem', margin: '0 0 2rem 0' }}>Corporate Directory</h3>
@@ -251,7 +250,6 @@ const Contact: React.FC = () => {
             </Card>
           </div>
 
-          {/* Right Column (Form) */}
           <div style={{ flex: '2 2 500px' }}>
             <Card className="contact-card" style={{ height: '100%', padding: '3rem' }}>
               <h3 style={{ color: '#166534', fontWeight: 800, fontSize: '1.5rem', margin: '0 0 0.25rem 0' }}>Enquiry & Reservation Form</h3>
