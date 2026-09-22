@@ -212,7 +212,7 @@ const NewArrivals = () => {
         return `${description.substring(0, maxLength)}...`;
     };
 
-    const getProductTags = (_index?: number) => {
+    const getProductTags = () => {
         const tags = [];
         tags.push({ type: 'new', icon: 'pi pi-clock', text: 'NEW', color: 'green', severity: 'success' as const });
         return tags;
@@ -317,7 +317,7 @@ const NewArrivals = () => {
                 </div>
 
                 <div className="responsive-grid">
-                    {products.map((product, index) => {
+                    {products.map((product) => {
                         const ratingValue = typeof product.rating === 'object' ? product.rating.rate : (product.rating || 0);
                         const ratingCount = typeof product.rating === 'object' ? product.rating.count : 0;
                         
@@ -384,7 +384,7 @@ const NewArrivals = () => {
                                     flexDirection: 'column',
                                     gap: '8px'
                                 }}>
-                                    {getProductTags(index).map((tag, idx) => (
+                                    {getProductTags().map((tag, idx) => (
                                         <Tag 
                                             key={idx} 
                                             value={tag.text} 

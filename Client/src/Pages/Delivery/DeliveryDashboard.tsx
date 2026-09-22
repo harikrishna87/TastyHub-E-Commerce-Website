@@ -522,7 +522,6 @@ const DeliveryDashboard: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to fetch withdrawal requests:', err);
-    } finally {
     }
   }, [authContext?.token, backendUrl]);
 
@@ -643,6 +642,7 @@ const DeliveryDashboard: React.FC = () => {
         fetchDashboardData(true);
       }
     } catch (err) {
+      console.error('Failed to update carrier duty status:', err);
       message.error({
         content: 'Failed to update carrier duty status.',
         duration: 4

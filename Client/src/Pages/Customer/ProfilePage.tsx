@@ -223,7 +223,7 @@ const ProfilePage: React.FC = () => {
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fetchLoading, setFetchLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
-  const [_, setImageUploading] = useState<boolean>(false);
+  const [imageUploading, setImageUploading] = useState<boolean>(false);
 
   const [activeIndex, setActiveIndex] = useState<number>(0);
 
@@ -440,15 +440,12 @@ const ProfilePage: React.FC = () => {
     const token = authContext?.token || localStorage.getItem('token');
     if (!token) return;
     try {
-      const res = await axios.get(`${backendUrl}/api/promo/transactions/my`, {
+      await axios.get(`${backendUrl}/api/promo/transactions/my`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
-      if (res.data.success) {
-      }
     } catch (err) {
       console.error(err);
-    } finally {
     }
   };
 
@@ -517,6 +514,7 @@ const ProfilePage: React.FC = () => {
   }, [profileData?.role]);
 
   const triggerFileSelect = () => {
+    if (imageUploading) return;
     fileInputRef.current?.click();
   };
 
@@ -1112,7 +1110,7 @@ const ProfilePage: React.FC = () => {
               }}
             />
             <div style={{ position: 'absolute', bottom: '2px', right: '2px', backgroundColor: '#ffffff', color: '#15803d', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', border: '1px solid #15803d' }}>
-              <i className="pi pi-camera" style={{ fontSize: '0.75rem' }}></i>
+              <i className={imageUploading ? "pi pi-spin pi-spinner" : "pi pi-camera"} style={{ fontSize: '0.75rem' }}></i>
             </div>
           </div>
           <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
